@@ -14,6 +14,8 @@ export interface Bindings {
   SERVICE_VERSION: string;
   /** Публичный адрес этого сервиса — Better Auth строит по нему ссылки. */
   BETTER_AUTH_URL: string;
+  /** Адрес фронтенда: после входа и подтверждения почты пользователь попадает туда, а не на gateway. */
+  FRONTEND_URL?: string;
   BETTER_AUTH_SECRET: string;
   RATE_LIMIT_MAX_REQUESTS?: string;
   RATE_LIMIT_WINDOW_SECONDS?: string;

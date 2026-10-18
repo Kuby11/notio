@@ -36,5 +36,6 @@ export const auth = betterAuth(
     secondaryStorage: cliSecondaryStorage,
     mailSender: createLoggingMailSender(() => undefined),
     publicUrl: cliEnv.BETTER_AUTH_URL,
+    frontendUrl: cliEnv.BETTER_AUTH_URL,
   }),
 );

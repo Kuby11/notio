@@ -88,7 +88,10 @@ export function createBetterAuthGateway(options: AuthGatewayOptions): AuthGatewa
       try {
         const result = await client.signIn.social({
           provider,
-          callbackURL: callbackUrl,
+          // Абсолютный адрес фронтенда: иначе Better Auth разрешает
+          // callbackURL относительно своего baseURL (gateway) и после
+          // входа пользователь попадает на корень gateway, а не на приложение.
+          callbackURL: `${window.location.origin}${callbackUrl.startsWith('/') ? callbackUrl : `/${callbackUrl}`}`,
         });
 
         if (result.error !== null) {

@@ -17,6 +17,8 @@ export interface AuthDependencies {
   mailSender: MailSender;
   /** Куда ссылаться в письмах: в dev — на локальный фронтенд. */
   publicUrl: string;
+  /** Адрес фронтенда: ссылки подтверждения и сброса пароля ведут туда. */
+  frontendUrl: string;
   /**
    * Адаптер базы. В Workers — Drizzle поверх D1 со сгенерированной схемой
    * (`@better-auth/cli generate`), в CLI — заглушка для генерации схемы.
@@ -34,6 +36,25 @@ function positiveInt(value: string | undefined, fallback: number): number {
   const parsed = Number.parseInt(value ?? '', 10);
 
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * Меняет callbackURL в ссылке Better Auth на адрес фронтенда.
+ *
+ * Better Auth строит ссылки с callbackURL=/ (относительно своего baseURL, то есть
+ * gateway). Без перезаписи пользователь после подтверждения почты или сброса
+ * пароля попадает на корень gateway, а не на фронтенд.
+ */
+function rewriteCallbackUrl(url: string, frontendUrl: string): string {
+  try {
+    const parsed = new URL(url);
+
+    parsed.searchParams.set('callbackURL', frontendUrl);
+
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 /**
@@ -121,7 +142,9 @@ export function buildAuthOptions(env: Bindings, deps: AuthDependencies): BetterA
           to: user.email,
           kind: 'RESET_PASSWORD',
           subject: 'Восстановление пароля в notio',
-          actionUrl: url,
+          // Better Auth строит ссылку с callbackURL=/ (gateway). Меняем на фронтенд,
+          // чтобы после сброса пароля пользователь попал на страницу входа.
+          actionUrl: rewriteCallbackUrl(url, deps.frontendUrl),
         });
       },
     },
@@ -136,7 +159,9 @@ export function buildAuthOptions(env: Bindings, deps: AuthDependencies): BetterA
           to: user.email,
           kind: 'VERIFY_EMAIL',
           subject: 'Подтвердите почту в notio',
-          actionUrl: url,
+          // Better Auth строит ссылку с callbackURL=/ (gateway). Меняем на фронтенд,
+          // чтобы после подтверждения почты пользователь попал на главную.
+          actionUrl: rewriteCallbackUrl(url, deps.frontendUrl),
         });
       },
     },

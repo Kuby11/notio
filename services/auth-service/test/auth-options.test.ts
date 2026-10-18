@@ -14,13 +14,17 @@ function deps(overrides: Partial<Parameters<typeof buildAuthOptions>[1]> = {}) {
     secondaryStorage: createKvSecondaryStorage(env.RATE_LIMIT),
     mailSender: createLoggingMailSender(() => undefined),
     publicUrl: env.BETTER_AUTH_URL,
+    frontendUrl: env.BETTER_AUTH_URL,
     ...overrides,
   };
 }
 
 describe('buildAuthOptions', () => {
   it('включает OAuth-провайдер только с полной парой ключей', () => {
-    const withoutSecrets = buildAuthOptions({ ...env, GITHUB_CLIENT_ID: 'id' }, deps());
+    const withoutSecrets = buildAuthOptions(
+      { ...env, GITHUB_CLIENT_ID: 'id', GITHUB_CLIENT_SECRET: '' },
+      deps(),
+    );
 
     expect(withoutSecrets.socialProviders?.['github']).toBeUndefined();
   });

@@ -28,6 +28,7 @@ export function createAuth(env: Bindings, dependencies?: Partial<AuthDependencie
       secondaryStorage: createKvSecondaryStorage(env.RATE_LIMIT),
       mailSender: createLoggingMailSender((message) => console.log(message)),
       publicUrl: env.BETTER_AUTH_URL,
+      frontendUrl: env.FRONTEND_URL ?? 'http://localhost:3000',
       ...dependencies,
     }),
   ) as Auth;
