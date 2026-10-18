@@ -21,6 +21,24 @@ import {
   TrashPage,
   createPageRepositoryApi,
 } from '../features/pages';
+import {
+  AcceptInvitation,
+  ArchiveWorkspace,
+  ChangeMemberRole,
+  CreateInvitation,
+  CreateWorkspace,
+  ListMembers,
+  ListWorkspaces,
+  RemoveMember,
+  RenameWorkspace,
+  RevokeInvitation,
+  createWorkspaceRepositoryApi,
+  type Invitation,
+  type Member,
+  type Workspace,
+  type WorkspaceListItem,
+  type WorkspaceRole,
+} from '../features/workspaces';
 import { env } from '../shared/config/env';
 
 /**
@@ -41,6 +59,20 @@ export interface AuthUseCases {
 export interface Container {
   auth: AuthUseCases;
   pages: PageUseCases;
+  workspaces: WorkspaceUseCases;
+}
+
+export interface WorkspaceUseCases {
+  list: () => Promise<WorkspaceListItem[]>;
+  create: (name: string) => Promise<Workspace>;
+  rename: (id: string, name: string) => Promise<Workspace>;
+  archive: (id: string) => Promise<Workspace>;
+  listMembers: (id: string) => Promise<Member[]>;
+  changeRole: (workspaceId: string, userId: string, role: WorkspaceRole) => Promise<Member>;
+  removeMember: (workspaceId: string, userId: string) => Promise<void>;
+  createInvitation: (workspaceId: string, role: 'editor' | 'viewer') => Promise<Invitation>;
+  revokeInvitation: (workspaceId: string, token: string) => Promise<void>;
+  acceptInvitation: (token: string) => Promise<Member>;
 }
 
 export interface PageUseCases {
@@ -56,6 +88,7 @@ export interface PageUseCases {
 export function createContainer(gateway: AuthGateway): Container {
   const accessToken = new AccessToken(gateway);
   const pageRepository = createPageRepositoryApi(accessToken);
+  const workspaceRepository = createWorkspaceRepositoryApi(accessToken);
 
   return {
     auth: {
@@ -74,6 +107,23 @@ export function createContainer(gateway: AuthGateway): Container {
       trashPage: new TrashPage(pageRepository),
       restorePage: new RestorePage(pageRepository),
       toggleFavorite: new ToggleFavorite(pageRepository),
+    },
+    workspaces: {
+      list: () => new ListWorkspaces(workspaceRepository).execute(),
+      create: (name: string) => new CreateWorkspace(workspaceRepository).execute(name),
+      rename: (id: string, name: string) =>
+        new RenameWorkspace(workspaceRepository).execute(id, name),
+      archive: (id: string) => new ArchiveWorkspace(workspaceRepository).execute(id),
+      listMembers: (id: string) => new ListMembers(workspaceRepository).execute(id),
+      changeRole: (workspaceId: string, userId: string, role: WorkspaceRole) =>
+        new ChangeMemberRole(workspaceRepository).execute(workspaceId, userId, role),
+      removeMember: (workspaceId: string, userId: string) =>
+        new RemoveMember(workspaceRepository).execute(workspaceId, userId),
+      createInvitation: (workspaceId: string, role: 'editor' | 'viewer') =>
+        new CreateInvitation(workspaceRepository).execute(workspaceId, role),
+      revokeInvitation: (workspaceId: string, token: string) =>
+        new RevokeInvitation(workspaceRepository).execute(workspaceId, token),
+      acceptInvitation: (token: string) => new AcceptInvitation(workspaceRepository).execute(token),
     },
   };
 }
