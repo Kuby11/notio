@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "notio-gateway",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "SERVICE_VERSION": "0.1.0",
+  },
+  "services": [
+    {
+      "binding": "PAGES_SERVICE",
+      "service": "pages-service",
+    },
+  ],
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "globalEnv": ["NODE_ENV", "CF_PAGES_BRANCH", "NEXT_PUBLIC_GATEWAY_URL", "NEXT_PUBLIC_APP_NAME"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "cf-typegen": {
+      "outputs": ["worker-configuration.d.ts"]
+    },
+    "typecheck": {
+      "dependsOn": ["cf-typegen"],
+      "outputs": []
+    },
+    "test": {
+      "outputs": []
+    },
+    "test:coverage": {
+      "outputs": ["coverage/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

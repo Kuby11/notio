@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "cf-cli": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cf-cli/SKILL.md",
+      "computedHash": "7775126a3314cd86abbd4bab2708370b7e0847a8cd116a0b6849f8ddba294549"
+    },
+    "durable-objects": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "skillPath": "skills/durable-objects/SKILL.md",
+      "computedHash": "7e395e50364589ccc84543eb607ae21cbb7ac18b346e9a0bb36fa4f5bc10b3ac"
+    },
+    "gateway-workers": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "skillPath": "skills/gateway-workers/SKILL.md",
+      "computedHash": "24edabde561f2ace9c16ee7de74041cc0b8af31e6f7c8069799584eff4da536b"
+    },
+    "nextjs-on-cloudflare": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "skillPath": "skills/nextjs-on-cloudflare/SKILL.md",
+      "computedHash": "0a8584b185ad8d8f332f3a9766a64034f54f82a61976b4fa54c33e384d3625dd"
+    },
+    "wrangler": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "skillPath": "skills/wrangler/SKILL.md",
+      "computedHash": "9eed4d658a9e8741d17cd4666701d25d4ca302a253dd62080338f473d051c50e"
+    }
+  }
+}

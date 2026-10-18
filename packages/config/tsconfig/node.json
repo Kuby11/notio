@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "notio — Node.js (vitest-конфиги, скрипты)",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["*.ts", "test/**/*.ts", "scripts/**/*.ts"]
+}

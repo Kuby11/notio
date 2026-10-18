@@ -1,0 +1,24 @@
+packages:
+  - 'apps/*'
+  - 'services/*'
+  - 'packages/*'
+
+# Защита цепочки поставок: пакеты, опубликованные недавно, требуют явного
+# подтверждения. pnpm сам добавляет их в minimumReleaseAgeExclude при установке.
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - '@commitlint/cli@21.2.4'
+  - '@commitlint/config-conventional@21.2.4'
+  - '@commitlint/ensure@21.2.4'
+  - '@commitlint/lint@21.2.4'
+  - '@commitlint/load@21.2.4'
+  - '@commitlint/rules@21.2.4'
+
+# Build-скрипты (postinstall) разрешены только у явно перечисленных пакетов.
+# В pnpm 11+ эту роль играет allowBuilds (onlyBuiltDependencies удалён).
+allowBuilds:
+  esbuild: true
+  workerd: true
+  sharp: true
+  unrs-resolver: true
+  '@tailwindcss/oxide': true

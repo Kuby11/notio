@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "notio — Cloudflare Workers",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["./worker-configuration.d.ts"],
+    "jsx": "react-jsx"
+  },
+  "include": ["src/**/*.ts", "worker-configuration.d.ts"]
+}

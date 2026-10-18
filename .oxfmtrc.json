@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "singleQuote": true,
+  "semi": true,
+  "trailingComma": "all",
+  "insertFinalNewline": true,
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/out/**",
+    "**/.next/**",
+    "**/.wrangler/**",
+    "**/.mf/**",
+    "**/coverage/**",
+    "**/*.d.ts",
+    "pnpm-lock.yaml",
+    "docs/adr/**"
+  ]
+}

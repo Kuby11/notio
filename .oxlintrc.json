@@ -1,0 +1,63 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "oxc", "import", "unicorn", "promise", "vitest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "env": {
+    "es2023": true,
+    "node": true
+  },
+  "rules": {
+    "eqeqeq": ["error", "always"],
+    "no-implicit-coercion": "error",
+    "prefer-const": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-empty-object-type": ["error", { "allowInterfaces": "with-single-extends" }],
+    "typescript/no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ],
+    "typescript/consistent-type-imports": [
+      "error",
+      { "prefer": "type-imports", "fixStyle": "inline-type-imports" }
+    ],
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "ts-ignore": true,
+        "ts-expect-error": "allow-with-description",
+        "ts-nocheck": true,
+        "minimumDescriptionLength": 10
+      }
+    ],
+    "import/no-duplicates": "error",
+    "import/no-unassigned-import": "off",
+    "promise/prefer-await-to-then": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "vitest/require-to-throw-message": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/out/**",
+    "**/.next/**",
+    "**/.wrangler/**",
+    "**/.mf/**",
+    "**/coverage/**",
+    "**/*.d.ts",
+    "**/*.config.ts",
+    "pnpm-lock.yaml"
+  ],
+  "options": {
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
+  }
+}

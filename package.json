@@ -1,0 +1,56 @@
+{
+  "name": "notio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "notio — клон Notion на Cloudflare Workers: микросервисы на Hono, database-per-service, realtime на Durable Objects",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n workers,web -c cyan,magenta \"pnpm run dev:workers\" \"pnpm run dev:web\"",
+    "dev:workers": "wrangler dev -c ./services/gateway/wrangler.jsonc -c ./services/pages-service/wrangler.jsonc",
+    "dev:web": "pnpm --filter @notio/web dev",
+    "dev:gateway": "pnpm --filter @notio/gateway dev",
+    "dev:pages": "pnpm --filter @notio/pages-service dev",
+    "smoke": "node scripts/smoke-bindings.mjs",
+    "build": "turbo run build",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "prepare": "husky",
+    "types": "turbo run cf-typegen",
+    "db:migrate:pages": "pnpm --filter @notio/pages-service db:migrate:local"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@notio/config": "workspace:*",
+    "@types/node": "22.20.5",
+    "concurrently": "10.0.6",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0",
+    "oxfmt": "0.73.0",
+    "oxlint": "1.88.0",
+    "turbo": "2.11.9",
+    "typescript": "5.9.3",
+    "wrangler": "4.151.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mts,cts}": [
+      "oxlint --fix",
+      "oxfmt"
+    ],
+    "*.{js,mjs,cjs,json,jsonc}": [
+      "oxfmt"
+    ],
+    "*.{css,md,yml,yaml}": [
+      "oxfmt"
+    ]
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@12.14.0"
+}

@@ -1,0 +1,64 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+dist/
+build/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# tests
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# env
+.env
+.env.local
+.env*.local
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+!.env.example
+
+# wrangler / miniflare
+.wrangler/
+.mf/
+
+# сгенерированные типы Workers (`wrangler types`, задача cf-typegen в turbo)
+**/worker-configuration.d.ts
+
+# next
+apps/web/.next/
+apps/web/out/
+
+# turbo
+.turbo/
+.turbo-cache/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# editors & OS
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# misc
+.cache/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.agents
+.vscode
+.husky

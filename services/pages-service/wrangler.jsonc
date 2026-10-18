@@ -1,0 +1,25 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "pages-service",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "SERVICE_VERSION": "0.1.0",
+  },
+  "workers_dev": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "notio-pages",
+      // Плейсхолholder: заменяется на реальный id выводом `wrangler d1 create notio-pages`.
+      // Локально (wrangler dev / vitest) значение игнорируется — работает локальная копия SQLite.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "notio — Next.js (App Router)",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "types": ["node"],
+    "jsx": "preserve",
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true
+  }
+}
