@@ -37,6 +37,28 @@ function healthyPagesServiceResponse(): Response {
   });
 }
 
+describe('gateway /', () => {
+  it('отдаёт индекс публичного API', async () => {
+    const app = createGatewayApp();
+
+    const response = await app.request('/', {}, createEnv(healthyPagesServiceResponse));
+    const body = (await response.json()) as { name: string; endpoints: { path: string }[] };
+
+    expect(response.status).toBe(200);
+    expect(body.name).toBe('notio');
+    expect(body.endpoints.map((endpoint) => endpoint.path)).toContain('/api/health');
+  });
+
+  it('не вызывает внутренние сервисы', async () => {
+    const responder = vi.fn<PagesResponder>(healthyPagesServiceResponse);
+    const app = createGatewayApp();
+
+    await app.request('/', {}, createEnv(responder));
+
+    expect(responder).not.toHaveBeenCalled();
+  });
+});
+
 describe('gateway /health', () => {
   it('отвечает ok, не вызывая внутренние сервисы', async () => {
     const responder = vi.fn<PagesResponder>(healthyPagesServiceResponse);

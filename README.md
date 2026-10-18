@@ -50,6 +50,7 @@ pnpm dev                 # gateway + pages-service (wrangler) и web (next dev)
 ```
 
 - фронтенд: http://localhost:3000
+- индекс API: http://localhost:8787/
 - gateway (liveness): http://localhost:8787/health
 - gateway (readiness, опрашивает сервисы): http://localhost:8787/api/health
 

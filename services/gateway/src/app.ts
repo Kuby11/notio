@@ -3,12 +3,14 @@ import { Hono } from 'hono';
 import type { AppEnv } from './env';
 import { createHealthApiRoutes } from './routes/health-api';
 import { createHealthRoutes } from './routes/health';
+import { createIndexRoutes } from './routes/index';
 
 export const SERVICE_NAME = 'gateway';
 
 export function createGatewayApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
+  app.route('/', createIndexRoutes());
   app.route('/', createHealthRoutes());
   app.route('/', createHealthApiRoutes());
 
