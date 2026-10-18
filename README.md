@@ -6,9 +6,10 @@
 Цель проекта — показать уровень middle+/senior: чистую архитектуру, сквозную типизацию,
 продуманное тестирование и безопасность как требование первого класса.
 
-> Текущий статус: **Этап 1 — контракты и инфраструктура бэкенда.** Работают gateway с
-> проксированием, rate limit, CORS и сквозным request-id, а также pages-service с деревом
-> страниц на D1: создание, чтение, обновление, постраничный список, fractional indexing.
+> Текущий статус: **Этап 2 — аутентификация.** Работают gateway с проксированием, rate limit,
+> CORS, сквозным request-id и проверкой JWT по JWKS; auth-service (Better Auth на D1) с
+> регистрацией, подтверждением почты, сессией в cookie и выдачей JWT; pages-service с деревом
+> страниц на D1. На фронтенде — вход и регистрация, защита маршрутов через `proxy.ts`.
 
 ## Стек
 
@@ -34,7 +35,8 @@ notio/
 ├─ services/
 │  ├─ gateway/              единственная публичная точка входа: роутинг, CORS, rate limit
 │  ├─ pages-service/        страницы и блоки, своя база D1 notio-pages
-│  └─ ...                   auth, workspace, media, search, realtime — по этапам
+│  ├─ auth-service/         аутентификация Better Auth, своя база D1 notio-auth
+│  └─ ...                   workspace, media, search, realtime — по этапам
 ├─ packages/
 │  ├─ contracts/            Zod-схемы API, RFC 7807, коды ошибок, события
 │  ├─ db/                   общие утилиты Drizzle для сервисов
@@ -48,16 +50,18 @@ notio/
 
 ```bash
 pnpm install
-pnpm db:migrate:pages   # применить миграции к локальной базе
-pnpm db:seed:pages      # демо-данные (по желанию)
-pnpm dev                # workers (wrangler) и web (next dev)
+cp .dev.vars.example .dev.vars   # локальный BETTER_AUTH_SECRET
+pnpm db:migrate                  # миграции обеих баз: notio-pages и notio-auth
+pnpm db:seed:pages               # демо-данные (по желанию)
+pnpm dev                         # workers (wrangler) и web (next dev)
 ```
 
 - фронтенд: http://localhost:3000
 - индекс API: http://localhost:8787/
 - gateway (liveness): http://localhost:8787/health
 - gateway (readiness, опрашивает сервисы): http://localhost:8787/api/health
-- страницы через gateway: http://localhost:8787/api/pages?workspaceId=…
+- аутентификация: http://localhost:3000/register и http://localhost:3000/login
+- страницы через gateway: http://localhost:8787/api/pages?workspaceId=… (нужен JWT)
 
 Полный сквозной путь (клиент → gateway → Service Binding → сервис → D1) проверяется одной
 командой — она сама поднимает backend, применяет миграции и гасит его:
@@ -69,37 +73,65 @@ pnpm smoke -- --verbose # с логами workers
 
 Если backend уже запущен (`pnpm dev:workers`), скрипт использует его и ничего не выключает.
 
-## API страниц (через gateway)
+## Аутентификация и доступ к API
+
+Вход и регистрация — на фронтенде (`/login`, `/register`). Сессия живёт в httpOnly-cookie
+`notio.session_token`, поэтому браузер отправляет её сам. Закрытые маршруты `/api/*`
+(кроме `/api/health` и `/api/auth/*`) требуют JWT:
 
 ```bash
 WS=00000000-0000-4000-8000-000000000001
-ACTOR=00000000-0000-4000-8000-00000000000a
+EMAIL="you@notio.test"
+PASS="correct-horse-battery"
 
-curl "http://localhost:8787/api/pages?workspaceId=$WS"
+# 1. Регистрация: письмо с подтверждением уходит в лог auth-service (в dev).
+curl -X POST http://localhost:8787/api/auth/sign-up/email \
+  -H "content-type: application/json" -H "origin: http://localhost:8787" \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\",\"name\":\"Вы\"}"
+
+# 2. Подтверждение: ссылка из лога вида /api/auth/verify-email?token=…&callbackURL=%2F
+curl "http://localhost:8787/api/auth/verify-email?token=<TOKEN>&callbackURL=%2F"
+
+# 3. Вход и получение JWT (cookie сохраняем в файл).
+curl -s -c cookies.txt -X POST http://localhost:8787/api/auth/sign-in/email \
+  -H "content-type: application/json" -H "origin: http://localhost:8787" \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}"
+JWT=$(curl -s -b cookies.txt http://localhost:8787/api/auth/token | sed 's/.*"token":"\([^"]*\)".*/\1/')
+
+# 4. Запрос к закрытому API от имени пользователя.
+curl -H "authorization: Bearer $JWT" \
+  "http://localhost:8787/api/pages?workspaceId=$WS"
+
 curl -X POST http://localhost:8787/api/pages \
-  -H "content-type: application/json" -H "x-actor-id: $ACTOR" \
+  -H "content-type: application/json" -H "authorization: Bearer $JWT" \
   -d "{\"workspaceId\":\"$WS\",\"title\":\"Новая страница\"}"
 ```
 
-В разработке gateway принимает `x-actor-id`; вне development — нет (fail closed),
-пока не появится проверка JWT на Этапе 2.
+Идентичность определяется только из подписанного токена: заголовок `x-actor-id` от клиента
+отбрасывается, gateway подставляет сервису id пользователя из claims. Без токена —
+`401` в формате `application/problem+json`.
+
+## API страниц (через gateway)
+
+Страницы доступны только с JWT — см. раздел «Аутентификация и доступ к API» выше.
+Публичными остаются `/`, `/health`, `/api/health` и `/api/auth/*`.
 
 ## Скрипты
 
-| Команда                                        | Что делает                                          |
-| ---------------------------------------------- | --------------------------------------------------- |
-| `pnpm dev`                                     | Поднимает workers и web вместе                      |
-| `pnpm dev:workers`                             | Только backend: `wrangler dev` с двумя сервисами    |
-| `pnpm dev:gateway` / `pnpm dev:pages`          | Один сервис отдельно                                |
-| `pnpm build`                                   | Сборка воркеров (dry-run bundle) и Next.js          |
-| `pnpm typecheck`                               | `tsc` во всех пакетах + генерация типов Workers     |
-| `pnpm lint`                                    | oxlint по всему монорепо                            |
-| `pnpm format` / `pnpm format:check`            | oxfmt                                               |
-| `pnpm test` / `pnpm test:coverage`             | Тесты, порог покрытия 80%                           |
-| `pnpm smoke`                                   | Smoke-проверка сквозного пути и защитных заголовков |
-| `pnpm types`                                   | Генерация `worker-configuration.d.ts`               |
-| `pnpm db:generate`                             | Новая миграция из схемы Drizzle                     |
-| `pnpm db:migrate:pages` / `pnpm db:seed:pages` | Миграции и демо-данные локально                     |
+| Команда                                                 | Что делает                                        |
+| ------------------------------------------------------- | ------------------------------------------------- |
+| `pnpm dev`                                              | Поднимает workers и web вместе                    |
+| `pnpm dev:workers`                                      | Только backend: `wrangler dev` с тремя сервисами  |
+| `pnpm dev:gateway` / `pnpm dev:auth` / `pnpm dev:pages` | Один сервис отдельно                              |
+| `pnpm build`                                            | Сборка воркеров (dry-run bundle) и Next.js        |
+| `pnpm typecheck`                                        | `tsc` во всех пакетах + генерация типов Workers   |
+| `pnpm lint`                                             | oxlint по всему монорепо                          |
+| `pnpm format` / `pnpm format:check`                     | oxfmt                                             |
+| `pnpm test` / `pnpm test:coverage`                      | Тесты, порог покрытия 80%                         |
+| `pnpm smoke`                                            | Smoke-проверка: auth, JWT, запись в D1, заголовки |
+| `pnpm types`                                            | Генерация `worker-configuration.d.ts`             |
+| `pnpm db:generate`                                      | Новая миграция из схемы Drizzle                   |
+| `pnpm db:migrate` / `pnpm db:seed:pages`                | Миграции обеих баз и демо-данные локально         |
 
 ## Архитектурные решения
 
@@ -112,6 +144,8 @@ curl -X POST http://localhost:8787/api/pages \
 5. [Линтер и форматтер: oxlint + oxfmt](docs/adr/0005-oxlint-oxfmt-tooling.md)
 6. [Слой данных: Drizzle, fractional indexing, UUIDv4](docs/adr/0006-data-layer-drizzle-fractional-indexing.md)
 7. [Сквозная инфраструктура gateway](docs/adr/0007-gateway-cross-cutting-middleware.md)
+8. [Аутентификация: Better Auth, сессия в cookie и JWT для gateway](docs/adr/0008-auth-service-better-auth-jwt.md)
+9. [Фронтенд аутентификации: слои, DI и доступ к API по JWT](docs/adr/0009-frontend-auth-layers.md)
 
 Правила архитектуры фронтенда (слои domain → application → adapters → ui) описаны в
 [`.agents/AGENTS.md`](.agents/AGENTS.md), план работ — в
@@ -123,7 +157,7 @@ curl -X POST http://localhost:8787/api/pages \
 | ---- | ---------------------------------------------------------------- | ------ |
 | 0    | Фундамент: монорепо, линтеры, CI, health-check, Service Binding  | ✅     |
 | 1    | Контракты, роутинг gateway, request-id, rate limit, D1 + Drizzle | ✅     |
-| 2    | Auth на Better Auth, JWT/JWKS, защита роутов                     | ⏳     |
+| 2    | Auth на Better Auth, JWT/JWKS, защита роутов                     | ✅     |
 | 3    | Workspaces и роли                                                | ⏳     |
 | 4    | Страницы и дерево на фронтенде                                   | ⏳     |
 | 5    | Блочный редактор                                                 | ⏳     |

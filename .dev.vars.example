@@ -1,0 +1,9 @@
+# Локальные секреты для wrangler dev. Скопируйте в .dev.vars и замените значения.
+# В production: wrangler secret put BETTER_AUTH_SECRET (и OAuth-секреты, если включите провайдеры).
+BETTER_AUTH_SECRET=dev-only-secret-notio-auth-service-change-me
+
+# OAuth-провайдеры включаются, только если заданы обе части ключа.
+# GITHUB_CLIENT_ID=
+# GITHUB_CLIENT_SECRET=
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=

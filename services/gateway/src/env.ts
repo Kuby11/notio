@@ -3,13 +3,16 @@
  *
  * Типы биндингов генерируются `wrangler types` в `worker-configuration.d.ts`.
  * Внутренние сервисы доступны только через Service Bindings — прямых
- * HTTP-вызовов между сервисами в проекте нет.
+ * HTTP-входов между сервисами в проекте нет.
  */
+import type { AuthenticatedUser } from '@notio/contracts';
 import type { GatewayConfig } from './config';
 
 export interface Bindings {
   /** Внутренний доступ к pages-service (без публичного HTTP). */
   PAGES_SERVICE: Fetcher;
+  /** Внутренний доступ к auth-service: проверка токенов и JWKS. */
+  AUTH_SERVICE: Fetcher;
   /** Счётчики rate limit. */
   RATE_LIMIT: KVNamespace;
   ENVIRONMENT: string;
@@ -19,6 +22,8 @@ export interface Bindings {
   CORS_ALLOWED_ORIGINS: string;
   RATE_LIMIT_MAX_REQUESTS: string;
   RATE_LIMIT_WINDOW_SECONDS: string;
+  /** Как долго кешируется JWKS, полученный у auth-service (секунды). */
+  AUTH_JWKS_CACHE_TTL_SECONDS?: string;
 }
 
 export interface Variables {
@@ -26,6 +31,8 @@ export interface Variables {
   requestId: string;
   /** Конфигурация, разобранная из vars текущего запроса. */
   config: GatewayConfig;
+  /** Пользователь из подписанного JWT; null — запрос без аутентификации. */
+  user: AuthenticatedUser | null;
 }
 
 export type AppEnv = {

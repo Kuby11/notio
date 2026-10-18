@@ -1,6 +1,6 @@
 /**
  * Smoke-проверка notio: настоящий путь запроса клиент → gateway → Service Binding →
- * сервис → D1, плюс защитные заголовки и rate limit.
+ * сервис → D1, плюс аутентификация, защитные заголовки и rate limit.
  *
  *   pnpm smoke              # сам поднимает backend, проверяет и гасит его
  *   pnpm smoke -- --verbose # показывает логи workers
@@ -9,13 +9,17 @@
  * не останавливает.
  */
 import { spawn } from 'node:child_process';
+import { createHmac, randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 const BASE_URL = process.env['GATEWAY_URL'] ?? 'http://localhost:8787';
 const WORKSPACE_ID = '00000000-0000-4000-8000-000000000001';
-const ACTOR_ID = '00000000-0000-4000-8000-00000000000a';
 const BOOT_TIMEOUT_MS = 90_000;
 const POLL_INTERVAL_MS = 500;
 const PROBE_TIMEOUT_MS = 2_000;
+const PASSWORD = 'correct-horse-battery';
+/** Срок жизни ссылки подтверждения: совпадает с emailVerification.expiresIn. */
+const VERIFICATION_TTL_SECONDS = 60 * 60 * 24;
 const VERBOSE = process.argv.includes('--verbose');
 const PNPM = 'pnpm';
 
@@ -30,6 +34,63 @@ function check(condition, message) {
 
 function json(response) {
   return response.json();
+}
+
+/**
+ * Ссылка подтверждения почты.
+ *
+ * Better Auth подписывает её JWT секретом сервиса и не кладёт в базу, поэтому
+ * в dev мы берём её двумя путями: из логов workers (когда smoke сам их поднял)
+ * либо собираем тем же секретом из .dev.vars. В production письмо уходит
+ * на почту, и smoke так не работает — это инструмент локальной проверки.
+ */
+function verificationTokenFromLogs(email) {
+  const pattern = new RegExp(
+    `"to":"${email.replaceAll('.', '\\.')}"[^}]*"actionUrl":"[^"]*token=([^&"]+)`,
+  );
+  const logs = workerLogs.join('');
+
+  return pattern.exec(logs)?.[1] ?? null;
+}
+
+function devSecret() {
+  try {
+    const content = readFileSync('.dev.vars', 'utf8');
+
+    return /^BETTER_AUTH_SECRET=(.+)$/m.exec(content)?.[1].trim() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function base64UrlJson(value) {
+  return Buffer.from(JSON.stringify(value)).toString('base64url');
+}
+
+function mintVerificationToken(email, secret) {
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const payload = base64UrlJson({
+    email,
+    iat: issuedAt,
+    exp: issuedAt + VERIFICATION_TTL_SECONDS,
+  });
+  const signature = createHmac('sha256', secret)
+    .update(`${base64UrlJson({ alg: 'HS256' })}.${payload}`)
+    .digest('base64url');
+
+  return `${base64UrlJson({ alg: 'HS256' })}.${payload}.${signature}`;
+}
+
+async function resolveVerificationToken(email) {
+  const fromLogs = verificationTokenFromLogs(email);
+
+  if (fromLogs !== null) {
+    return fromLogs;
+  }
+
+  const secret = devSecret();
+
+  return secret === null ? null : mintVerificationToken(email, secret);
 }
 
 /**
@@ -119,6 +180,15 @@ async function waitForGateway() {
   return false;
 }
 
+/** Cookie из ответа входа: значение пары «имя=значение» для следующего запроса. */
+function sessionCookie(response) {
+  return response.headers
+    .getSetCookie()
+    .map((cookie) => cookie.split(';')[0])
+    .filter((cookie) => cookie.startsWith('notio.session_token='))
+    .join('; ');
+}
+
 async function runChecks() {
   const liveness = await fetch(`${BASE_URL}/health`);
   const livenessBody = await json(liveness);
@@ -138,62 +208,170 @@ async function runChecks() {
       readinessBody.services.some((service) => service.service === 'pages-service'),
     'Ответ /api/health не содержит состояние pages-service — Service Binding не сработал',
   );
+  check(
+    Array.isArray(readinessBody.services) &&
+      readinessBody.services.some((service) => service.service === 'auth-service'),
+    'Ответ /api/health не содержит состояние auth-service',
+  );
 
-  // Проксирование в сервис: создание страницы от имени пользователя.
-  const title = `smoke ${new Date().toISOString()}`;
-  const created = await fetch(`${BASE_URL}/api/pages`, {
+  // Закрытый маршрут без токена.
+  const anonymous = await fetch(`${BASE_URL}/api/pages`, {
+    headers: { 'cf-connecting-ip': '203.0.113.70' },
+  });
+
+  check(
+    anonymous.status === 401,
+    `GET /api/pages без токена вернул ${anonymous.status}, ожидался 401`,
+  );
+
+  // Полный флоу: регистрация → подтверждение → вход → JWT.
+  const email = `smoke-${randomUUID().slice(0, 8)}@notio.test`;
+  const signUp = await fetch(`${BASE_URL}/api/auth/sign-up/email`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-actor-id': ACTOR_ID,
-      'cf-connecting-ip': '203.0.113.77',
+      origin: BASE_URL,
+      'cf-connecting-ip': '203.0.113.71',
     },
-    body: JSON.stringify({ workspaceId: WORKSPACE_ID, title }),
+    body: JSON.stringify({ email, password: PASSWORD, name: 'Smoke' }),
   });
-  const createdBody = await json(created);
 
   check(
-    created.status === 201,
-    `POST /api/pages вернул ${created.status}, ожидался 201: ${JSON.stringify(createdBody)}`,
+    signUp.status === 200,
+    `POST /api/auth/sign-up/email вернул ${signUp.status}: ${await signUp.clone().text()}`,
   );
-  check(createdBody.workspaceId === WORKSPACE_ID, 'Созданная страница лежит в чужом workspace');
+
+  const token = await resolveVerificationToken(email);
+  check(
+    token !== null,
+    'Не удалось получить ссылку подтверждения: запустите `pnpm smoke` без отдельного `pnpm dev:workers` либо проверьте .dev.vars',
+  );
+
+  let cookie = '';
+  let jwt = null;
+
+  if (token !== null) {
+    const verified = await fetch(
+      `${BASE_URL}/api/auth/verify-email?token=${encodeURIComponent(token)}&callbackURL=%2F`,
+      { redirect: 'manual', headers: { 'cf-connecting-ip': '203.0.113.71' } },
+    );
+
+    check(
+      [200, 302].includes(verified.status),
+      `Подтверждение почты вернуло ${verified.status}, ожидался 200 или 302`,
+    );
+
+    const signIn = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: BASE_URL,
+        'cf-connecting-ip': '203.0.113.71',
+      },
+      body: JSON.stringify({ email, password: PASSWORD }),
+    });
+
+    check(signIn.status === 200, `Вход вернул ${signIn.status}: ${await signIn.clone().text()}`);
+
+    cookie = sessionCookie(signIn);
+    check(cookie.startsWith('notio.session_token='), 'Вход не выдал cookie сессии');
+
+    const tokenResponse = await fetch(`${BASE_URL}/api/auth/token`, {
+      headers: { cookie, 'cf-connecting-ip': '203.0.113.71' },
+    });
+    const tokenBody = await json(tokenResponse);
+
+    check(tokenResponse.status === 200, `GET /api/auth/token вернул ${tokenResponse.status}`);
+    check(
+      typeof tokenBody.token === 'string' && tokenBody.token.split('.').length === 3,
+      'auth-service не выдал JWT активной сессии',
+    );
+
+    jwt = tokenBody.token ?? null;
+  }
+
+  // Подделка токена: подпись не проходит проверку по JWKS.
+  const forged = `${(jwt ?? 'a.b.c').split('.').slice(0, 2).join('.')}.tampered`;
+  const forgedResponse = await fetch(`${BASE_URL}/api/pages`, {
+    headers: {
+      authorization: `Bearer ${forged}`,
+      'cf-connecting-ip': '203.0.113.72',
+    },
+  });
+
+  check(
+    forgedResponse.status === 401,
+    `Подделанный JWT вернул ${forgedResponse.status}, ожидался 401`,
+  );
+
+  let createdBody = null;
+  let created = null;
+
+  if (jwt !== null) {
+    created = await fetch(`${BASE_URL}/api/pages`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${jwt}`,
+        'cf-connecting-ip': '203.0.113.73',
+      },
+      body: JSON.stringify({
+        workspaceId: WORKSPACE_ID,
+        title: `smoke ${new Date().toISOString()}`,
+      }),
+    });
+    createdBody = await json(created);
+
+    check(
+      created.status === 201,
+      `POST /api/pages с JWT вернул ${created.status}, ожидался 201: ${JSON.stringify(createdBody)}`,
+    );
+    check(createdBody.workspaceId === WORKSPACE_ID, 'Созданная страница лежит в чужом workspace');
+  }
 
   const listed = await fetch(
     `${BASE_URL}/api/pages?workspaceId=${WORKSPACE_ID}&includeTrashed=true`,
-    { headers: { 'cf-connecting-ip': '203.0.113.78' } },
-  );
-  const listedBody = await json(listed);
-
-  check(
-    listedBody.items.some((page) => page.id === createdBody.id),
-    'Созданная страница не появилась в списке — потерялась запись в D1 или фильтрация',
+    { headers: { 'cf-connecting-ip': '203.0.113.74' } },
   );
 
-  // Защитные заголовки на проксированном ответе.
-  check(
-    created.headers.get('x-content-type-options') === 'nosniff',
-    'Ответ прокси не содержит x-content-type-options: nosniff',
-  );
-  check(
-    created.headers.get('x-request-id') !== null,
-    'Ответ прокси не содержит сквозной request-id',
-  );
-  check(
-    created.headers.get('x-ratelimit-limit') !== null,
-    'Ответ прокси не содержит заголовки rate limit',
-  );
+  check(listed.status === 401, `Список страниц без токена вернул ${listed.status}, ожидался 401`);
+
+  if (created !== null && createdBody?.id) {
+    const authorizedList = await fetch(
+      `${BASE_URL}/api/pages?workspaceId=${WORKSPACE_ID}&includeTrashed=true`,
+      { headers: { authorization: `Bearer ${jwt}`, 'cf-connecting-ip': '203.0.113.74' } },
+    );
+    const listedBody = await json(authorizedList);
+
+    check(
+      listedBody.items.some((page) => page.id === createdBody.id),
+      'Созданная страница не появилась в списке — потерялась запись в D1 или фильтрация',
+    );
+
+    check(
+      created.headers.get('x-content-type-options') === 'nosniff',
+      'Ответ прокси не содержит x-content-type-options: nosniff',
+    );
+    check(
+      created.headers.get('x-request-id') !== null,
+      'Ответ прокси не содержит сквозной request-id',
+    );
+    check(
+      created.headers.get('x-ratelimit-limit') !== null,
+      'Ответ прокси не содержит заголовки rate limit',
+    );
+  }
 
   console.log(
     JSON.stringify(
       {
         liveness: livenessBody,
         readiness: readinessBody,
-        created: {
-          id: createdBody.id,
-          title: createdBody.title,
-          position: createdBody.position,
-        },
-        listed: listedBody.items.map((page) => `${page.title}@${page.position}`),
+        auth: { email, signedUp: signUp.status, verified: token !== null, gotJwt: jwt !== null },
+        created:
+          createdBody === null
+            ? null
+            : { id: createdBody.id, title: createdBody.title, position: createdBody.position },
       },
       null,
       2,
@@ -209,7 +387,7 @@ async function runChecks() {
   }
 
   console.log(
-    '\nSmoke-проверка пройдена: gateway видит pages-service, проксирует запись в D1, защитные заголовки и rate limit на месте.',
+    '\nSmoke-проверка пройдена: регистрация, подтверждение почты, вход, JWT, отказ по подделанному токену и запись страницы в D1 работают.',
   );
 
   return true;
@@ -221,7 +399,7 @@ async function main() {
   if (!(await isGatewayUp())) {
     console.log(`Gateway на ${BASE_URL} не отвечает — поднимаю backend и миграции...`);
 
-    const migration = await run(PNPM, ['run', 'db:migrate:pages']);
+    const migration = await run(PNPM, ['run', 'db:migrate']);
     if (migration.code !== 0) {
       console.error('Не удалось применить миграции:\n', migration.output);
       process.exitCode = 1;

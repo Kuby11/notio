@@ -1,3 +1,4 @@
+export * from './auth';
 export * from './block';
 export * from './error-codes';
 export * from './events';

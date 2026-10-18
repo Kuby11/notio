@@ -82,7 +82,7 @@ describe('HealthResponseSchema', () => {
   });
 
   it('типизирует известные сервисы и статусы как литеральные объединения', () => {
-    expect(SERVICE_NAMES).toEqual(['gateway', 'pages-service']);
+    expect(SERVICE_NAMES).toEqual(['gateway', 'pages-service', 'auth-service']);
     expect(HEALTH_STATUSES).toEqual(['ok', 'degraded']);
   });
 });

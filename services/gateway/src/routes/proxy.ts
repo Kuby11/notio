@@ -5,7 +5,7 @@ import {
   SERVICE_RESPONSE_HEADER,
 } from '@notio/contracts';
 import type { MiddlewareHandler } from 'hono';
-import type { AppEnv, Bindings } from '../env';
+import type { AppEnv } from '../env';
 
 /** Куда gateway проксирует запросы: публичный префикс → корень в сервисе. */
 export interface ProxyTarget {
@@ -14,7 +14,7 @@ export interface ProxyTarget {
   /** Корень маршрутов внутри сервиса, например /pages. */
   serviceRoot: string;
   /** Имя биндинга Service Binding. */
-  binding: 'PAGES_SERVICE';
+  binding: 'PAGES_SERVICE' | 'AUTH_SERVICE';
   /** Человекочитаемое имя сервиса для логов и заголовка ответа. */
   service: string;
 }
@@ -25,6 +25,12 @@ export const PROXY_TARGETS = [
     serviceRoot: '/pages',
     binding: 'PAGES_SERVICE',
     service: 'pages-service',
+  },
+  {
+    prefix: '/api/auth',
+    serviceRoot: '/api/auth',
+    binding: 'AUTH_SERVICE',
+    service: 'auth-service',
   },
 ] as const satisfies readonly ProxyTarget[];
 
@@ -45,31 +51,27 @@ const HOP_BY_HOP_HEADERS = new Set([
 /** Заголовки ответа, которые имеет смысл отдавать клиенту. */
 const FORWARDED_RESPONSE_HEADERS = ['content-type', 'cache-control', 'retry-after'] as const;
 
-/**
- * Идентификатор пользователя для сервисов.
- *
- * На Этапе 1 подписи ещё нет (auth-service — Этап 2), поэтому вне разработки
- * значение не принимается: gateway предпочитает «не знаю», и сервис отвечает 403.
- * Это осознанный fail closed, а не заглушка.
- */
-export function actorIdFromRequest(env: Bindings, request: Request): string | undefined {
-  if (env.ENVIRONMENT === 'production') {
-    return undefined;
-  }
-
-  return request.headers.get('x-actor-id') ?? undefined;
-}
-
 function matchesPrefix(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}/`);
 }
 
 /**
+ * Идентичность пользователя для внутренних сервисов.
+ *
+ * Берётся только из подписанного токена, проверенного middleware JWT.
+ * Заголовок клиента `x-user-id` отбрасывается: иначе любой, кто достучался
+ * до gateway, объявил бы себя другим пользователем.
+ */
+export function userIdFromRequest(c: {
+  get: (key: 'user') => AppEnv['Variables']['user'];
+}): string | undefined {
+  return c.get('user')?.id;
+}
+
+/**
  * Проксирует публичный префикс в сервис через Service Binding.
  *
- * Важно: внутренние заголовки gateway **перезаписывает**, а не пересылает.
- * Иначе клиент пришлёт `x-user-id` от чужого пользователя и будет действовать
- * от его имени.
+ * Внутренние заголовки gateway перезаписывает, а не пересылает.
  */
 export function proxyToService(target: ProxyTarget): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -102,9 +104,9 @@ export function proxyToService(target: ProxyTarget): MiddlewareHandler<AppEnv> {
     headers.set(INTERNAL_HEADERS.REQUEST_ID, requestId);
     headers.set(INTERNAL_HEADERS.SOURCE_SERVICE, GATEWAY_SOURCE);
 
-    const actorId = actorIdFromRequest(c.env, c.req.raw);
-    if (actorId) {
-      headers.set(INTERNAL_HEADERS.ACTOR_ID, actorId);
+    const userId = userIdFromRequest(c);
+    if (userId) {
+      headers.set(INTERNAL_HEADERS.ACTOR_ID, userId);
     }
 
     const hasBody = c.req.method !== 'GET' && c.req.method !== 'HEAD';
@@ -120,11 +122,18 @@ export function proxyToService(target: ProxyTarget): MiddlewareHandler<AppEnv> {
       );
 
       const responseHeaders = new Headers({ [SERVICE_RESPONSE_HEADER]: target.service });
+
       for (const name of FORWARDED_RESPONSE_HEADERS) {
         const value = upstream.headers.get(name);
-        if (value) {
+
+        if (value !== null) {
           responseHeaders.set(name, value);
         }
+      }
+
+      // Cookie сессии возвращается клиенту как есть: иначе вход не сохранится.
+      for (const cookie of upstream.headers.getSetCookie()) {
+        responseHeaders.append('set-cookie', cookie);
       }
 
       return new Response(upstream.body, {

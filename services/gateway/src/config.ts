@@ -27,14 +27,19 @@ export interface GatewayConfig {
   logLevel: LogLevel;
   allowedOrigins: string[];
   rateLimit: RateLimitConfig;
+  jwksCacheTtlSeconds: number;
   isProduction: boolean;
 }
+
+const DEFAULT_JWKS_TTL_SECONDS = 300;
+
+const JwksTtlSchema = z.coerce.number().int().min(1).max(86_400);
 
 /**
  * Конфигурация gateway из переменных окружения.
  *
  * Значения из wrangler.jsonc — единственный источник, секреты сюда не попадают.
- * Некорректная конфигурация ломает старт воркера, а не молча ослабляет защиту.
+ * Некорректная конфигурация ломает обслуживание запроса, а не молча ослабляет защиту.
  */
 export function readGatewayConfig(env: Bindings): GatewayConfig {
   const logLevel = isLogLevel(env.LOG_LEVEL) ? env.LOG_LEVEL : 'info';
@@ -48,6 +53,14 @@ export function readGatewayConfig(env: Bindings): GatewayConfig {
     logLevel,
     allowedOrigins: origins,
     rateLimit,
+    jwksCacheTtlSeconds: parseJwksTtl(env.AUTH_JWKS_CACHE_TTL_SECONDS),
     isProduction: env.ENVIRONMENT === 'production',
   };
+}
+
+/** Некорректный TTL не должен ломать gateway: берём безопасное значение по умолчанию. */
+function parseJwksTtl(value: string | undefined): number {
+  const parsed = JwksTtlSchema.safeParse(value ?? DEFAULT_JWKS_TTL_SECONDS);
+
+  return parsed.success ? parsed.data : DEFAULT_JWKS_TTL_SECONDS;
 }

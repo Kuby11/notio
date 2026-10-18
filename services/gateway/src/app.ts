@@ -7,6 +7,7 @@ import { rateLimitMiddleware } from './middleware/rate-limit';
 import { requestIdMiddleware } from './middleware/request-id';
 import { requestLoggingMiddleware } from './middleware/request-logging';
 import { securityHeadersMiddleware } from './middleware/security-headers';
+import { authenticationMiddleware, isPublicPath, requireAuthentication } from './middleware/auth';
 import { createHealthApiRoutes } from './routes/health-api';
 import { createHealthRoutes } from './routes/health';
 import { createIndexRoutes } from './routes/index';
@@ -20,13 +21,23 @@ export function createGatewayApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
   // Порядок middleware важен: сначала идентичность запроса, потом конфиг,
-  // затем лимиты и логирование, и только после этого маршрутизация в сервисы.
+  // затем JWT, лимиты и логирование, и только после этого маршрутизация.
   app.use('*', requestIdMiddleware());
   app.use('*', configMiddleware());
   app.use('*', securityHeadersMiddleware());
   app.use('*', (c, next) => corsMiddleware(c.get('config'))(c, next));
+  app.use('*', (c, next) => authenticationMiddleware(c.get('config'))(c, next));
   app.use('/api/*', (c, next) => rateLimitMiddleware(c.get('config'))(c, next));
   app.use('*', (c, next) => requestLoggingMiddleware(c.get('config'))(c, next));
+
+  // Вход, регистрация и JWKS должны работать без токена.
+  app.use('/api/*', (c, next) => {
+    if (isPublicPath(c.req.path)) {
+      return next();
+    }
+
+    return requireAuthentication()(c, next);
+  });
 
   app.route('/', createIndexRoutes());
   app.route('/', createHealthRoutes());

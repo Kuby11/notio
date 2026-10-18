@@ -1,4 +1,5 @@
 import { HealthResponseSchema, type HealthResponse, type ServiceHealth } from '@notio/contracts';
+import { SessionPanel } from '../features/auth/ui/session-panel';
 import { env } from '../shared/config/env';
 
 const REQUEST_TIMEOUT_MS = 5_000;
@@ -51,9 +52,11 @@ export default async function Home() {
         </p>
         <h1 className="text-3xl font-semibold tracking-tight">Клон Notion на Cloudflare Workers</h1>
         <p className="text-neutral-600 dark:text-neutral-400">
-          Этап 0: монорепо, gateway и первый сервис за Service Binding.
+          Этап 2: аутентификация, сессии в cookie и JWT для защищённых запросов.
         </p>
       </header>
+
+      <SessionPanel />
 
       <section
         aria-labelledby="health-heading"

@@ -1,0 +1,33 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "auth-service",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "SERVICE_VERSION": "0.1.0",
+    "BETTER_AUTH_URL": "http://localhost:8787",
+    "TRUSTED_ORIGINS": "http://localhost:3000",
+    "RATE_LIMIT_MAX_REQUESTS": "20",
+    "RATE_LIMIT_WINDOW_SECONDS": "60",
+  },
+  "workers_dev": false,
+  "kv_namespaces": [
+    {
+      "binding": "RATE_LIMIT",
+      "id": "0000000000000000000000000000001f",
+    },
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "notio-auth",
+      "database_id": "00000000-0000-0000-0000-000000000002",
+      "migrations_dir": "migrations",
+    },
+  ],
+}

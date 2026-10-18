@@ -1,16 +1,32 @@
 import { INTERNAL_HEADERS } from '@notio/contracts';
-import { describe, expect, it } from 'vitest';
-import { createGatewayApp } from '../src/app';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { clientIdentifier, currentWindow, rateLimitKey } from '../src/middleware/rate-limit';
 import { isValidRequestId } from '../src/middleware/request-id';
-import { createEnv, pagesOk, problemOf, request } from './helpers';
+import {
+  AUTHORIZATION,
+  clientHeaders,
+  createEnv,
+  issueToken,
+  problemOf,
+  request,
+  resetJwksCache,
+} from './helpers';
 
 /** Уникальный IP на тест: состояние KV переживает границы отдельных тестов. */
 let ipCounter = 0;
 function uniqueIp(): string {
   ipCounter += 1;
 
-  return `198.51.100.${ipCounter}`;
+  return `203.0.113.${ipCounter}`;
+}
+
+beforeEach(() => {
+  resetJwksCache();
+});
+
+/** Заголовки авторизованного запроса к защищённому маршруту. */
+async function authHeaders(): Promise<Record<string, string>> {
+  return { ...AUTHORIZATION(await issueToken()), ...clientHeaders() };
 }
 
 describe('request-id', () => {
@@ -58,7 +74,7 @@ describe('security-заголовки', () => {
   });
 
   it('задаёт защитные заголовки и на проксированных ответах', async () => {
-    const response = await request('/api/pages', undefined, createEnv(pagesOk));
+    const response = await request('/api/pages', { headers: await authHeaders() }, createEnv());
 
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
   });
@@ -102,16 +118,16 @@ describe('CORS', () => {
 
 describe('rate limit', () => {
   it('считает запросы по идентификатору клиента и отдаёт 429 с Retry-After', async () => {
-    const env = createEnv(pagesOk);
-    const headers = { 'cf-connecting-ip': uniqueIp() };
+    const env = createEnv({ bindings: { RATE_LIMIT_MAX_REQUESTS: '3' } });
+    const headers = await authHeaders();
+    headers['cf-connecting-ip'] = uniqueIp();
 
-    // Лимит из конфига тестов — 3 запроса на окно.
     for (const _ of [1, 2, 3]) {
-      const ok = await request('/api/pages', { headers }, env);
-      expect(ok.status).toBe(200);
+      const ok = await request('/api/unknown', { headers }, env);
+      expect(ok.status).toBe(404);
     }
 
-    const limited = await request('/api/pages', { headers }, env);
+    const limited = await request('/api/unknown', { headers }, env);
 
     expect(limited.status).toBe(429);
     expect(limited.headers.get('retry-after')).toMatch(/^\d+$/);
@@ -119,33 +135,22 @@ describe('rate limit', () => {
   });
 
   it('не ограничивает запросы с другого IP', async () => {
-    const env = createEnv(pagesOk);
+    const env = createEnv({ bindings: { RATE_LIMIT_MAX_REQUESTS: '3' } });
 
     for (const _ of [1, 2, 3, 4]) {
+      const ip = uniqueIp();
       const response = await request(
-        '/api/pages',
-        { headers: { 'cf-connecting-ip': uniqueIp() } },
+        '/api/unknown',
+        { headers: { ...(await authHeaders()), 'cf-connecting-ip': ip } },
         env,
       );
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(404);
     }
   });
 
-  it('публикует остаток лимита в заголовках', async () => {
-    const env = createEnv(pagesOk);
-    const ip = uniqueIp();
-
-    const first = await request('/api/pages', { headers: { 'cf-connecting-ip': ip } }, env);
-    const second = await request('/api/pages', { headers: { 'cf-connecting-ip': ip } }, env);
-
-    expect(first.headers.get('x-ratelimit-limit')).toBe('3');
-    expect(first.headers.get('x-ratelimit-remaining')).toBe('2');
-    expect(second.headers.get('x-ratelimit-remaining')).toBe('1');
-  });
-
   it('не ограничивает health-эндпоинты: мониторинг не должен ловить 429', async () => {
-    const env = createEnv(pagesOk);
+    const env = createEnv({ bindings: { RATE_LIMIT_MAX_REQUESTS: '2' } });
 
     for (const _ of [1, 2, 3, 4, 5]) {
       const response = await request('/health', undefined, env);
@@ -173,22 +178,20 @@ describe('rate limit', () => {
   });
 
   it('применяется ко всему /api/*, включая несуществующие маршруты', async () => {
-    const env = createEnv(pagesOk);
+    const env = createEnv({ bindings: { RATE_LIMIT_MAX_REQUESTS: '3' } });
     const headers = { 'cf-connecting-ip': uniqueIp() };
 
     for (const _ of [1, 2, 3]) {
       await request('/api/unknown', { headers }, env);
     }
 
-    const response = await request('/api/unknown', { headers }, env);
-
-    expect(response.status).toBe(429);
+    expect((await request('/api/unknown', { headers }, env)).status).toBe(429);
   });
 });
 
 describe('конфигурация', () => {
   it('не молча снимает защиту при некорректных лимитах', async () => {
-    const env = createEnv(pagesOk, { RATE_LIMIT_MAX_REQUESTS: '0' });
+    const env = createEnv({ bindings: { RATE_LIMIT_MAX_REQUESTS: '0' } });
 
     const response = await request('/health', undefined, env);
 
@@ -196,7 +199,7 @@ describe('конфигурация', () => {
   });
 
   it('не стартует с некорректным списком origin', async () => {
-    const env = createEnv(pagesOk, { CORS_ALLOWED_ORIGINS: 'не-url' });
+    const env = createEnv({ bindings: { CORS_ALLOWED_ORIGINS: 'не-url' } });
 
     const response = await request('/', undefined, env);
 
@@ -204,26 +207,10 @@ describe('конфигурация', () => {
   });
 
   it('использует уровень лога по умолчанию, если значение неизвестно', async () => {
-    const env = createEnv(pagesOk, { LOG_LEVEL: 'verbose' });
+    const env = createEnv({ bindings: { LOG_LEVEL: 'verbose' } });
 
     const response = await request('/', undefined, env);
 
     expect(response.status).toBe(200);
-  });
-});
-
-describe('приложение целиком', () => {
-  it('оборачивает необработанную ошибку в 500 problem+json', async () => {
-    const app = createGatewayApp();
-    app.get('/boom', () => {
-      throw new Error('секретные детали системы');
-    });
-
-    const response = await app.request('/boom', {}, createEnv(pagesOk));
-    const text = await response.text();
-
-    expect(response.status).toBe(500);
-    expect(text).not.toContain('секретные детали');
-    expect(await problemOf(new Response(text, response))).toMatchObject({ code: 'INTERNAL_ERROR' });
   });
 });

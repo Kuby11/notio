@@ -1,7 +1,7 @@
 import { aggregateStatus, HealthResponseSchema, healthStatusCode } from '@notio/contracts';
 import { Hono } from 'hono';
 import type { AppEnv } from '../env';
-import { probePagesService, selfHealth } from '../services/health-probe';
+import { collectHealth } from '../services/health-probe';
 
 /**
  * Readiness-endpoint: опрашивает внутренние сервисы через Service Bindings
@@ -9,7 +9,7 @@ import { probePagesService, selfHealth } from '../services/health-probe';
  */
 export function createHealthApiRoutes(): Hono<AppEnv> {
   return new Hono<AppEnv>().get('/api/health', async (c) => {
-    const services = [selfHealth(c.env), await probePagesService(c.env)];
+    const services = await collectHealth(c.env);
     const status = aggregateStatus(services);
 
     return c.json(

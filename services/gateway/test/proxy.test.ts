@@ -1,122 +1,180 @@
 import { GATEWAY_SOURCE, INTERNAL_HEADERS, SERVICE_RESPONSE_HEADER } from '@notio/contracts';
-import { describe, expect, it, vi } from 'vitest';
-import { actorIdFromRequest } from '../src/routes/proxy';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { userIdFromRequest } from '../src/routes/proxy';
 import {
+  AUTHORIZATION,
   clientHeaders,
   createEnv,
   firstRequest,
+  healthyAuthServiceResponse,
+  JWKS,
+  issueToken,
   jsonRequest,
   pagesOk,
   problemOf,
   request,
-  type PagesResponder,
+  resetJwksCache,
+  responderMock,
 } from './helpers';
 
 const WORKSPACE_ID = '00000000-0000-4000-8000-000000000001';
-const ACTOR = '00000000-0000-4000-8000-00000000000a';
+const USER_ID = '00000000-0000-4000-8000-00000000000a';
+
+/** Ответ сервиса с внутренним заголовком: клиент его видеть не должен. */
+function upstreamResponseWithInternalHeaders(): Response {
+  return new Response('{"ok":true}', {
+    status: 201,
+    headers: {
+      'content-type': 'application/json',
+      'cache-control': 'no-store',
+      'x-internal-secret': 'hidden',
+    },
+  });
+}
+
+beforeEach(() => {
+  resetJwksCache();
+});
+
+/** Запрос к защищённому маршруту от авторизованного пользователя. */
+async function authedInit(extra: RequestInit = {}): Promise<RequestInit> {
+  const token = await issueToken({ sub: USER_ID });
+
+  return {
+    ...extra,
+    headers: { ...clientHeaders(), ...AUTHORIZATION(token), ...extra.headers },
+  };
+}
 
 describe('проксирование в pages-service', () => {
   it('переписывает путь /api/pages → /pages и сохраняет query', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
+    const pages = responderMock(pagesOk);
 
     await request(
       `/api/pages?workspaceId=${WORKSPACE_ID}`,
-      { headers: clientHeaders() },
-      createEnv(responder),
+      await authedInit(),
+      createEnv({ pages }),
     );
 
-    const forwardedUrl = new URL(firstRequest(responder).url);
+    const forwardedUrl = new URL(firstRequest(pages).url);
+
     expect(forwardedUrl.pathname).toBe('/pages');
     expect(forwardedUrl.searchParams.get('workspaceId')).toBe(WORKSPACE_ID);
   });
 
   it('переписывает путь вложенного ресурса', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
+    const pages = responderMock(pagesOk);
 
-    await request(`/api/pages/${WORKSPACE_ID}`, { headers: clientHeaders() }, createEnv(responder));
+    await request(`/api/pages/${WORKSPACE_ID}`, await authedInit(), createEnv({ pages }));
 
-    expect(new URL(firstRequest(responder).url).pathname).toBe(`/pages/${WORKSPACE_ID}`);
+    expect(new URL(firstRequest(pages).url).pathname).toBe(`/pages/${WORKSPACE_ID}`);
   });
 
   it('передаёт тело и метод без изменений', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
+    const pages = responderMock(pagesOk);
 
     const response = await request(
       '/api/pages',
-      jsonRequest({ workspaceId: WORKSPACE_ID, title: 'Из gateway' }, clientHeaders()),
-      createEnv(responder),
+      await authedInit(jsonRequest({ workspaceId: WORKSPACE_ID, title: 'Из gateway' })),
+      createEnv({ pages }),
     );
 
     expect(response.status).toBe(200);
-    expect(firstRequest(responder).method).toBe('POST');
-    expect(await firstRequest(responder).clone().json()).toEqual({
+    expect(firstRequest(pages).method).toBe('POST');
+    expect(await firstRequest(pages).clone().json()).toEqual({
       workspaceId: WORKSPACE_ID,
       title: 'Из gateway',
     });
   });
 
   it('помечает вызов источником и возвращает маршрутизацию', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
+    const pages = responderMock(pagesOk);
 
-    const response = await request(
-      '/api/pages',
-      { headers: clientHeaders() },
-      createEnv(responder),
-    );
+    const response = await request('/api/pages', await authedInit(), createEnv({ pages }));
 
-    expect(firstRequest(responder).headers.get(INTERNAL_HEADERS.SOURCE_SERVICE)).toBe(
-      GATEWAY_SOURCE,
-    );
+    expect(firstRequest(pages).headers.get(INTERNAL_HEADERS.SOURCE_SERVICE)).toBe(GATEWAY_SOURCE);
     expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('pages-service');
   });
 
+  it('передаёт сервису пользователя из подписанного токена', async () => {
+    const pages = responderMock(pagesOk);
+
+    await request('/api/pages', await authedInit(), createEnv({ pages }));
+
+    expect(firstRequest(pages).headers.get(INTERNAL_HEADERS.ACTOR_ID)).toBe(USER_ID);
+  });
+
+  it('не передаёт сервису подделанный заголовок пользователя', async () => {
+    const pages = responderMock(pagesOk);
+    const init = await authedInit({
+      headers: { 'x-user-id': '11111111-1111-4111-8111-111111111111' },
+    });
+
+    await request('/api/pages', init, createEnv({ pages }));
+
+    expect(firstRequest(pages).headers.get(INTERNAL_HEADERS.ACTOR_ID)).toBe(USER_ID);
+  });
+
+  it('не передаёт идентификатор, если токен не предъявлен', async () => {
+    const pages = responderMock(pagesOk);
+
+    // Запрос без токена не доходит до сервиса: 401 на закрытом маршруте.
+    const response = await request(
+      '/api/pages',
+      { headers: clientHeaders() },
+      createEnv({ pages }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(pages).not.toHaveBeenCalled();
+  });
+
   it('пробрасывает валидный клиентский request-id: сквозная трассировка', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
+    const pages = responderMock(pagesOk);
 
     const response = await request(
       '/api/pages',
-      { headers: { ...clientHeaders(), [INTERNAL_HEADERS.REQUEST_ID]: 'trace-from-client' } },
-      createEnv(responder),
+      await authedInit({ headers: { [INTERNAL_HEADERS.REQUEST_ID]: 'trace-from-client' } }),
+      createEnv({ pages }),
     );
 
-    expect(firstRequest(responder).headers.get(INTERNAL_HEADERS.REQUEST_ID)).toBe(
-      'trace-from-client',
-    );
+    expect(firstRequest(pages).headers.get(INTERNAL_HEADERS.REQUEST_ID)).toBe('trace-from-client');
     expect(response.headers.get(INTERNAL_HEADERS.REQUEST_ID)).toBe('trace-from-client');
   });
 
   it('подменяет идентификатор, не проходящий политику', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
+    const pages = responderMock(pagesOk);
 
     const response = await request(
       '/api/pages',
-      { headers: { ...clientHeaders(), [INTERNAL_HEADERS.REQUEST_ID]: 'bad id with spaces' } },
-      createEnv(responder),
+      await authedInit({ headers: { [INTERNAL_HEADERS.REQUEST_ID]: 'bad id with spaces' } }),
+      createEnv({ pages }),
     );
 
-    const forwarded = firstRequest(responder).headers.get(INTERNAL_HEADERS.REQUEST_ID);
+    const forwarded = firstRequest(pages).headers.get(INTERNAL_HEADERS.REQUEST_ID);
+
     expect(forwarded).not.toContain('bad id');
     expect(forwarded).toBe(response.headers.get(INTERNAL_HEADERS.REQUEST_ID));
   });
 
   it('не пересылает hop-by-hop заголовки и host', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
+    const pages = responderMock(pagesOk);
 
     await request(
       '/api/pages',
-      {
+      await authedInit({
         headers: {
-          ...clientHeaders(),
           connection: 'keep-alive',
           'transfer-encoding': 'chunked',
           host: 'spoofed.example',
           'x-custom': 'custom-value',
         },
-      },
-      createEnv(responder),
+      }),
+      createEnv({ pages }),
     );
 
-    const headers = firstRequest(responder).headers;
+    const headers = firstRequest(pages).headers;
+
     expect(headers.get('connection')).toBeNull();
     expect(headers.get('transfer-encoding')).toBeNull();
     expect(headers.get('host')).toBeNull();
@@ -124,34 +182,25 @@ describe('проксирование в pages-service', () => {
   });
 
   it('отдаёт клиенту только безопасные заголовки ответа', async () => {
-    const upstream = new Response('{"ok":true}', {
-      status: 201,
-      headers: {
-        'content-type': 'application/json',
-        'cache-control': 'no-store',
-        'set-cookie': 'secret=value',
-        'x-internal-secret': 'hidden',
-      },
-    });
-
     const response = await request(
       '/api/pages',
-      { headers: clientHeaders() },
-      createEnv(() => upstream),
+      await authedInit(),
+      createEnv({ pages: upstreamResponseWithInternalHeaders }),
     );
 
     expect(response.status).toBe(201);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(response.headers.get('set-cookie')).toBeNull();
     expect(response.headers.get('x-internal-secret')).toBeNull();
   });
 
   it('возвращает 503 problem+json, если сервис недоступен', async () => {
     const response = await request(
       '/api/pages',
-      { headers: clientHeaders() },
-      createEnv(() => {
-        throw new Error('сервис упал');
+      await authedInit(),
+      createEnv({
+        pages: () => {
+          throw new Error('сервис упал');
+        },
       }),
     );
 
@@ -159,55 +208,101 @@ describe('проксирование в pages-service', () => {
     expect(await problemOf(response)).toMatchObject({ code: 'SERVICE_UNAVAILABLE' });
   });
 
-  it('не трогает маршруты вне /api/pages', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
+  it('не трогает маршруты вне проксируемых префиксов', async () => {
+    const pages = responderMock(pagesOk);
 
-    const response = await request('/other', { headers: clientHeaders() }, createEnv(responder));
+    const response = await request('/other', await authedInit(), createEnv({ pages }));
 
     expect(response.status).toBe(404);
-    expect(responder).not.toHaveBeenCalled();
+    expect(pages).not.toHaveBeenCalled();
   });
 });
 
-describe('идентичность пользователя', () => {
-  it('в разработке принимает x-actor-id и передаёт сервису', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
-    const env = createEnv(responder, { ENVIRONMENT: 'development' });
+describe('проксирование в auth-service', () => {
+  it('маршрутизирует /api/auth/* в auth-service без префикса gateway', async () => {
+    const auth = responderMock(() => Response.json({ ok: true }));
 
-    await request('/api/pages', { headers: { ...clientHeaders(), 'x-actor-id': ACTOR } }, env);
+    const response = await request(
+      '/api/auth/get-session',
+      { headers: clientHeaders() },
+      createEnv({ auth }),
+    );
 
-    expect(firstRequest(responder).headers.get(INTERNAL_HEADERS.ACTOR_ID)).toBe(ACTOR);
+    expect(response.status).toBe(200);
+    expect(new URL(firstRequest(auth).url).pathname).toBe('/api/auth/get-session');
+    expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('auth-service');
   });
 
-  it('в production игнорирует заголовок клиента (fail closed до Этапа 2)', () => {
-    const clientRequest = new Request('https://gateway.notio.dev/api/pages', {
-      headers: { 'x-actor-id': ACTOR },
-    });
-    const env = createEnv(pagesOk, { ENVIRONMENT: 'production' });
-
-    expect(actorIdFromRequest(env, clientRequest)).toBeUndefined();
-  });
-
-  it('в production не передаёт сервису подделанный идентификатор', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
-    const env = createEnv(responder, { ENVIRONMENT: 'production' });
-
-    await request('/api/pages', { headers: { ...clientHeaders(), 'x-actor-id': ACTOR } }, env);
-
-    expect(firstRequest(responder).headers.get(INTERNAL_HEADERS.ACTOR_ID)).toBeNull();
-  });
-
-  it('игнорирует клиентскую попытку выдать себя за gateway', async () => {
-    const responder = vi.fn<PagesResponder>(pagesOk);
+  it('передаёт cookie сессии, иначе вход через браузер не работает', async () => {
+    const auth = responderMock(() => Response.json({ user: null }));
 
     await request(
-      '/api/pages',
-      { headers: { ...clientHeaders(), [INTERNAL_HEADERS.SOURCE_SERVICE]: 'unknown-service' } },
-      createEnv(responder),
+      '/api/auth/get-session',
+      { headers: { ...clientHeaders(), cookie: 'notio.session_token=abc' } },
+      createEnv({ auth }),
     );
 
-    expect(firstRequest(responder).headers.get(INTERNAL_HEADERS.SOURCE_SERVICE)).toBe(
-      GATEWAY_SOURCE,
+    expect(firstRequest(auth).headers.get('cookie')).toBe('notio.session_token=abc');
+  });
+
+  it('отдаёт Set-Cookie клиенту: без него сессия не сохранится', async () => {
+    const auth = responderMock(
+      () =>
+        new Response('{}', {
+          headers: [
+            ['content-type', 'application/json'],
+            ['set-cookie', 'notio.session_token=abc; Path=/; HttpOnly'],
+          ],
+        }),
     );
+
+    const response = await request(
+      '/api/auth/get-session',
+      { headers: clientHeaders() },
+      createEnv({ auth }),
+    );
+
+    expect(response.headers.getSetCookie().join(';')).toContain('notio.session_token=abc');
+  });
+
+  it('проксирует решение auth-service без изменений', async () => {
+    const auth = responderMock(() => Response.json({ success: false }, { status: 403 }));
+
+    const response = await request(
+      '/api/auth/sign-out',
+      jsonRequest({}, { 'cf-connecting-ip': '203.0.113.77' }),
+      createEnv({ auth }),
+    );
+
+    // Проверку Origin делает auth-service, gateway не дублирует правила сервиса.
+    expect(auth).toHaveBeenCalled();
+    expect(response.status).toBe(403);
+    expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('auth-service');
+  });
+
+  it('достаёт JWKS у auth-service для проверки токена', async () => {
+    const auth = responderMock((incoming: Request) => {
+      const path = new URL(incoming.url).pathname;
+
+      return path === '/api/auth/jwks' ? Response.json(JWKS) : healthyAuthServiceResponse();
+    });
+
+    await request('/api/pages', await authedInit(), createEnv({ auth }));
+
+    expect(auth).toHaveBeenCalled();
+  });
+});
+
+describe('identity для сервисов', () => {
+  it('возвращает undefined, когда пользователь не определён', () => {
+    const context = { get: () => null };
+
+    expect(userIdFromRequest(context)).toBeUndefined();
+  });
+
+  it('возвращает id пользователя из контекста', () => {
+    const context = { get: () => ({ id: 'user-1', claims: { sub: 'user-1', exp: 0 } }) };
+
+    expect(userIdFromRequest(context)).toBe('user-1');
   });
 });

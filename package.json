@@ -6,9 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n workers,web -c cyan,magenta \"pnpm run dev:workers\" \"pnpm run dev:web\"",
-    "dev:workers": "wrangler dev --persist-to .wrangler/state -c ./services/gateway/wrangler.jsonc -c ./services/pages-service/wrangler.jsonc",
+    "dev:workers": "wrangler dev --persist-to .wrangler/state -c ./services/gateway/wrangler.jsonc -c ./services/auth-service/wrangler.jsonc -c ./services/pages-service/wrangler.jsonc",
     "dev:web": "pnpm --filter @notio/web dev",
     "dev:gateway": "pnpm --filter @notio/gateway dev",
+    "dev:auth": "pnpm --filter @notio/auth-service dev",
     "dev:pages": "pnpm --filter @notio/pages-service dev",
     "smoke": "node scripts/smoke.mjs",
     "build": "turbo run build",
@@ -23,6 +24,8 @@
     "types": "turbo run cf-typegen",
     "db:generate": "pnpm --filter @notio/pages-service db:generate",
     "db:migrate:pages": "wrangler d1 migrations apply notio-pages --local --persist-to .wrangler/state --config services/pages-service/wrangler.jsonc",
+    "db:migrate:auth": "wrangler d1 migrations apply notio-auth --local --persist-to .wrangler/state --config services/auth-service/wrangler.jsonc",
+    "db:migrate": "pnpm run db:migrate:pages && pnpm run db:migrate:auth",
     "db:seed:pages": "wrangler d1 execute notio-pages --local --persist-to .wrangler/state --config services/pages-service/wrangler.jsonc --file=./services/pages-service/db/seed.sql"
   },
   "devDependencies": {
