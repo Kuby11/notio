@@ -1,13 +1,13 @@
 'use client';
 
 import { useWorkspaces, useCreateWorkspace } from '@/features/workspaces/ui/use-workspaces';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/shared/ui/dropdown-menu';
 import { ChevronDown, Plus, Trash2, Star } from 'lucide-react';
 import { useState } from 'react';
 import { PageTree } from '@/features/pages/ui/page-tree';

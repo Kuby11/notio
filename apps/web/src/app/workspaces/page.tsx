@@ -1,9 +1,9 @@
 'use client';
 
 import { useWorkspaces, useCreateWorkspace } from '../../features/workspaces/ui/use-workspaces';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 

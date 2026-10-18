@@ -1,4 +1,4 @@
-import { AppLayout } from '@/components/app-layout';
+import { AppLayout } from '@/shared/components/app-layout';
 
 export default async function TrashPage({ params }: { params: Promise<{ workspaceId: string }> }) {
   const { workspaceId } = await params;

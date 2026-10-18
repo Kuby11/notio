@@ -1,4 +1,4 @@
-import { AppLayout } from '../../../components/app-layout';
+import { AppLayout } from '@/shared/components/app-layout';
 import { PageTree } from '../../../features/pages/ui/page-tree';
 
 export default async function WorkspacePage({
