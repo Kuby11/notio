@@ -7,6 +7,7 @@
 export { AccessToken } from './application/access-token';
 export { CurrentSession } from './application/current-session';
 export { SignIn } from './application/sign-in';
+export { SignInWithProvider } from './application/sign-in-with-provider';
 export { SignOut } from './application/sign-out';
 export { SignUp } from './application/sign-up';
 export type { AuthGateway, AuthSession, SessionUser, SignUpInput } from './application/ports';

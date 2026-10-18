@@ -28,6 +28,14 @@ export interface AuthGateway {
   signUp(input: SignUpInput): Promise<void>;
   /** Вход по паролю. Бросает AuthError с кодом EMAIL_NOT_VERIFIED, если почта не подтверждена. */
   signIn(credentials: Credentials): Promise<void>;
+  /**
+   * Вход через внешнего провайдера (Google, GitHub).
+   *
+   * Браузер перенаправляется на страницу провайдера; после возврата
+   * сессия устанавливается автоматически и пользователь оказывается на
+   * callbackURL. Токен в клиенте не хранится.
+   */
+  signInWithProvider(provider: 'google' | 'github', callbackUrl?: string): Promise<void>;
   /** Выход: сервер отзывает сессию, клиент теряет cookie. */
   signOut(): Promise<void>;
   /** Текущая сессия или null, если пользователь не входит. */

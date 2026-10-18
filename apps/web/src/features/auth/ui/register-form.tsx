@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { MIN_PASSWORD_LENGTH } from '../domain';
-import { authErrorMessage, useSignUp } from './use-auth';
+import { authErrorMessage, useSignUp, useSignInWithProvider } from './use-auth';
 
 /**
  * Форма регистрации.
@@ -25,6 +25,7 @@ type RegisterFields = z.infer<typeof RegisterSchema>;
 
 export function RegisterForm() {
   const signUp = useSignUp();
+  const oauth = useSignInWithProvider();
   const [sentTo, setSentTo] = useState<string | null>(null);
 
   const {
@@ -125,11 +126,37 @@ export function RegisterForm() {
         {signUp.isPending ? 'Создаём…' : 'Создать аккаунт'}
       </button>
 
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          disabled={oauth.isPending}
+          onClick={() => oauth.mutate('google')}
+          className="rounded border border-neutral-300 px-4 py-2 text-sm disabled:opacity-60"
+        >
+          {oauth.isPending ? 'Переходим…' : 'Зарегистрироваться через Google'}
+        </button>
+        <button
+          type="button"
+          disabled={oauth.isPending}
+          onClick={() => oauth.mutate('github')}
+          className="rounded border border-neutral-300 px-4 py-2 text-sm disabled:opacity-60"
+        >
+          {oauth.isPending ? 'Переходим…' : 'Зарегистрироваться через GitHub'}
+        </button>
+      </div>
+
+      {oauth.error !== null ? (
+        <p role="alert" className="text-sm text-red-600">
+          {authErrorMessage(oauth.error)}
+        </p>
+      ) : null}
+
       <p className="text-xs text-neutral-500">
         Уже есть аккаунт?{' '}
         <a className="underline" href="/login">
           Войти
         </a>
+        . Пароль не короче {MIN_PASSWORD_LENGTH} символов.
       </p>
     </form>
   );

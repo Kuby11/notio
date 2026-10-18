@@ -156,7 +156,16 @@ export function buildAuthOptions(env: Bindings, deps: AuthDependencies): BetterA
 
     // JWT нужен межсервисному взаимодействию: gateway проверяет подпись
     // локально по JWKS и не ходит в auth-service на каждый запрос.
-    plugins: [jwt()],
+    plugins: [
+      jwt({
+        jwks: {
+          // В production закрытый ключ шифруется секретом сервиса: даже при утечке
+          // базы его нельзя использовать. В dev шифрование отключено, чтобы
+          // смена BETTER_AUTH_SECRET не ломала уже выданные ключи JWKS.
+          disablePrivateKeyEncryption: env.ENVIRONMENT !== 'production',
+        },
+      }),
+    ],
 
     advanced: {
       useSecureCookies: env.ENVIRONMENT === 'production',

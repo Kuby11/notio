@@ -21,6 +21,7 @@ const BOOT_TIMEOUT_MS = 90_000;
 const POLL_INTERVAL_MS = 500;
 const PROBE_TIMEOUT_MS = 2_000;
 const PASSWORD = 'correct-horse-battery';
+const SMOKE_IP = `203.0.113.${Math.floor(Math.random() * 200) + 1}`;
 /** Срок жизни ссылки подтверждения: совпадает с emailVerification.expiresIn. */
 const VERIFICATION_TTL_SECONDS = 60 * 60 * 24;
 const VERBOSE = process.argv.includes('--verbose');
@@ -248,7 +249,7 @@ async function runChecks() {
     headers: {
       'content-type': 'application/json',
       origin: BASE_URL,
-      'cf-connecting-ip': '203.0.113.71',
+      'cf-connecting-ip': `${SMOKE_IP}`,
     },
     body: JSON.stringify({ email, password: PASSWORD, name: 'Smoke' }),
   });
@@ -264,7 +265,7 @@ async function runChecks() {
     headers: {
       'content-type': 'application/json',
       origin: BASE_URL,
-      'cf-connecting-ip': '203.0.113.71',
+      'cf-connecting-ip': `${SMOKE_IP}`,
     },
     body: JSON.stringify({ email, password: PASSWORD, name: 'Smoke' }),
   });
@@ -291,7 +292,7 @@ async function runChecks() {
   if (token !== null) {
     const verified = await fetch(
       `${BASE_URL}/api/auth/verify-email?token=${encodeURIComponent(token)}&callbackURL=%2F`,
-      { redirect: 'manual', headers: { 'cf-connecting-ip': '203.0.113.71' } },
+      { redirect: 'manual', headers: { 'cf-connecting-ip': `${SMOKE_IP}` } },
     );
 
     check(
@@ -304,7 +305,7 @@ async function runChecks() {
       headers: {
         'content-type': 'application/json',
         origin: BASE_URL,
-        'cf-connecting-ip': '203.0.113.71',
+        'cf-connecting-ip': `${SMOKE_IP}`,
       },
       body: JSON.stringify({ email, password: PASSWORD }),
     });
@@ -315,7 +316,7 @@ async function runChecks() {
     check(cookie.startsWith('notio.session_token='), 'Вход не выдал cookie сессии');
 
     const tokenResponse = await fetch(`${BASE_URL}/api/auth/token`, {
-      headers: { cookie, 'cf-connecting-ip': '203.0.113.71' },
+      headers: { cookie, 'cf-connecting-ip': `${SMOKE_IP}` },
     });
     const tokenBody = await json(tokenResponse);
 

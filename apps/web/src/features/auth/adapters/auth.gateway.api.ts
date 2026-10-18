@@ -2,6 +2,7 @@ import { createAuthClient } from 'better-auth/client';
 import { jwtClient } from 'better-auth/client/plugins';
 import type { AuthGateway, AuthSession, SignUpInput } from '../application/ports';
 import type { AuthError, Credentials } from '../domain';
+import { isAuthError } from '../domain';
 import {
   AuthErrorResponseSchema,
   SessionResponseSchema,
@@ -81,6 +82,25 @@ export function createBetterAuthGateway(options: AuthGatewayOptions): AuthGatewa
 
     async signIn(credentials: Credentials): Promise<void> {
       await call(() => client.signIn.email(credentials));
+    },
+
+    async signInWithProvider(provider: 'google' | 'github', callbackUrl = '/'): Promise<void> {
+      try {
+        const result = await client.signIn.social({
+          provider,
+          callbackURL: callbackUrl,
+        });
+
+        if (result.error !== null) {
+          throw toAuthError(result.error);
+        }
+      } catch (error) {
+        if (isAuthError(error)) {
+          throw error;
+        }
+
+        throw networkError(error);
+      }
     },
 
     async signOut(): Promise<void> {

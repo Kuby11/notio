@@ -40,6 +40,14 @@ class InMemoryAuthGateway implements AuthGateway {
     }
   }
 
+  async signInWithProvider(_provider: 'google' | 'github', _callbackUrl?: string): Promise<void> {
+    this.calls.push('signInWithProvider');
+
+    if (this.signInError !== null) {
+      throw this.signInError;
+    }
+  }
+
   async signOut(): Promise<void> {
     this.calls.push('signOut');
 

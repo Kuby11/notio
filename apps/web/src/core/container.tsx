@@ -5,6 +5,7 @@ import {
   AccessToken,
   CurrentSession,
   SignIn,
+  SignInWithProvider,
   SignOut,
   SignUp,
   createBetterAuthGateway,
@@ -20,6 +21,7 @@ import { env } from '../shared/config/env';
 
 export interface AuthUseCases {
   signIn: SignIn;
+  signInWithProvider: SignInWithProvider;
   signUp: SignUp;
   signOut: SignOut;
   currentSession: CurrentSession;
@@ -34,6 +36,7 @@ export function createContainer(gateway: AuthGateway): Container {
   return {
     auth: {
       signIn: new SignIn(gateway),
+      signInWithProvider: new SignInWithProvider(gateway),
       signUp: new SignUp(gateway),
       signOut: new SignOut(gateway),
       currentSession: new CurrentSession(gateway),

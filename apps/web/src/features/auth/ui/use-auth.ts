@@ -32,6 +32,18 @@ export function useSignIn() {
   });
 }
 
+export function useSignInWithProvider() {
+  const { auth } = useContainer();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (provider: 'google' | 'github') => auth.signInWithProvider.execute(provider),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: authKeys.session() });
+    },
+  });
+}
+
 export function useSignUp() {
   const { auth } = useContainer();
   const queryClient = useQueryClient();
