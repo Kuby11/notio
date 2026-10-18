@@ -2,8 +2,8 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { failsWith, gatewayStub, renderWithProviders } from '../../../../test/auth-fixture';
-import { AuthError } from '../domain/errors';
+import { failsWith, gatewayStub, renderWithProviders } from '../../../../../test/auth-fixture';
+import { AuthError } from '../../domain/errors';
 import { LoginForm } from './login-form';
 
 /**

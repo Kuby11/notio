@@ -9,8 +9,8 @@ import {
   renderWithProviders,
   sessionFailsWith,
   sessionOf,
-} from '../../../../test/auth-fixture';
-import { AuthError } from '../domain/errors';
+} from '../../../../../test/auth-fixture';
+import { AuthError } from '../../domain/errors';
 import { SessionPanel } from './session-panel';
 
 const { push } = vi.hoisted(() => ({ push: vi.fn<(path: string) => void>() }));

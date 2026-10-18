@@ -1,21 +1,22 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { MIN_PASSWORD_LENGTH } from '../domain';
-import { authErrorMessage, useSignIn, useSignInWithProvider } from './use-auth';
+import { MIN_PASSWORD_LENGTH } from '../../domain';
+import { authErrorMessage, useSignUp, useSignInWithProvider } from '../hooks/use-auth';
 
-const LoginSchema = z.object({
+const RegisterSchema = z.object({
+  name: z.string().min(2, 'Имя не короче 2 символов'),
   email: z.email('Почта выглядит некорректно'),
-  password: z.string().min(1, 'Укажите пароль'),
+  password: z.string().min(MIN_PASSWORD_LENGTH, `Пароль не короче ${MIN_PASSWORD_LENGTH} символов`),
 });
 
-type LoginFields = z.infer<typeof LoginSchema>;
+type RegisterFields = z.infer<typeof RegisterSchema>;
 
 /** Логотип Google: официальный четырёхцветный значок. */
 function GoogleLogo() {
@@ -50,33 +51,66 @@ function GitHubLogo() {
   );
 }
 
-export function LoginForm() {
-  const router = useRouter();
-  const signIn = useSignIn();
+export function RegisterForm() {
+  const signUp = useSignUp();
   const oauth = useSignInWithProvider();
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFields>({
-    resolver: zodResolver(LoginSchema),
-    defaultValues: { email: '', password: '' },
+  } = useForm<RegisterFields>({
+    resolver: zodResolver(RegisterSchema),
+    defaultValues: { name: '', email: '', password: '' },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      await signIn.mutateAsync({
+      await signUp.mutateAsync({
+        name: values.name.trim(),
         email: values.email.trim().toLowerCase(),
         password: values.password,
       });
-      router.push('/');
+      setSentTo(values.email.trim().toLowerCase());
     } catch {
       // Текст ошибки берётся из мутации.
     }
   });
 
+  if (sentTo !== null) {
+    return (
+      <div role="status" className="space-y-3 text-sm">
+        <p className="font-medium">Почти готово</p>
+        <p className="text-neutral-600">
+          Мы отправили ссылку для подтверждения на {sentTo}. Откройте её, затем войдите.
+        </p>
+        <p>
+          <a className="underline" href="/login">
+            Перейти ко входу
+          </a>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="name">Имя</Label>
+        <Input
+          id="name"
+          type="text"
+          autoComplete="name"
+          aria-invalid={errors.name !== undefined}
+          {...register('name')}
+        />
+        {errors.name !== undefined ? (
+          <p role="alert" className="text-xs text-red-600">
+            {errors.name.message}
+          </p>
+        ) : null}
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="email">Почта</Label>
         <Input
@@ -98,7 +132,7 @@ export function LoginForm() {
         <Input
           id="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           aria-invalid={errors.password !== undefined}
           {...register('password')}
         />
@@ -109,14 +143,14 @@ export function LoginForm() {
         ) : null}
       </div>
 
-      {signIn.error !== null ? (
+      {signUp.error !== null ? (
         <p role="alert" className="text-sm text-red-600">
-          {authErrorMessage(signIn.error)}
+          {authErrorMessage(signUp.error)}
         </p>
       ) : null}
 
-      <Button type="submit" disabled={signIn.isPending} className="w-full">
-        {signIn.isPending ? 'Входим…' : 'Войти'}
+      <Button type="submit" disabled={signUp.isPending} className="w-full">
+        {signUp.isPending ? 'Создаём…' : 'Создать аккаунт'}
       </Button>
 
       <div className="flex flex-col gap-2">
@@ -128,7 +162,7 @@ export function LoginForm() {
           className="w-full"
         >
           <GoogleLogo />
-          Войти через Google
+          Зарегистрироваться через Google
         </Button>
         <Button
           type="button"
@@ -138,7 +172,7 @@ export function LoginForm() {
           className="w-full"
         >
           <GitHubLogo />
-          Войти через GitHub
+          Зарегистрироваться через GitHub
         </Button>
       </div>
 
@@ -149,9 +183,9 @@ export function LoginForm() {
       ) : null}
 
       <p className="text-xs text-neutral-500">
-        Нет аккаунта?{' '}
-        <a className="underline" href="/register">
-          Зарегистрироваться
+        Уже есть аккаунт?{' '}
+        <a className="underline" href="/login">
+          Войти
         </a>
         . Пароль не короче {MIN_PASSWORD_LENGTH} символов.
       </p>

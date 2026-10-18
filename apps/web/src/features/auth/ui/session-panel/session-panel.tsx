@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { authErrorMessage, useSession, useSignOut } from './use-auth';
+import { authErrorMessage, useSession, useSignOut } from '../hooks/use-auth';
 
 /**
  * Панель текущей сессии.

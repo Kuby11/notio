@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useContainer } from '../../../core/container';
-import { isAuthError } from '../domain';
+import { useContainer } from '../../../../core/container';
+import { isAuthError } from '../../domain';
 import { authKeys } from './query-keys';
 
 /**
