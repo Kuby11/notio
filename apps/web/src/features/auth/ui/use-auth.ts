@@ -64,6 +64,7 @@ export function useSignOut() {
   return useMutation({
     mutationFn: () => auth.signOut.execute(),
     onSuccess: async () => {
+      auth.accessToken.clear();
       queryClient.clear();
     },
   });
