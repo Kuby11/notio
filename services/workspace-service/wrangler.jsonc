@@ -1,0 +1,38 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "workspace-service",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "SERVICE_VERSION": "0.1.0",
+    "PUBLIC_GATEWAY_URL": "http://localhost:8787",
+    "PUBLIC_APP_URL": "http://localhost:3000",
+    "INVITATION_TTL_DAYS": "7",
+    "ARCHIVE_RETENTION_DAYS": "30",
+    "MAX_ACTIVE_INVITATIONS": "20",
+  },
+  "workers_dev": false,
+  "triggers": {
+    // Архивный workspace не живёт вечно: раз в сутки чистим истёкшие.
+    "crons": ["17 3 * * *"],
+  },
+  "services": [
+    {
+      "binding": "AUTH_SERVICE",
+      "service": "auth-service",
+    },
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "notio-workspace",
+      "database_id": "00000000-0000-0000-0000-000000000003",
+      "migrations_dir": "migrations",
+    },
+  ],
+}

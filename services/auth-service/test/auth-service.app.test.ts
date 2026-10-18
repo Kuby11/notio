@@ -17,6 +17,40 @@ describe('createAuthServiceApp', () => {
     expect(await response.json()).toMatchObject({ code: 'NOT_FOUND' });
   });
 
+  it('отдаёт публичные профили по id через внутренний маршрут', async () => {
+    const { createAuthServiceApp } = await import('../src/app');
+    const userId = '00000000-0000-4000-8000-00000000000a';
+
+    await env.DB.prepare(
+      'INSERT INTO user (id, name, email, email_verified, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)',
+    )
+      .bind(userId, 'Аня', 'user@notio.dev', Date.now(), Date.now())
+      .run();
+
+    const response = await createAuthServiceApp().request(
+      `/internal/users?ids=${userId},00000000-0000-4000-8000-00000000000b`,
+      {},
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      items: { id: string; email: string; name: string }[];
+    };
+
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0]).toMatchObject({ id: userId, email: 'user@notio.dev', name: 'Аня' });
+  });
+
+  it('отдаёт пустой список без id', async () => {
+    const { createAuthServiceApp } = await import('../src/app');
+
+    const response = await createAuthServiceApp().request('/internal/users?ids=', {}, env);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ items: [] });
+  });
+
   it('не выдаёт детали сбоя наружу, а логирует их', async () => {
     const { createAuthServiceApp } = await import('../src/app');
     const errors: unknown[] = [];

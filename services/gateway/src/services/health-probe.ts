@@ -11,7 +11,7 @@ import type { Bindings } from '../env';
 const INTERNAL_ORIGIN = 'https://internal';
 
 export interface ServiceProbe {
-  binding: 'PAGES_SERVICE' | 'AUTH_SERVICE';
+  binding: 'PAGES_SERVICE' | 'AUTH_SERVICE' | 'WORKSPACE_SERVICE';
   service: ServiceName;
   path: string;
 }
@@ -23,6 +23,7 @@ export interface ServiceProbe {
 export const HEALTH_TARGETS = [
   { binding: 'PAGES_SERVICE', service: 'pages-service', path: '/health' },
   { binding: 'AUTH_SERVICE', service: 'auth-service', path: '/health' },
+  { binding: 'WORKSPACE_SERVICE', service: 'workspace-service', path: '/health' },
 ] as const satisfies readonly ServiceProbe[];
 
 /** Собственное состояние gateway: сервис не зависит от соседей и отвечает всегда. */

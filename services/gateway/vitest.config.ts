@@ -15,6 +15,13 @@ const HEALTH_AUTH = {
   services: [{ service: 'auth-service', status: 'ok', version: '0.1.0', latencyMs: 1 }],
 };
 
+const HEALTH_WORKSPACE = {
+  status: 'ok',
+  version: '0.1.0',
+  timestamp: '2026-10-18T12:00:00.000Z',
+  services: [{ service: 'workspace-service', status: 'ok', version: '0.1.0', latencyMs: 1 }],
+};
+
 export default defineConfig({
   plugins: [
     cloudflareTest({
@@ -42,6 +49,9 @@ export default defineConfig({
             const path = new URL(request.url).pathname;
 
             return path.includes('jwks') ? Response.json({ keys: [] }) : Response.json(HEALTH_AUTH);
+          },
+          WORKSPACE_SERVICE() {
+            return Response.json(HEALTH_WORKSPACE);
           },
         },
         kvNamespaces: ['RATE_LIMIT'],

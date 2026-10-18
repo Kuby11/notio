@@ -1,5 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { createDb, type D1Binding } from '@notio/db';
+import type { UserProfile } from '@notio/contracts';
 import * as authSchema from './auth-schema.generated';
 
 /**
@@ -46,6 +47,20 @@ export function createUserRepository(env: D1Binding) {
         .limit(1);
 
       return user ?? null;
+    },
+
+    /** Публичные профили по id: нужны другим сервисам для списков участников. */
+    async findProfilesByIds(ids: string[]): Promise<UserProfile[]> {
+      if (ids.length === 0) {
+        return [];
+      }
+
+      const rows = await client
+        .select({ id: tables.user.id, email: tables.user.email, name: tables.user.name })
+        .from(tables.user)
+        .where(inArray(tables.user.id, ids));
+
+      return rows;
     },
   };
 }

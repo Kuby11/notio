@@ -13,6 +13,8 @@ export interface Bindings {
   PAGES_SERVICE: Fetcher;
   /** Внутренний доступ к auth-service: проверка токенов и JWKS. */
   AUTH_SERVICE: Fetcher;
+  /** Внутренний доступ к workspace-service: рабочие пространства и участники. */
+  WORKSPACE_SERVICE: Fetcher;
   /** Счётчики rate limit. */
   RATE_LIMIT: KVNamespace;
   ENVIRONMENT: string;

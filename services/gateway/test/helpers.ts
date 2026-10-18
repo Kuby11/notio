@@ -117,6 +117,22 @@ export function healthyAuthServiceResponse(): Response {
   });
 }
 
+export function healthyWorkspaceServiceResponse(): Response {
+  return Response.json({
+    status: 'ok',
+    version: '0.1.0',
+    timestamp: new Date().toISOString(),
+    services: [{ service: 'workspace-service', status: 'ok', version: '0.1.0', latencyMs: 1 }],
+  });
+}
+
+/** Ответ workspace-service по умолчанию: health для readiness. */
+export function defaultWorkspaceResponder(incoming: Request): Response {
+  return new URL(incoming.url).pathname === '/health'
+    ? healthyWorkspaceServiceResponse()
+    : Response.json({ items: [] });
+}
+
 /** Ответ pages-service по умолчанию: успешный ответ внутреннего сервиса. */
 export const pagesOk: PagesResponder = healthyPagesServiceResponse;
 
@@ -138,6 +154,7 @@ export function defaultAuthResponder(incoming: Request): Response {
 export interface EnvOverrides {
   pages?: PagesResponder;
   auth?: AuthResponder;
+  workspaces?: PagesResponder;
   bindings?: Partial<Bindings>;
 }
 
@@ -146,6 +163,9 @@ export function createEnv(overrides: EnvOverrides = {}): Bindings {
     ...baseEnv,
     PAGES_SERVICE: pagesStub(overrides.pages ?? healthyPagesServiceResponse),
     AUTH_SERVICE: authStub(overrides.auth ?? defaultAuthResponder),
+    WORKSPACE_SERVICE: createStub(
+      overrides.workspaces ?? (defaultWorkspaceResponder as PagesResponder),
+    ) as Bindings['WORKSPACE_SERVICE'],
     ...overrides.bindings,
   };
 }

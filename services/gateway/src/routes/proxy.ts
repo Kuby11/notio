@@ -14,7 +14,7 @@ export interface ProxyTarget {
   /** Корень маршрутов внутри сервиса, например /pages. */
   serviceRoot: string;
   /** Имя биндинга Service Binding. */
-  binding: 'PAGES_SERVICE' | 'AUTH_SERVICE';
+  binding: 'PAGES_SERVICE' | 'AUTH_SERVICE' | 'WORKSPACE_SERVICE';
   /** Человекочитаемое имя сервиса для логов и заголовка ответа. */
   service: string;
 }
@@ -31,6 +31,20 @@ export const PROXY_TARGETS = [
     serviceRoot: '/api/auth',
     binding: 'AUTH_SERVICE',
     service: 'auth-service',
+  },
+  {
+    prefix: '/api/workspaces',
+    serviceRoot: '/workspaces',
+    binding: 'WORKSPACE_SERVICE',
+    service: 'workspace-service',
+  },
+  {
+    // Приглашения принимают по токену, поэтому у них свой публичный префикс:
+    // структура workspace постороннему пользователю не нужна.
+    prefix: '/api/invitations',
+    serviceRoot: '/invitations',
+    binding: 'WORKSPACE_SERVICE',
+    service: 'workspace-service',
   },
 ] as const satisfies readonly ProxyTarget[];
 

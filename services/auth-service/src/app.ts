@@ -2,12 +2,14 @@ import { INTERNAL_HEADERS, problem } from '@notio/contracts';
 import { Hono } from 'hono';
 import { createAuthRoutes } from './routes/auth';
 import { createHealthRoutes, SERVICE_NAME } from './routes/health';
+import { createInternalRoutes } from './routes/internal';
 import type { AppEnv } from './env';
 
 export function createAuthServiceApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
   app.route('/', createHealthRoutes());
+  app.route('/', createInternalRoutes());
   app.route('/', createAuthRoutes());
 
   app.notFound((c) =>

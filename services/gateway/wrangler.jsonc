@@ -31,5 +31,9 @@
       "binding": "AUTH_SERVICE",
       "service": "auth-service",
     },
+    {
+      "binding": "WORKSPACE_SERVICE",
+      "service": "workspace-service",
+    },
   ],
 }

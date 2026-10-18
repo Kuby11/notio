@@ -1,7 +1,12 @@
 import { z } from 'zod';
 
 /** Сервисы notio, участвующие в агрегированном health-отчёте. */
-export const SERVICE_NAMES = ['gateway', 'pages-service', 'auth-service'] as const;
+export const SERVICE_NAMES = [
+  'gateway',
+  'pages-service',
+  'auth-service',
+  'workspace-service',
+] as const;
 export type ServiceName = (typeof SERVICE_NAMES)[number];
 
 export const HEALTH_STATUSES = ['ok', 'degraded'] as const;

@@ -58,6 +58,7 @@ describe('gateway /api/health', () => {
       'gateway',
       'pages-service',
       'auth-service',
+      'workspace-service',
     ]);
   });
 
