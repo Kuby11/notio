@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { z } from 'zod';
 import { MIN_PASSWORD_LENGTH } from '../domain';
 import { authErrorMessage, useSignUp, useSignInWithProvider } from './use-auth';
 
@@ -14,7 +16,7 @@ const RegisterSchema = z.object({
   password: z.string().min(MIN_PASSWORD_LENGTH, `Пароль не короче ${MIN_PASSWORD_LENGTH} символов`),
 });
 
-// RegisterFields не используется отдельно: валидация идёт через RegisterSchema.
+type RegisterFields = z.infer<typeof RegisterSchema>;
 
 /** Логотип Google: официальный четырёхцветный значок. */
 function GoogleLogo() {
@@ -52,50 +54,28 @@ function GitHubLogo() {
 export function RegisterForm() {
   const signUp = useSignUp();
   const oauth = useSignInWithProvider();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<Partial<Record<'name' | 'email' | 'password', string>>>({});
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFields>({
+    resolver: zodResolver(RegisterSchema),
+    defaultValues: { name: '', email: '', password: '' },
+  });
 
-  function validate(): boolean {
-    const result = RegisterSchema.safeParse({ name, email, password });
-
-    if (!result.success) {
-      const fieldErrors: Partial<Record<'name' | 'email' | 'password', string>> = {};
-
-      for (const issue of result.error.issues) {
-        const field = issue.path[0];
-
-        if (field === 'name' || field === 'email' || field === 'password') {
-          fieldErrors[field] = issue.message;
-        }
-      }
-
-      setErrors(fieldErrors);
-
-      return false;
-    }
-
-    setErrors({});
-
-    return true;
-  }
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validate()) {
-      return;
-    }
-
+  const onSubmit = handleSubmit(async (values) => {
     try {
-      await signUp.mutateAsync({ name: name.trim(), email: email.trim().toLowerCase(), password });
-      setSentTo(email.trim().toLowerCase());
+      await signUp.mutateAsync({
+        name: values.name.trim(),
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
+      });
+      setSentTo(values.email.trim().toLowerCase());
     } catch {
       // Текст ошибки берётся из мутации.
     }
-  };
+  });
 
   if (sentTo !== null) {
     return (
@@ -121,13 +101,12 @@ export function RegisterForm() {
           id="name"
           type="text"
           autoComplete="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
           aria-invalid={errors.name !== undefined}
+          {...register('name')}
         />
         {errors.name !== undefined ? (
           <p role="alert" className="text-xs text-red-600">
-            {errors.name}
+            {errors.name.message}
           </p>
         ) : null}
       </div>
@@ -138,13 +117,12 @@ export function RegisterForm() {
           id="email"
           type="email"
           autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
           aria-invalid={errors.email !== undefined}
+          {...register('email')}
         />
         {errors.email !== undefined ? (
           <p role="alert" className="text-xs text-red-600">
-            {errors.email}
+            {errors.email.message}
           </p>
         ) : null}
       </div>
@@ -155,13 +133,12 @@ export function RegisterForm() {
           id="password"
           type="password"
           autoComplete="new-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
           aria-invalid={errors.password !== undefined}
+          {...register('password')}
         />
         {errors.password !== undefined ? (
           <p role="alert" className="text-xs text-red-600">
-            {errors.password}
+            {errors.password.message}
           </p>
         ) : null}
       </div>

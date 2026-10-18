@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { z } from 'zod';
 import { MIN_PASSWORD_LENGTH } from '../domain';
 import { authErrorMessage, useSignIn, useSignInWithProvider } from './use-auth';
 
@@ -14,7 +15,7 @@ const LoginSchema = z.object({
   password: z.string().min(1, 'Укажите пароль'),
 });
 
-// LoginFields не используется отдельно: валидация идёт через LoginSchema.
+type LoginFields = z.infer<typeof LoginSchema>;
 
 /** Логотип Google: официальный четырёхцветный значок. */
 function GoogleLogo() {
@@ -53,48 +54,26 @@ export function LoginForm() {
   const router = useRouter();
   const signIn = useSignIn();
   const oauth = useSignInWithProvider();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<Partial<Record<'email' | 'password', string>>>({});
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFields>({
+    resolver: zodResolver(LoginSchema),
+    defaultValues: { email: '', password: '' },
+  });
 
-  function validate(): boolean {
-    const result = LoginSchema.safeParse({ email, password });
-
-    if (!result.success) {
-      const fieldErrors: Partial<Record<'email' | 'password', string>> = {};
-
-      for (const issue of result.error.issues) {
-        const field = issue.path[0];
-
-        if (field === 'email' || field === 'password') {
-          fieldErrors[field] = issue.message;
-        }
-      }
-
-      setErrors(fieldErrors);
-
-      return false;
-    }
-
-    setErrors({});
-
-    return true;
-  }
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validate()) {
-      return;
-    }
-
+  const onSubmit = handleSubmit(async (values) => {
     try {
-      await signIn.mutateAsync({ email: email.trim().toLowerCase(), password });
+      await signIn.mutateAsync({
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
+      });
       router.push('/');
     } catch {
       // Текст ошибки берётся из мутации.
     }
-  };
+  });
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
@@ -104,13 +83,12 @@ export function LoginForm() {
           id="email"
           type="email"
           autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
           aria-invalid={errors.email !== undefined}
+          {...register('email')}
         />
         {errors.email !== undefined ? (
           <p role="alert" className="text-xs text-red-600">
-            {errors.email}
+            {errors.email.message}
           </p>
         ) : null}
       </div>
@@ -121,13 +99,12 @@ export function LoginForm() {
           id="password"
           type="password"
           autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
           aria-invalid={errors.password !== undefined}
+          {...register('password')}
         />
         {errors.password !== undefined ? (
           <p role="alert" className="text-xs text-red-600">
-            {errors.password}
+            {errors.password.message}
           </p>
         ) : null}
       </div>
