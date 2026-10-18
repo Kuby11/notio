@@ -34,12 +34,14 @@ export function AppSidebar({ workspaceId }: AppSidebarProps) {
       {/* Переключатель workspace */}
       <div className="border-b border-neutral-200 p-3 dark:border-neutral-800">
         <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Button variant="ghost" className="w-full justify-between">
-              <span className="truncate">{current?.name ?? 'Выберите workspace'}</span>
-              <ChevronDown className="h-4 w-4 opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="ghost" className="w-full justify-between">
+                <span className="truncate">{current?.name ?? 'Выберите workspace'}</span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            }
+          />
           <DropdownMenuContent className="w-56">
             {workspaces.data?.map((w: { id: string; name: string }) => (
               <DropdownMenuItem key={w.id}>
