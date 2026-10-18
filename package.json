@@ -10,7 +10,7 @@
     "dev:web": "pnpm --filter @notio/web dev",
     "dev:gateway": "pnpm --filter @notio/gateway dev",
     "dev:pages": "pnpm --filter @notio/pages-service dev",
-    "smoke": "node scripts/smoke-bindings.mjs",
+    "smoke": "node scripts/smoke.mjs",
     "build": "turbo run build",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",

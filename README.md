@@ -59,12 +59,15 @@ pnpm dev                # workers (wrangler) и web (next dev)
 - gateway (readiness, опрашивает сервисы): http://localhost:8787/api/health
 - страницы через gateway: http://localhost:8787/api/pages?workspaceId=…
 
-Полный сквозной путь (клиент → gateway → Service Binding → сервис → D1) проверяется так:
+Полный сквозной путь (клиент → gateway → Service Binding → сервис → D1) проверяется одной
+командой — она сама поднимает backend, применяет миграции и гасит его:
 
 ```bash
-pnpm dev:workers   # в одном терминале
-pnpm smoke         # в другом
+pnpm smoke              # сам поднимает и останавливает backend
+pnpm smoke -- --verbose # с логами workers
 ```
+
+Если backend уже запущен (`pnpm dev:workers`), скрипт использует его и ничего не выключает.
 
 ## API страниц (через gateway)
 
