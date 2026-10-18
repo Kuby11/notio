@@ -1,4 +1,3 @@
-import type { ServiceName } from '@notio/contracts';
 import { z } from 'zod';
 
 /** Путь, по которому gateway получает JWKS у auth-service через Service Binding. */
@@ -46,9 +45,3 @@ export interface AuthenticatedUser {
   id: string;
   claims: AuthClaims;
 }
-
-export const HEALTH_SERVICES = [
-  'gateway',
-  'pages-service',
-  'auth-service',
-] as const satisfies readonly ServiceName[];

@@ -4,9 +4,12 @@
  *
  *   pnpm smoke              # сам поднимает backend, проверяет и гасит его
  *   pnpm smoke -- --verbose # показывает логи workers
+ *   pnpm smoke -- --reuse   # использовать уже запущенный backend (ничего не гасит)
  *
- * Если backend уже запущен (`pnpm dev:workers`), скрипт использует его и ничего
- * не останавливает.
+ * По умолчанию скрипт всегда поднимает свой backend: ссылка подтверждения почты
+ * приходит в лог workers, и без своих логов проверка была бы неполной.
+ * С `--reuse` логов не будет, поэтому токен подтверждения собирается из
+ * dev-секрета — такой режим годится только для локального стенда.
  */
 import { spawn } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
@@ -21,6 +24,7 @@ const PASSWORD = 'correct-horse-battery';
 /** Срок жизни ссылки подтверждения: совпадает с emailVerification.expiresIn. */
 const VERIFICATION_TTL_SECONDS = 60 * 60 * 24;
 const VERBOSE = process.argv.includes('--verbose');
+const REUSE_RUNNING_BACKEND = process.argv.includes('--reuse');
 const PNPM = 'pnpm';
 
 const failures = [];
@@ -166,6 +170,19 @@ function stopWorkers(child) {
   }
 }
 
+/**
+ * Останавливает уже запущенный backend перед стартом своего.
+ * Скрипту нужен собственный процесс: ссылка подтверждения приходит в его лог.
+ */
+function stopForeignBackend() {
+  const command = process.platform === 'win32' ? 'taskkill' : 'pkill';
+
+  spawn(command, process.platform === 'win32' ? ['/IM', 'workerd.exe', '/F'] : ['-f', 'wrangler'], {
+    stdio: 'ignore',
+    shell: process.platform === 'win32',
+  });
+}
+
 async function waitForGateway() {
   const deadline = Date.now() + BOOT_TIMEOUT_MS;
 
@@ -241,10 +258,31 @@ async function runChecks() {
     `POST /api/auth/sign-up/email вернул ${signUp.status}: ${await signUp.clone().text()}`,
   );
 
+  // Повторная регистрация той же почты должна честно сообщить о конфликте.
+  const duplicate = await fetch(`${BASE_URL}/api/auth/sign-up/email`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      origin: BASE_URL,
+      'cf-connecting-ip': '203.0.113.71',
+    },
+    body: JSON.stringify({ email, password: PASSWORD, name: 'Smoke' }),
+  });
+  const duplicateBody = await json(duplicate);
+
+  check(
+    duplicate.status === 409,
+    `Повторная регистрация вернула ${duplicate.status}, ожидался 409: ${JSON.stringify(duplicateBody)}`,
+  );
+  check(
+    duplicateBody.code === 'CONFLICT',
+    `Повторная регистрация вернула код ${duplicateBody.code}, ожидался CONFLICT`,
+  );
+
   const token = await resolveVerificationToken(email);
   check(
     token !== null,
-    'Не удалось получить ссылку подтверждения: запустите `pnpm smoke` без отдельного `pnpm dev:workers` либо проверьте .dev.vars',
+    'Не удалось получить ссылку подтверждения: запустите smoke без --reuse, чтобы он поднял свой backend и прочитал ссылку из логов',
   );
 
   let cookie = '';
@@ -387,7 +425,7 @@ async function runChecks() {
   }
 
   console.log(
-    '\nSmoke-проверка пройдена: регистрация, подтверждение почты, вход, JWT, отказ по подделанному токену и запись страницы в D1 работают.',
+    '\nSmoke-проверка пройдена: регистрация с отказом на занятом email, подтверждение почты, вход, JWT, отказ по подделанному токену и запись страницы в D1 работают.',
   );
 
   return true;
@@ -396,8 +434,17 @@ async function runChecks() {
 async function main() {
   let workers = null;
 
-  if (!(await isGatewayUp())) {
-    console.log(`Gateway на ${BASE_URL} не отвечает — поднимаю backend и миграции...`);
+  if (REUSE_RUNNING_BACKEND && (await isGatewayUp())) {
+    console.log(`Используем уже запущенный backend на ${BASE_URL} (--reuse).`);
+  } else {
+    if (await isGatewayUp()) {
+      console.log(
+        `На ${BASE_URL} уже отвечает чужой backend — останавливаю его: без своих логов smoke неполон. Запустите с --reuse, чтобы этого не делать.`,
+      );
+      stopForeignBackend();
+    }
+
+    console.log('Поднимаю backend и миграции...');
 
     const migration = await run(PNPM, ['run', 'db:migrate']);
     if (migration.code !== 0) {
@@ -418,8 +465,6 @@ async function main() {
       process.exitCode = 1;
       return;
     }
-  } else {
-    console.log(`Используем уже запущенный gateway на ${BASE_URL}.`);
   }
 
   const onInterrupt = () => {

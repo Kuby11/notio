@@ -1,10 +1,10 @@
 import { env as workerEnv } from 'cloudflare:workers';
 import { Hono } from 'hono';
 import { describe, expect, it } from 'vitest';
-import { createAuth } from '../src/auth/config';
 import type { MailSender, OutboundMail } from '../src/auth/mailer';
 import { AUTH_BASE_PATH, JWKS_PATH, TOKEN_PATH } from '../src/auth/options';
 import type { AppEnv, Bindings } from '../src/env';
+import { createAuthRoutes } from '../src/routes/auth';
 import { createHealthRoutes, SERVICE_NAME } from '../src/routes/health';
 
 const env = workerEnv as Bindings;
@@ -32,7 +32,7 @@ function createTestApp(mail: OutboundMail[]): Hono<AppEnv> {
   };
 
   app.route('/', createHealthRoutes());
-  app.all(`${AUTH_BASE_PATH}/*`, (c) => createAuth(c.env, { mailSender }).handler(c.req.raw));
+  app.route('/', createAuthRoutes({ mailSender }));
 
   return app;
 }
@@ -164,18 +164,39 @@ describe('регистрация и вход', () => {
     expect(mail[0]?.actionUrl).toContain('/api/auth/verify-email');
   });
 
-  it('не создаёт второй аккаунт на тот же email', async () => {
-    // Better Auth 1.7 отвечает на повторную регистрацию 200, но уникальный
-    // индекс не даёт создать вторую строку. Проверяем инвариант базы:
-    // два аккаунта с одним email — это уязвимость, а не деталь ответа.
-    const app = createTestApp([]);
+  it('не создаёт второй аккаунт на тот же email и отвечает 409', async () => {
+    const mail: OutboundMail[] = [];
+    const app = createTestApp(mail);
     const email = uniqueEmail('dupe');
     const body = { email, password: 'correct-horse-battery', name: 'Глеб' };
 
-    await call(app, `${AUTH_BASE_PATH}/sign-up/email`, { body });
-    await call(app, `${AUTH_BASE_PATH}/sign-up/email`, { body });
+    const first = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, { body });
+    expect(first.status).toBe(200);
 
+    const second = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, { body });
+
+    // Better Auth ответил бы 200 без второй строки: клиент решил бы, что
+    // аккаунт создан, и потерял бы его. Отвечаем явным конфликтом.
+    expect(second.status).toBe(409);
+    expect(await second.clone().json()).toMatchObject({
+      code: 'CONFLICT',
+      detail: 'Аккаунт с такой почтой уже существует',
+    });
     expect(await usersWithEmail(email)).toHaveLength(1);
+  });
+
+  it('ловит занятую почту независимо от регистра', async () => {
+    const mail: OutboundMail[] = [];
+    const app = createTestApp(mail);
+    const email = uniqueEmail('Case');
+    const body = { password: 'correct-horse-battery', name: 'Маша' };
+
+    await call(app, `${AUTH_BASE_PATH}/sign-up/email`, { body: { ...body, email } });
+    const second = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, {
+      body: { ...body, email: email.toUpperCase() },
+    });
+
+    expect(second.status).toBe(409);
   });
 
   it('не создаёт сессию до подтверждения почты', async () => {

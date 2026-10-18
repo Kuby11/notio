@@ -91,6 +91,25 @@ describe('адаптер аутентификации', () => {
     ).rejects.toMatchObject({ code: 'RATE_LIMITED' });
   });
 
+  it('переводит наш 409 о занятом email в EMAIL_TAKEN', async () => {
+    stubFetch(() =>
+      json(
+        {
+          status: 409,
+          code: 'CONFLICT',
+          detail: 'Аккаунт с такой почтой уже существует',
+          requestId: 'req-1',
+        },
+        409,
+      ),
+    );
+    const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
+
+    await expect(
+      gateway.signUp({ name: 'Аня', email: 'user@notio.dev', password: 'correct-horse-battery' }),
+    ).rejects.toMatchObject({ code: 'EMAIL_TAKEN' });
+  });
+
   it('превращает обрыв сети в NETWORK_ERROR, а не в «неверный пароль»', async () => {
     vi.stubGlobal(
       'fetch',

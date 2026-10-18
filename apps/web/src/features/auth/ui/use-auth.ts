@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useContainer } from '../../../core/container';
-import type { AuthError } from '../domain';
+import { isAuthError } from '../domain';
 import { authKeys } from './query-keys';
 
 /**
@@ -59,9 +59,5 @@ export function useSignOut() {
 
 /** Текст ошибки для показа пользователю: коды домена, а не тексты сервера. */
 export function authErrorMessage(error: unknown): string | null {
-  if (error === null || typeof error !== 'object' || !('code' in error)) {
-    return null;
-  }
-
-  return (error as AuthError).message;
+  return isAuthError(error) ? error.message : null;
 }

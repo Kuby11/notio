@@ -2,7 +2,7 @@ import { env as workerEnv } from 'cloudflare:workers';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { expect, vi, type Mock } from 'vitest';
 import { createGatewayApp } from '../src/app';
-import { getSharedJwksCache, verifyAccessToken } from '../src/middleware/jwt';
+import { getSharedJwksCache } from '../src/middleware/jwt';
 import type { Bindings } from '../src/env';
 
 export type PagesResponder = (request: Request) => Response | Promise<Response>;
@@ -185,13 +185,6 @@ export function clientHeaders(): Record<string, string> {
   ipCounter += 1;
 
   return { 'cf-connecting-ip': `198.51.100.${(ipCounter % 200) + 1}` };
-}
-
-/** Проверяет токен тем же кодом, что и gateway: удобно для диагностики тестов. */
-export async function verifyInTest(token: string): Promise<boolean> {
-  const user = await verifyAccessToken(token, authStub(), getSharedJwksCache());
-
-  return user !== null;
 }
 
 /** Кеш JWKS общий для изолята: между тестами его нужно сбрасывать. */

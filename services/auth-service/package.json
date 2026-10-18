@@ -13,7 +13,7 @@
     "build": "wrangler deploy --dry-run --outdir dist",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
-    "auth:schema": "better-auth generate --output src/db/auth-schema.generated.ts --config src/auth/config.ts",
+    "auth:schema": "pnpm run --dir ../.. auth:schema",
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tools.json --noEmit",
     "test": "vitest run",
@@ -30,7 +30,6 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@better-auth/cli": "1.4.21",
     "@cloudflare/vitest-plugin": "1.4.4",
     "@notio/config": "workspace:*",
     "@types/node": "22.20.5",

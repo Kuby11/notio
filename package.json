@@ -21,6 +21,7 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "prepare": "husky",
+    "auth:schema": "pnpm --dir services/auth-service exec better-auth generate --config src/auth/cli.config.ts --output src/db/auth-schema.generated.ts --yes",
     "types": "turbo run cf-typegen",
     "db:generate": "pnpm --filter @notio/pages-service db:generate",
     "db:migrate:pages": "wrangler d1 migrations apply notio-pages --local --persist-to .wrangler/state --config services/pages-service/wrangler.jsonc",
@@ -29,6 +30,7 @@
     "db:seed:pages": "wrangler d1 execute notio-pages --local --persist-to .wrangler/state --config services/pages-service/wrangler.jsonc --file=./services/pages-service/db/seed.sql"
   },
   "devDependencies": {
+    "@better-auth/cli": "1.4.21",
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@notio/config": "workspace:*",

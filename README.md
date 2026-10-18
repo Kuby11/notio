@@ -56,6 +56,9 @@ pnpm db:seed:pages               # демо-данные (по желанию)
 pnpm dev                         # workers (wrangler) и web (next dev)
 ```
 
+Секреты читаются из `.dev.vars` рядом с конфигом сервиса, поэтому файл нужен и в корне,
+и в `services/auth-service/` (второй можно сделать символической ссылкой).
+
 - фронтенд: http://localhost:3000
 - индекс API: http://localhost:8787/
 - gateway (liveness): http://localhost:8787/health
@@ -69,9 +72,13 @@ pnpm dev                         # workers (wrangler) и web (next dev)
 ```bash
 pnpm smoke              # сам поднимает и останавливает backend
 pnpm smoke -- --verbose # с логами workers
+pnpm smoke -- --reuse   # использовать уже запущенный backend, ничего не гасить
 ```
 
-Если backend уже запущен (`pnpm dev:workers`), скрипт использует его и ничего не выключает.
+Свои логи нужны для ссылки подтверждения почты, поэтому по умолчанию smoke всегда
+поднимает свой backend; если на порту уже кто-то отвечает, скрипт это остановит и
+предупредит. `--reuse` пропускает подъём, но тогда подтверждение собирается из
+`.dev.vars` — режим только для локального стенда.
 
 ## Аутентификация и доступ к API
 
@@ -85,6 +92,7 @@ EMAIL="you@notio.test"
 PASS="correct-horse-battery"
 
 # 1. Регистрация: письмо с подтверждением уходит в лог auth-service (в dev).
+#    Повторная регистрация этой же почты вернёт 409 CONFLICT.
 curl -X POST http://localhost:8787/api/auth/sign-up/email \
   -H "content-type: application/json" -H "origin: http://localhost:8787" \
   -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\",\"name\":\"Вы\"}"
