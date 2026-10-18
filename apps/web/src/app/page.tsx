@@ -1,5 +1,6 @@
 import { HealthResponseSchema, type HealthResponse, type ServiceHealth } from '@notio/contracts';
 import { SessionPanel } from '../features/auth/ui/session-panel';
+import { PageTree } from '../features/pages/ui/page-tree';
 import { env } from '../shared/config/env';
 
 const REQUEST_TIMEOUT_MS = 5_000;
@@ -115,6 +116,18 @@ export default async function Home() {
             <code className="font-mono">pnpm dev:workers</code>.
           </p>
         )}
+      </section>
+
+      <section
+        aria-labelledby="pages-heading"
+        className="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800"
+      >
+        <h2 id="pages-heading" className="text-sm font-medium">
+          Страницы
+        </h2>
+        <div className="mt-3">
+          <PageTree workspaceId="00000000-0000-4000-8000-000000000001" />
+        </div>
       </section>
     </main>
   );

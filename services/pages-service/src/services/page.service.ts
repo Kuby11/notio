@@ -1,4 +1,10 @@
-import type { CreatePageInput, Page, PageListQuery, UpdatePageInput } from '@notio/contracts';
+import type {
+  CreatePageInput,
+  MovePageInput,
+  Page,
+  PageListQuery,
+  UpdatePageInput,
+} from '@notio/contracts';
 import { IdSchema, newId } from '@notio/contracts';
 import { generateKeyBetween } from 'fractional-indexing';
 import type { Bindings } from '../env';
@@ -98,6 +104,81 @@ export class PageService {
     }
 
     return updated;
+  }
+
+  /**
+   * Перемещение страницы в другого родителя с проверкой цикла.
+   *
+   * Цикл «страница внутрь собственного потомка» разрушил бы дерево:
+   * страница стала бы недоступной. Проверяем по цепочке предков, а не
+   * только по непосредственному родителю.
+   */
+  async movePage(id: string, workspaceId: string, input: MovePageInput): Promise<Page> {
+    const page = await this.getPage(id, workspaceId);
+
+    if (page.isTrashed) {
+      throw new ConflictError('Нельзя перемещать страницу из корзины');
+    }
+
+    await this.assertParentIsUsable(workspaceId, input.parentId);
+    await this.assertNoCycle(workspaceId, id, input.parentId);
+
+    const bounds = await this.pages.findPositionBounds(
+      workspaceId,
+      input.parentId,
+      input.afterPageId,
+    );
+    const updated = await this.pages.moveById(
+      id,
+      input.parentId,
+      generateKeyBetween(bounds.before, bounds.after),
+      this.now(),
+    );
+
+    if (!updated) {
+      throw new NotFoundError('Страница не найдена');
+    }
+
+    return updated;
+  }
+
+  /** Проверка, что новый родитель не является самой страницей или её потомком. */
+  private async assertNoCycle(
+    workspaceId: string,
+    pageId: string,
+    newParentId: string | null,
+  ): Promise<void> {
+    if (newParentId === null) {
+      return;
+    }
+
+    if (newParentId === pageId) {
+      throw new ConflictError('Нельзя переместить страницу внутрь самой себя');
+    }
+
+    let current: string | null = newParentId;
+    const visited = new Set<string>();
+
+    while (current !== null) {
+      if (visited.has(current)) {
+        // Цикл уже есть в данных — не усугубляем его.
+        throw new ConflictError('Обнаружен цикл в дереве страниц');
+      }
+
+      visited.add(current);
+
+      if (current === pageId) {
+        throw new ConflictError('Нельзя переместить страницу внутрь собственного потомка');
+      }
+
+      const parent = await this.pages.findById(current);
+
+      if (parent === null || parent.workspaceId !== workspaceId) {
+        return;
+      }
+
+      current = parent.parentId;
+    }
   }
 
   /** Родитель должен существовать, принадлежать тому же workspace и не быть в корзине. */

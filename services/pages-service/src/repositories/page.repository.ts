@@ -181,4 +181,20 @@ export class PageRepository {
 
     return updated ? this.toPage(updated) : null;
   }
+
+  /** Перемещение: меняет родителя и позицию атомарно. */
+  async moveById(
+    id: string,
+    parentId: string | null,
+    position: string,
+    updatedAt: string,
+  ): Promise<Page | null> {
+    const [updated] = await this.db
+      .update(pages)
+      .set({ parentId, position, updatedAt })
+      .where(eq(pages.id, id))
+      .returning();
+
+    return updated ? this.toPage(updated) : null;
+  }
 }

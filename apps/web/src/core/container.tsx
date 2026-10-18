@@ -11,6 +11,16 @@ import {
   createBetterAuthGateway,
   type AuthGateway,
 } from '../features/auth';
+import {
+  CreatePage,
+  ListChildren,
+  MovePage,
+  RenamePage,
+  RestorePage,
+  ToggleFavorite,
+  TrashPage,
+  createPageRepositoryApi,
+} from '../features/pages';
 import { env } from '../shared/config/env';
 
 /**
@@ -30,9 +40,23 @@ export interface AuthUseCases {
 
 export interface Container {
   auth: AuthUseCases;
+  pages: PageUseCases;
+}
+
+export interface PageUseCases {
+  createPage: CreatePage;
+  listChildren: ListChildren;
+  movePage: MovePage;
+  renamePage: RenamePage;
+  trashPage: TrashPage;
+  restorePage: RestorePage;
+  toggleFavorite: ToggleFavorite;
 }
 
 export function createContainer(gateway: AuthGateway): Container {
+  const accessToken = new AccessToken(gateway);
+  const pageRepository = createPageRepositoryApi(accessToken);
+
   return {
     auth: {
       signIn: new SignIn(gateway),
@@ -40,7 +64,16 @@ export function createContainer(gateway: AuthGateway): Container {
       signUp: new SignUp(gateway),
       signOut: new SignOut(gateway),
       currentSession: new CurrentSession(gateway),
-      accessToken: new AccessToken(gateway),
+      accessToken,
+    },
+    pages: {
+      createPage: new CreatePage(pageRepository),
+      listChildren: new ListChildren(pageRepository),
+      movePage: new MovePage(pageRepository),
+      renamePage: new RenamePage(pageRepository),
+      trashPage: new TrashPage(pageRepository),
+      restorePage: new RestorePage(pageRepository),
+      toggleFavorite: new ToggleFavorite(pageRepository),
     },
   };
 }

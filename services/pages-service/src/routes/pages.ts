@@ -2,6 +2,7 @@ import {
   CreatePageInputSchema,
   IdSchema,
   INTERNAL_HEADERS,
+  MovePageInputSchema,
   PageListQuerySchema,
   PageListResultSchema,
   PageSchema,
@@ -78,6 +79,20 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
     const patch = parseOrThrow(UpdatePageInputSchema, await readJsonBody(c.req.raw));
 
     const page = await createService(c.env).updatePage(id, workspaceId, patch);
+
+    return c.json(PageSchema.parse(page), 200);
+  });
+
+  routes.post('/pages/:id/move', async (c) => {
+    const id = parseOrThrow(IdSchema, c.req.param('id'));
+    const workspaceId = parseOrThrow(IdSchema, c.req.query('workspaceId'));
+    const input = parseOrThrow(MovePageInputSchema, await readJsonBody(c.req.raw));
+
+    // Идентичность проверяется, чтобы запись не уходила от анонима,
+    // хотя сама страница не хранит её в новой позиции.
+    requireActorId(c.req.header(INTERNAL_HEADERS.ACTOR_ID));
+
+    const page = await createService(c.env).movePage(id, workspaceId, input);
 
     return c.json(PageSchema.parse(page), 200);
   });
