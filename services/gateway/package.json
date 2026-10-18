@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@notio/contracts": "workspace:*",
+    "@notio/observability": "workspace:*",
     "hono": "4.13.13",
     "zod": "4.6.7"
   },

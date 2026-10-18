@@ -1,39 +1,40 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import {
-  DEFAULT_PROBLEM_TYPE,
-  isProblemDetails,
-  ProblemDetailsSchema,
-  problem,
-  PROBLEM_CONTENT_TYPE,
-  toProblemErrors,
-} from './problem';
+import { isProblemDetails, PROBLEM_CONTENT_TYPE, problem, toProblemErrors } from './problem';
 
-async function readProblem(response: Response): Promise<unknown> {
+async function readProblem(response: Response): Promise<Record<string, unknown>> {
   expect(response.headers.get('content-type')).toBe(PROBLEM_CONTENT_TYPE);
-  return response.json();
+  return (await response.json()) as Record<string, unknown>;
 }
 
 describe('problem', () => {
-  it('собирает problem details с title по умолчанию из status', async () => {
+  it('подставляет title и код по HTTP-статусу', async () => {
     const response = problem({ status: 404, detail: 'Страница не найдена' });
 
     expect(response.status).toBe(404);
     expect(await readProblem(response)).toEqual({
-      type: DEFAULT_PROBLEM_TYPE,
+      type: 'about:blank',
       title: 'Not Found',
       status: 404,
       detail: 'Страница не найдена',
+      code: 'NOT_FOUND',
     });
   });
 
-  it('подставляет Unexpected Error для неизвестного кода', async () => {
+  it('подставляет Unexpected Error и INTERNAL_ERROR для неизвестного кода', async () => {
     const body = await readProblem(problem({ status: 599 }));
 
-    expect(body).toMatchObject({ title: 'Unexpected Error', status: 599 });
+    expect(body).toMatchObject({ title: 'Unexpected Error', status: 599, code: 'INTERNAL_ERROR' });
   });
 
-  it('поддерживает code, requestId, instance и кастомные заголовки', async () => {
+  it('умеет коды из общего enum: 401, 403, 429, 503', async () => {
+    expect((await readProblem(problem({ status: 401 })))['code']).toBe('UNAUTHENTICATED');
+    expect((await readProblem(problem({ status: 403 })))['code']).toBe('FORBIDDEN');
+    expect((await readProblem(problem({ status: 429 })))['code']).toBe('RATE_LIMITED');
+    expect((await readProblem(problem({ status: 503 })))['code']).toBe('SERVICE_UNAVAILABLE');
+  });
+
+  it('поддерживает явный code, requestId, instance и кастомные заголовки', async () => {
     const body = await readProblem(
       problem({
         status: 429,
@@ -51,20 +52,31 @@ describe('problem', () => {
     });
   });
 
-  it('не позволяет указать title вручную поверх дефолтного', async () => {
+  it('позволяет переопределить title', async () => {
     const body = await readProblem(problem({ status: 500, title: 'Внутренняя ошибка' }));
 
-    expect(body).toMatchObject({ title: 'Внутренняя ошибка' });
+    expect(body).toMatchObject({ title: 'Внутренняя ошибка', code: 'INTERNAL_ERROR' });
   });
 
   it('выбрасывает исключение для некорректного статуса', () => {
     expect(() => problem({ status: 42 })).toThrow();
   });
+
+  it('выбрасывает исключение для кода вне enum', () => {
+    expect(() =>
+      problem({ status: 400, code: 'НЕ_ИЗВЕСТНЫЙ_КОД' as unknown as 'VALIDATION_ERROR' }),
+    ).toThrow();
+  });
 });
 
 describe('isProblemDetails', () => {
-  it('распознаёт problem details', () => {
-    expect(isProblemDetails({ type: 'about:blank', title: 'Not Found', status: 404 })).toBe(true);
+  it('распознаёт problem details', async () => {
+    expect(await readProblem(problem({ status: 404 }))).toEqual({
+      type: 'about:blank',
+      title: 'Not Found',
+      status: 404,
+      code: 'NOT_FOUND',
+    });
   });
 
   it('отвергает обычную ошибку и мусор', () => {
@@ -85,13 +97,5 @@ describe('toProblemErrors', () => {
     expect(toProblemErrors(result.error)).toEqual([
       { path: 'title', message: expect.stringContaining('3') },
     ]);
-  });
-});
-
-describe('ProblemDetailsSchema', () => {
-  it('принимает тело, собранное problem()', async () => {
-    const body = await readProblem(problem({ status: 403, code: 'FORBIDDEN' }));
-
-    expect(ProblemDetailsSchema.safeParse(body).success).toBe(true);
   });
 });

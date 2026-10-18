@@ -1,0 +1,4 @@
+{
+  "extends": "@notio/config/tsconfig/node.json",
+  "include": ["src/**/*.ts"]
+}

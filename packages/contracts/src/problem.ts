@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { defaultErrorCodeForStatus, ErrorCodeSchema, type ErrorCode } from './error-codes';
 
 /** Content-Type для всех ошибок API (RFC 7807). */
 export const PROBLEM_CONTENT_TYPE = 'application/problem+json';
@@ -17,8 +18,8 @@ export const ProblemDetailsSchema = z.object({
   status: z.number().int().min(100).max(599),
   detail: z.string().optional(),
   instance: z.string().optional(),
-  /** Машиночитаемый код ошибки: `NOT_FOUND`, `VALIDATION_ERROR`, ... */
-  code: z.string().min(1).optional(),
+  /** Машиночитаемый код ошибки из общего enum: фронтенк строит по нему типы. */
+  code: ErrorCodeSchema,
   /** Сквозной идентификатор запроса для поиска логов. */
   requestId: z.string().min(1).optional(),
   errors: z.array(ProblemErrorSchema).optional(),
@@ -47,7 +48,7 @@ export interface ProblemInit {
   detail?: string;
   type?: string;
   title?: string;
-  code?: string;
+  code?: ErrorCode;
   requestId?: string;
   instance?: string;
   errors?: readonly ProblemError[];
@@ -62,7 +63,7 @@ export function problem(init: ProblemInit): Response {
     status: init.status,
     detail: init.detail,
     instance: init.instance,
-    code: init.code,
+    code: init.code ?? defaultErrorCodeForStatus(init.status),
     requestId: init.requestId,
     errors: init.errors === undefined ? undefined : [...init.errors],
   });

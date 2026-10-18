@@ -1,0 +1,8 @@
+{
+  "extends": "@notio/config/tsconfig/node.json",
+  "compilerOptions": {
+    // Drizzle для D1 опирается на глобальный тип `D1Database` из типов Workers.
+    "types": ["node", "@cloudflare/workers-types"]
+  },
+  "include": ["src/**/*.ts"]
+}

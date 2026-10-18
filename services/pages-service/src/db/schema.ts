@@ -1,0 +1,76 @@
+import type { BlockContent } from '@notio/contracts';
+import { relations } from 'drizzle-orm';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+
+/**
+ * Схема базы pages-service.
+ *
+ * Сервис владеет этими таблицами единолично (database-per-service): общих
+ * таблиц с другими сервисами нет, связи живут только внутри pages-service.
+ * Идентификаторы — UUIDv4 в TEXT, время — ISO-8601 в TEXT (детерминированно
+ * и читаемо), булевы — INTEGER.
+ */
+export const pages = sqliteTable(
+  'pages',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id').notNull(),
+    /** NULL — корень рабочего пространства. Ссылка на родителя хранится в TEXT. */
+    parentId: text('parent_id'),
+    title: text('title').notNull().default(''),
+    icon: text('icon'),
+    coverFileId: text('cover_file_id'),
+    /** Fractional indexing: порядок соседей без перезаписи при вставке. */
+    position: text('position').notNull(),
+    isFavorite: integer('is_favorite', { mode: 'boolean' }).notNull().default(false),
+    isTrashed: integer('is_trashed', { mode: 'boolean' }).notNull().default(false),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [
+    // Основной запрос: дети конкретного родителя в порядке отображения.
+    index('pages_workspace_parent_position_idx').on(
+      table.workspaceId,
+      table.parentId,
+      table.position,
+    ),
+    // Списки «избранное» и «недавно изменённые».
+    index('pages_workspace_updated_idx').on(table.workspaceId, table.updatedAt),
+  ],
+);
+
+export const blocks = sqliteTable(
+  'blocks',
+  {
+    id: text('id').primaryKey(),
+    pageId: text('page_id')
+      .notNull()
+      .references(() => pages.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(),
+    position: text('position').notNull(),
+    /** JSON-документ блока, валидируется Zod-схемой BlockContentSchema. */
+    content: text('content', { mode: 'json' }).$type<BlockContent>().notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [index('blocks_page_position_idx').on(table.pageId, table.position)],
+);
+
+export const pagesRelations = relations(pages, ({ many }) => ({
+  blocks: many(blocks),
+}));
+
+export const blocksRelations = relations(blocks, ({ one }) => ({
+  page: one(pages, {
+    fields: [blocks.pageId],
+    references: [pages.id],
+  }),
+}));
+
+export const schema = { pages, blocks, pagesRelations, blocksRelations };
+
+export type PageRow = typeof pages.$inferSelect;
+export type NewPageRow = typeof pages.$inferInsert;
+export type BlockRow = typeof blocks.$inferSelect;
+export type NewBlockRow = typeof blocks.$inferInsert;
