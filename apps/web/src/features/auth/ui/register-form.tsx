@@ -156,7 +156,6 @@ export function RegisterForm() {
       <div className="flex flex-col gap-2">
         <Button
           type="button"
-          variant="outline"
           disabled={oauth.isPending}
           onClick={() => oauth.mutate('google')}
           className="w-full"
@@ -166,7 +165,7 @@ export function RegisterForm() {
         </Button>
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           disabled={oauth.isPending}
           onClick={() => oauth.mutate('github')}
           className="w-full"
