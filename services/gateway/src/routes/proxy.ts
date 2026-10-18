@@ -63,7 +63,12 @@ const HOP_BY_HOP_HEADERS = new Set([
 ]);
 
 /** Заголовки ответа, которые имеет смысл отдавать клиенту. */
-const FORWARDED_RESPONSE_HEADERS = ['content-type', 'cache-control', 'retry-after'] as const;
+const FORWARDED_RESPONSE_HEADERS = [
+  'content-type',
+  'cache-control',
+  'retry-after',
+  'location',
+] as const;
 
 function matchesPrefix(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}/`);
