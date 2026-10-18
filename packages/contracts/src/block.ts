@@ -73,3 +73,38 @@ export const CreateBlockInputSchema = z.strictObject({
   afterBlockId: IdSchema.optional(),
 });
 export type CreateBlockInput = z.infer<typeof CreateBlockInputSchema>;
+
+/** Обновление блока: тип и содержимое меняются вместе, позиция — отдельно. */
+export const UpdateBlockInputSchema = z
+  .strictObject({
+    content: BlockContentSchema.optional(),
+    type: BlockTypeSchema.optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'Нужно передать хотя бы одно изменяемое поле',
+  });
+export type UpdateBlockInput = z.infer<typeof UpdateBlockInputSchema>;
+
+/** Перемещение блока: новый родитель (страница та же) и сосед сверху. */
+export const MoveBlockInputSchema = z.strictObject({
+  afterBlockId: IdSchema.optional(),
+});
+export type MoveBlockInput = z.infer<typeof MoveBlockInputSchema>;
+
+/** Ответ постраничного списка блоков. */
+export const BlockListResultSchema = z.object({
+  items: z.array(BlockSchema),
+  nextCursor: z.string().min(1).nullable(),
+});
+export type BlockListResult = z.infer<typeof BlockListResultSchema>;
+
+/** Снапшот версии страницы: полный документ, а не дифф. */
+export const PageVersionSchema = z.object({
+  id: IdSchema,
+  pageId: IdSchema,
+  /** JSON-документ всех блоков страницы на момент сохранения. */
+  content: z.array(BlockContentSchema),
+  createdBy: IdSchema,
+  createdAt: IsoDateTimeSchema,
+});
+export type PageVersion = z.infer<typeof PageVersionSchema>;

@@ -1,12 +1,17 @@
 import {
+  BlockListResultSchema,
+  BlockSchema,
+  CreateBlockInputSchema,
   CreatePageInputSchema,
   IdSchema,
   INTERNAL_HEADERS,
+  MoveBlockInputSchema,
   MovePageInputSchema,
   PageListQuerySchema,
   PageListResultSchema,
   PageSchema,
   toProblemErrors,
+  UpdateBlockInputSchema,
   UpdatePageInputSchema,
 } from '@notio/contracts';
 import type { z } from 'zod';
@@ -14,6 +19,7 @@ import { Hono } from 'hono';
 import type { AppEnv, Bindings } from '../env';
 import { ValidationError } from '../errors';
 import { requireActorId, type PageService } from '../services/page.service';
+import { createBlockService, type BlockService } from '../services/block.service';
 
 /**
  * Сценарий создаётся на каждый запрос: в Workers биндинги приходят в `env`,
@@ -21,6 +27,7 @@ import { requireActorId, type PageService } from '../services/page.service';
  * Фабрика позволяет подменить часы в тестах.
  */
 export type PageServiceFactory = (env: Bindings) => PageService;
+export type BlockServiceFactory = (env: Bindings) => BlockService;
 
 /** Разбирает вход по схеме; ошибки Zod превращает в список полей problem details. */
 function parseOrThrow<T>(schema: z.ZodType<T>, data: unknown): T {
@@ -95,6 +102,48 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
     const page = await createService(c.env).movePage(id, workspaceId, input);
 
     return c.json(PageSchema.parse(page), 200);
+  });
+
+  // Блоки страницы.
+  routes.get('/pages/:pageId/blocks', async (c) => {
+    const pageId = parseOrThrow(IdSchema, c.req.param('pageId'));
+    const items = await createBlockService(c.env).getPageBlocks(pageId);
+
+    return c.json(BlockListResultSchema.parse({ items, nextCursor: null }), 200);
+  });
+
+  routes.post('/blocks', async (c) => {
+    const input = parseOrThrow(CreateBlockInputSchema, await readJsonBody(c.req.raw));
+    const actorId = requireActorId(c.req.header(INTERNAL_HEADERS.ACTOR_ID));
+
+    const block = await createBlockService(c.env).createBlock(input, actorId);
+
+    return c.json(BlockSchema.parse(block), 201);
+  });
+
+  routes.patch('/blocks/:id', async (c) => {
+    const id = parseOrThrow(IdSchema, c.req.param('id'));
+    const patch = parseOrThrow(UpdateBlockInputSchema, await readJsonBody(c.req.raw));
+
+    const block = await createBlockService(c.env).updateBlock(id, patch);
+
+    return c.json(BlockSchema.parse(block), 200);
+  });
+
+  routes.delete('/blocks/:id', async (c) => {
+    const id = parseOrThrow(IdSchema, c.req.param('id'));
+    await createBlockService(c.env).deleteBlock(id);
+
+    return c.body(null, 204);
+  });
+
+  routes.post('/blocks/:id/move', async (c) => {
+    const id = parseOrThrow(IdSchema, c.req.param('id'));
+    const input = parseOrThrow(MoveBlockInputSchema, await readJsonBody(c.req.raw));
+
+    const block = await createBlockService(c.env).moveBlock(id, input.afterBlockId);
+
+    return c.json(BlockSchema.parse(block), 200);
   });
 
   return routes;

@@ -22,6 +22,14 @@ import {
   createPageRepositoryApi,
 } from '../features/pages';
 import {
+  createBlockRepositoryApi,
+  DeleteBlock,
+  InsertBlock,
+  LoadDocument,
+  MoveBlock,
+  UpdateBlock,
+} from '../features/editor';
+import {
   AcceptInvitation,
   ArchiveWorkspace,
   ChangeMemberRole,
@@ -60,6 +68,15 @@ export interface Container {
   auth: AuthUseCases;
   pages: PageUseCases;
   workspaces: WorkspaceUseCases;
+  editor: EditorUseCases;
+}
+
+export interface EditorUseCases {
+  loadDocument: LoadDocument;
+  insertBlock: InsertBlock;
+  updateBlock: UpdateBlock;
+  deleteBlock: DeleteBlock;
+  moveBlock: MoveBlock;
 }
 
 export interface WorkspaceUseCases {
@@ -89,6 +106,7 @@ export function createContainer(gateway: AuthGateway): Container {
   const accessToken = new AccessToken(gateway);
   const pageRepository = createPageRepositoryApi(accessToken);
   const workspaceRepository = createWorkspaceRepositoryApi(accessToken);
+  const blockRepository = createBlockRepositoryApi(accessToken);
 
   return {
     auth: {
@@ -124,6 +142,13 @@ export function createContainer(gateway: AuthGateway): Container {
       revokeInvitation: (workspaceId: string, token: string) =>
         new RevokeInvitation(workspaceRepository).execute(workspaceId, token),
       acceptInvitation: (token: string) => new AcceptInvitation(workspaceRepository).execute(token),
+    },
+    editor: {
+      loadDocument: new LoadDocument(blockRepository),
+      insertBlock: new InsertBlock(blockRepository),
+      updateBlock: new UpdateBlock(blockRepository),
+      deleteBlock: new DeleteBlock(blockRepository),
+      moveBlock: new MoveBlock(blockRepository),
     },
   };
 }
