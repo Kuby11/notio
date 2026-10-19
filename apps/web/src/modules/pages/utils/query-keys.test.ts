@@ -14,4 +14,9 @@ describe('pageKeys', () => {
       'page-1',
     ]);
   });
+
+  it('держит избранное отдельно от уровней дерева', () => {
+    expect(pageKeys.favorites('ws-1')).toEqual([...pageKeys.all('ws-1'), 'favorites']);
+    expect(pageKeys.favorites('ws-1')).not.toEqual(pageKeys.children('ws-1', null));
+  });
 });

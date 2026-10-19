@@ -7,6 +7,7 @@ import {
   INTERNAL_HEADERS,
   MoveBlockInputSchema,
   MovePageInputSchema,
+  PageFavoritesQuerySchema,
   PageListQuerySchema,
   PageListResultSchema,
   PageSchema,
@@ -71,6 +72,15 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
   routes.get('/pages', async (c) => {
     const query = parseOrThrow(PageListQuerySchema, c.req.query());
     const result = await createService(c.env).listChildren(query);
+
+    return c.json(PageListResultSchema.parse(result), 200);
+  });
+
+  // Статический маршрут объявлен до `/pages/:id`: иначе Hono попробует
+  // разобрать «favorites» как UUID и вернёт 400 вместо списка.
+  routes.get('/pages/favorites', async (c) => {
+    const query = parseOrThrow(PageFavoritesQuerySchema, c.req.query());
+    const result = await createService(c.env).listFavorites(query);
 
     return c.json(PageListResultSchema.parse(result), 200);
   });

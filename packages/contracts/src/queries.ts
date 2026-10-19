@@ -22,3 +22,12 @@ export const PageListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 export type PageListQuery = z.infer<typeof PageListQuerySchema>;
+
+/**
+ * Избранное собирается по всему рабочему пространству, а не по уровню дерева:
+ * избранная страница может лежать на любой глубине вложенности.
+ */
+export const PageFavoritesQuerySchema = z.object({
+  workspaceId: IdSchema,
+});
+export type PageFavoritesQuery = z.infer<typeof PageFavoritesQuerySchema>;

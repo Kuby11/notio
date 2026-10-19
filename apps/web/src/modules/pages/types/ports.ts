@@ -19,6 +19,7 @@ export interface PageRepository {
     parentId: string | null,
     includeTrashed: boolean,
   ): Promise<Page[]>;
+  listFavorites(workspaceId: string): Promise<Page[]>;
   create(input: CreatePageInput): Promise<Page>;
   getPage(id: string, workspaceId: string): Promise<Page>;
   update(id: string, workspaceId: string, patch: UpdatePageInput): Promise<Page>;

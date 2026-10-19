@@ -3,6 +3,7 @@ import type { TokenProvider } from '../../shared/types';
 import type { PageRepository } from './types/ports';
 
 export { PageTree } from './ui/public/page-tree';
+export { FavoritesList } from './ui/public/favorites-list';
 export { usePages } from './hooks/use-pages';
 export { pageKeys } from './utils/query-keys';
 export type { PageNode } from './utils/page';

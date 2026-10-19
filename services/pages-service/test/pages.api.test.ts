@@ -24,6 +24,7 @@ function json(body: unknown): RequestInit {
 interface Api {
   createPage(body: unknown, actor?: string): Promise<Response>;
   listPages(query: string): Promise<Response>;
+  listFavorites(query: string): Promise<Response>;
   getPage(id: string, query?: string): Promise<Response>;
   patchPage(id: string, query: string, body: unknown): Promise<Response>;
 }
@@ -42,6 +43,7 @@ function api(): Api {
         body: JSON.stringify(body),
       }),
     listPages: (query) => send(`/pages?${query}`, {}),
+    listFavorites: (query) => send(`/pages/favorites?${query}`, {}),
     getPage: (id, query = '') => send(`/pages/${id}${query === '' ? '' : `?${query}`}`, {}),
     patchPage: (id, query, body) =>
       send(`/pages/${id}?${query}`, {
@@ -243,6 +245,41 @@ describe('GET /pages', () => {
 
   it('отклоняет limit вне диапазона 1..100', async () => {
     const response = await api().listPages(`workspaceId=${workspaceId}&limit=101`);
+
+    expect(response.status).toBe(400);
+    expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+});
+
+describe('GET /pages/favorites', () => {
+  it('собирает избранное со всех уровней и скрывает корзину и чужие workspace', async () => {
+    const client = api();
+    const root = await createPage({ workspaceId, title: 'Корень' });
+    const child = await createPage({ workspaceId, parentId: root.id, title: 'Вложенная' });
+    const trashed = await createPage({ workspaceId, title: 'Удалённая' });
+    const foreign = await createPage({ workspaceId: otherWorkspaceId, title: 'Чужая' });
+
+    await client.patchPage(root.id, `workspaceId=${workspaceId}`, { isFavorite: true });
+    await client.patchPage(child.id, `workspaceId=${workspaceId}`, { isFavorite: true });
+    await client.patchPage(trashed.id, `workspaceId=${workspaceId}`, {
+      isFavorite: true,
+      isTrashed: true,
+    });
+    await client.patchPage(foreign.id, `workspaceId=${otherWorkspaceId}`, { isFavorite: true });
+
+    const response = await client.listFavorites(`workspaceId=${workspaceId}`);
+    const body = (await response.json()) as {
+      items: { title: string }[];
+      nextCursor: string | null;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.items.map((item) => item.title).toSorted()).toEqual(['Вложенная', 'Корень']);
+    expect(body.nextCursor).toBeNull();
+  });
+
+  it('отклоняет workspaceId без UUID', async () => {
+    const response = await api().listFavorites('workspaceId=не-uuid');
 
     expect(response.status).toBe(400);
     expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });

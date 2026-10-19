@@ -2,6 +2,7 @@ import type {
   CreatePageInput,
   MovePageInput,
   Page,
+  PageFavoritesQuery,
   PageListQuery,
   UpdatePageInput,
 } from '@notio/contracts';
@@ -76,6 +77,13 @@ export class PageService {
     const last = page.at(-1);
 
     return { items: page, nextCursor: hasMore && last ? last.position : null };
+  }
+
+  /** Избранное не листается: это короткий список ссылок, а не дерево. */
+  async listFavorites(query: PageFavoritesQuery): Promise<PageListResult> {
+    const items = await this.pages.listFavorites(query.workspaceId);
+
+    return { items, nextCursor: null };
   }
 
   async getPage(id: string, workspaceId?: string): Promise<Page> {

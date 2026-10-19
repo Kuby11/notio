@@ -387,6 +387,36 @@ async function runChecks() {
       'Созданная страница не появилась в списке — потерялась запись в D1 или фильтрация',
     );
 
+    const favorite = await fetch(
+      `${BASE_URL}/api/pages/${createdBody.id}?workspaceId=${WORKSPACE_ID}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${jwt}`,
+          'cf-connecting-ip': '203.0.113.75',
+        },
+        body: JSON.stringify({ isFavorite: true }),
+      },
+    );
+
+    check(favorite.status === 200, `PATCH избранного вернул ${favorite.status}, ожидался 200`);
+
+    const favorites = await fetch(`${BASE_URL}/api/pages/favorites?workspaceId=${WORKSPACE_ID}`, {
+      headers: { authorization: `Bearer ${jwt}`, 'cf-connecting-ip': '203.0.113.75' },
+    });
+    const favoritesBody = await json(favorites);
+
+    check(
+      favorites.status === 200,
+      `GET /api/pages/favorites вернул ${favorites.status}, ожидался 200`,
+    );
+    check(
+      Array.isArray(favoritesBody.items) &&
+        favoritesBody.items.some((page) => page.id === createdBody.id),
+      'Избранная страница не появилась в /api/pages/favorites',
+    );
+
     check(
       created.headers.get('x-content-type-options') === 'nosniff',
       'Ответ прокси не содержит x-content-type-options: nosniff',
@@ -426,7 +456,7 @@ async function runChecks() {
   }
 
   console.log(
-    '\nSmoke-проверка пройдена: регистрация с отказом на занятом email, подтверждение почты, вход, JWT, отказ по подделанному токену и запись страницы в D1 работают.',
+    '\nSmoke-проверка пройдена: регистрация с отказом на занятом email, подтверждение почты, вход, JWT, отказ по подделанному токену, запись страницы в D1 и список избранного работают.',
   );
 
   return true;

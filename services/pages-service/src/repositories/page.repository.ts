@@ -90,6 +90,29 @@ export class PageRepository {
   }
 
   /**
+   * Избранное всего workspace.
+   *
+   * Список плоский и не привязан к родителю: избранная страница может лежать
+   * на любой глубине. Удалённые в корзину страницы не показываем, а порядок
+   * по времени изменения ставит недавно открытые страницы наверх.
+   */
+  async listFavorites(workspaceId: string): Promise<Page[]> {
+    const rows = await this.db
+      .select()
+      .from(pages)
+      .where(
+        and(
+          eq(pages.workspaceId, workspaceId),
+          eq(pages.isFavorite, true),
+          eq(pages.isTrashed, false),
+        ),
+      )
+      .orderBy(desc(pages.updatedAt), desc(pages.id));
+
+    return rows.map((row) => this.toPage(row));
+  }
+
+  /**
    * Границы для новой позиции.
    *
    * - без `afterPageId` новая страница становится последней в списке;

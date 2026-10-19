@@ -6,7 +6,7 @@ import {
   isAllowedMimeType,
   MAX_UPLOAD_SIZE_BYTES,
 } from './file';
-import { BooleanQuerySchema, PageListQuerySchema } from './queries';
+import { BooleanQuerySchema, PageFavoritesQuerySchema, PageListQuerySchema } from './queries';
 import { UserSchema } from './user';
 import { ROLE_PERMISSIONS, roleCan, WORKSPACE_ROLES, WorkspaceSchema } from './workspace';
 
@@ -165,6 +165,18 @@ describe('PageListQuerySchema', () => {
 
   it('BooleanQuerySchema отвергает мусор', () => {
     expect(() => BooleanQuerySchema.parse('yes')).toThrow();
+  });
+});
+
+describe('PageFavoritesQuerySchema', () => {
+  const workspaceId = '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f';
+
+  it('принимает запрос избранного по workspace', () => {
+    expect(PageFavoritesQuerySchema.parse({ workspaceId })).toEqual({ workspaceId });
+  });
+
+  it('требует корректный workspaceId', () => {
+    expect(() => PageFavoritesQuerySchema.parse({ workspaceId: 'ws' })).toThrow();
   });
 });
 

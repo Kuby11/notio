@@ -42,6 +42,20 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       return toPageList(await response.json()).items;
     },
 
+    async listFavorites(workspaceId) {
+      const headers = await authHeaders();
+      const params = new URLSearchParams({ workspaceId });
+      const response = await fetch(`${baseUrl}/api/pages/favorites?${params.toString()}`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Не удалось загрузить избранное: HTTP ${response.status}`);
+      }
+
+      return toPageList(await response.json()).items;
+    },
+
     async create(input: CreatePageInput) {
       const headers = await authHeaders();
       const response = await fetch(`${baseUrl}/api/pages`, {

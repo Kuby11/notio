@@ -5,19 +5,27 @@ import type { CreatePageFormInput } from '../types/ports';
 import { assertCanMove, normalizePageTitle, type PageNode } from '../utils/page';
 import { pageKeys } from '../utils/query-keys';
 
+/** Что именно показывает экран: уровень дерева или плоское избранное. */
+export type PagesScope = 'tree' | 'favorites';
+
 /**
  * Единственный facade-хук модуля страниц.
  *
  * Хук оркестрирует всё состояние модуля: раскрытые узлы из приватного стора,
  * загрузку детей и мутации с оптимистичными обновлениями. `workspaceId` и
  * `parentId` задают уровень дерева, поэтому рекурсивный `PageTree` вызывает
- * тот же хук для каждой ветки.
+ * тот же хук для каждой ветки. `scope: 'favorites'` переключает источник
+ * данных на плоский список избранного по всему workspace.
  *
  * Бизнес-правила (перемещение, заголовок по умолчанию) берутся из `utils`,
  * репозиторий приходит из контейнера, а компоненты не знают ни о том, ни
  * о другом. Стейт дерева наружу отдаётся только этим хуком.
  */
-export function usePages(workspaceId: string, parentId: string | null = null) {
+export function usePages(
+  workspaceId: string,
+  parentId: string | null = null,
+  scope: PagesScope = 'tree',
+) {
   const { pages } = useContainer();
   const queryClient = useQueryClient();
   const expanded = usePageTreeStore((state) => state.expanded);
@@ -29,6 +37,14 @@ export function usePages(workspaceId: string, parentId: string | null = null) {
     queryKey: pageKeys.children(workspaceId, parentId),
     queryFn: () => pages.listChildren(workspaceId, parentId, false),
     staleTime: 30_000,
+    enabled: scope === 'tree',
+  });
+
+  const favorites = useQuery({
+    queryKey: pageKeys.favorites(workspaceId),
+    queryFn: () => pages.listFavorites(workspaceId),
+    staleTime: 30_000,
+    enabled: scope === 'favorites',
   });
 
   const createPage = useMutation({
@@ -153,6 +169,7 @@ export function usePages(workspaceId: string, parentId: string | null = null) {
     setExpanded,
     reset,
     children,
+    favorites,
     createPage,
     movePage,
     renamePage,
