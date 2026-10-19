@@ -1,89 +1,61 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useContainer } from '../../../core/container';
-import { isAuthError } from '../types/errors';
 import { assertSignInCredentials, assertSignUpInput } from '../utils/credentials';
 import type { Credentials, SignUpInput } from '../utils/credentials';
-import { authKeys } from './query-keys';
+import { authKeys } from '../utils/query-keys';
 
 /**
- * Хуки аутентификации — единственное место, где UI знает про Query и контейнер.
+ * Единственный facade-хук модуля аутентификации.
  *
- * Компоненты получают уже готовые обработчики: бизнес-правила (нормализация,
- * проверка данных) берутся из `utils`, запрос идёт через порт из контейнера.
+ * Здесь собрана вся оркестрация: запрос сессии, вход, регистрация, OAuth и
+ * выход. Компоненты получают готовые операции, доменные правила остаются
+ * в `utils`, а сеть — за портом `AuthGateway` из контейнера.
  */
-
-/** Сессия — серверное состояние, поэтому живёт в TanStack Query, а не в Zustand. */
-export function useSession() {
+export function useAuth() {
   const { auth } = useContainer();
+  const queryClient = useQueryClient();
 
-  return useQuery({
+  const session = useQuery({
     queryKey: authKeys.session(),
     queryFn: () => auth.gateway.currentSession(),
     staleTime: 30_000,
     retry: false,
   });
-}
 
-export function useSignIn() {
-  const { auth } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const signIn = useMutation({
     mutationFn: (input: Credentials) => auth.gateway.signIn(assertSignInCredentials(input)),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: authKeys.session() });
     },
   });
-}
 
-export function useSignInWithProvider() {
-  const { auth } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const signInWithProvider = useMutation({
     mutationFn: (provider: 'google' | 'github') => auth.gateway.signInWithProvider(provider),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: authKeys.session() });
     },
   });
-}
 
-export function useSignUp() {
-  const { auth } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const signUp = useMutation({
     mutationFn: (input: SignUpInput) => auth.gateway.signUp(assertSignUpInput(input)),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: authKeys.session() });
     },
   });
-}
 
-/**
- * Выход из аккаунта.
- *
- * Ошибка сети не превращается в «успешный» выход: иначе интерфейс покажет,
- * что пользователь вышел, хотя cookie осталась и сессия ещё активна.
- */
-export function useSignOut() {
-  const { auth } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  /**
+   * Выход из аккаунта.
+   *
+   * Ошибка сети не превращается в «успешный» выход: иначе интерфейс покажет,
+   * что пользователь вышел, хотя cookie осталась и сессия ещё активна.
+   */
+  const signOut = useMutation({
     mutationFn: () => auth.gateway.signOut(),
     onSuccess: async () => {
       auth.accessToken.clear();
       queryClient.clear();
     },
   });
-}
 
-/** Текст ошибки для показа пользователю: коды домена, а не тексты сервера. */
-export function authErrorMessage(error: unknown): string | null {
-  if (isAuthError(error)) {
-    return error.message;
-  }
-
-  return null;
+  return { session, signIn, signInWithProvider, signUp, signOut };
 }

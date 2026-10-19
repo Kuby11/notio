@@ -1,6 +1,6 @@
 'use client';
 
-import { useWorkspaces, useCreateWorkspace } from '@/modules/workspaces';
+import { useWorkspaces } from '@/modules/workspaces';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -9,7 +9,6 @@ import { useState } from 'react';
 
 export default function WorkspacesPage() {
   const workspaces = useWorkspaces();
-  const createWorkspace = useCreateWorkspace();
   const [name, setName] = useState('');
 
   return (
@@ -20,7 +19,7 @@ export default function WorkspacesPage() {
         onSubmit={async (e) => {
           e.preventDefault();
           if (name.trim()) {
-            await createWorkspace.mutateAsync(name.trim());
+            await workspaces.createWorkspace.mutateAsync(name.trim());
             setName('');
           }
         }}
@@ -30,14 +29,14 @@ export default function WorkspacesPage() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Новое пространство"
         />
-        <Button type="submit" disabled={createWorkspace.isPending}>
+        <Button type="submit" disabled={workspaces.createWorkspace.isPending}>
           <Plus className="mr-1 h-4 w-4" />
           Создать
         </Button>
       </form>
 
       <div className="mt-6 space-y-3">
-        {workspaces.data?.map((w) => (
+        {workspaces.list.data?.map((w) => (
           <Card key={w.id}>
             <CardHeader>
               <CardTitle>

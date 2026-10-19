@@ -3,15 +3,8 @@ import type { TokenProvider } from '../../shared/types';
 import type { BlockRepository } from './types/ports';
 
 export { Editor } from './ui/public/editor';
-export {
-  useCreateBlock,
-  useDeleteBlock,
-  useDocument,
-  useEditorUi,
-  useMoveBlock,
-  useUpdateBlock,
-} from './hooks/use-editor';
-export { editorKeys } from './hooks/query-keys';
+export { useEditor } from './hooks/use-editor';
+export { editorKeys } from './utils/query-keys';
 export {
   blockToText,
   canMoveBlock,

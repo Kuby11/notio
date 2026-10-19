@@ -12,13 +12,10 @@ import {
 import { isAuthError } from '../types/errors';
 import { authErrorFromPayload, authErrorFromStatus, networkError } from '../utils/error-mapper';
 
-// isAuthError используется как значение, чтобы импорт не был «только типами».
-void isAuthError;
-
 /**
  * Адаптер аутентификации поверх клиента Better Auth.
  *
- * Наружу смотрит только порт AuthGateway: use cases и компоненты не знают
+ * Наружу смотрит только порт AuthGateway: facade-хуки и компоненты не знают
  * ни про Better Auth, ни про коды его ошибок. Ответы валидируются Zod —
  * сеть не доверенный источник.
  */

@@ -3,7 +3,7 @@
 import { useEditor as useTiptap, EditorContent } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { useDocument, useEditorUi } from '../../hooks/use-editor';
+import { useEditor } from '../../hooks/use-editor';
 import { toEditorText } from '../../utils/block';
 import { EditorStatus } from '../private/editor-status';
 
@@ -14,14 +14,13 @@ interface EditorProps {
 /**
  * Редактор страницы на Tiptap.
  *
- * Компонент — только UI: документ приходит из facade-хука `useDocument`,
- * UI-состояние (выделение, slash-меню) — из `useEditorUi`.
+ * Компонент — только UI: документ, UI-состояние (выделение, slash-меню)
+ * и операции с блоками приходят из единственного facade-хука `useEditor`.
  * Автосохранение через PATCH с debounce 1000 мс будет подключено в
  * facade-хуке модуля, а не здесь.
  */
 export function Editor({ pageId }: EditorProps) {
-  const document = useDocument(pageId);
-  const { setSelectedBlock } = useEditorUi();
+  const { document, setSelectedBlock } = useEditor(pageId);
 
   const editor = useTiptap({
     extensions: [

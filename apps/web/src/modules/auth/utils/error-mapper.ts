@@ -1,4 +1,4 @@
-import { AuthError, type AuthErrorCode } from '../types/errors';
+import { AuthError, isAuthError, type AuthErrorCode } from '../types/errors';
 
 /**
  * Перевод ответов сервиса в доменные ошибки.
@@ -60,4 +60,9 @@ export function authErrorFromPayload(payload: {
 
 export function networkError(cause: unknown): AuthError {
   return new AuthError('NETWORK_ERROR', messageFor('NETWORK_ERROR'), { cause });
+}
+
+/** Текст ошибки для показа пользователю: доменный код, а не текст сервера. */
+export function authErrorMessage(error: unknown): string | null {
+  return isAuthError(error) ? error.message : null;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCreateWorkspace, useWorkspaces } from '@/modules/workspaces';
+import { useWorkspaces } from '@/modules/workspaces';
 import { PageTree } from '@/modules/pages';
 import { Button } from '@/shared/ui/button';
 import {
@@ -26,10 +26,9 @@ interface AppSidebarProps {
  */
 export function AppSidebar({ workspaceId }: AppSidebarProps) {
   const workspaces = useWorkspaces();
-  const createWorkspace = useCreateWorkspace();
   const [newName, setNewName] = useState('');
 
-  const current = workspaces.data?.find((workspace) => workspace.id === workspaceId);
+  const current = workspaces.list.data?.find((workspace) => workspace.id === workspaceId);
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
@@ -45,7 +44,7 @@ export function AppSidebar({ workspaceId }: AppSidebarProps) {
             }
           />
           <DropdownMenuContent className="w-56">
-            {workspaces.data?.map((workspace) => (
+            {workspaces.list.data?.map((workspace) => (
               <DropdownMenuItem key={workspace.id}>
                 <a href={`/workspaces/${workspace.id}`}>{workspace.name}</a>
               </DropdownMenuItem>
@@ -56,7 +55,7 @@ export function AppSidebar({ workspaceId }: AppSidebarProps) {
                 onSubmit={async (event) => {
                   event.preventDefault();
                   if (newName.trim()) {
-                    await createWorkspace.mutateAsync(newName.trim());
+                    await workspaces.createWorkspace.mutateAsync(newName.trim());
                     setNewName('');
                   }
                 }}

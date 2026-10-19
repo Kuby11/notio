@@ -1,6 +1,6 @@
 'use client';
 
-import { usePageChildren, usePageTreeState } from '../../hooks/use-pages';
+import { usePages } from '../../hooks/use-pages';
 import { PageTreeStatus } from '../private/page-tree-status';
 import type { Page } from '@notio/contracts';
 
@@ -13,13 +13,12 @@ interface PageTreeProps {
 /**
  * Рекурсивное дерево страниц.
  *
- * Компонент отвечает только за UI: раскрытие узлов — через facade-хук
- * `usePageTreeState`, данные — через `usePageChildren` (TanStack Query).
- * Состояние стора и сетевые вызовы наружу из компонента не протекают.
+ * Компонент отвечает только за UI: раскрытие узлов, данные и операции
+ * приходят из единственного facade-хука `usePages`. Состояние стора
+ * и сетевые вызовы наружу из компонента не протекают.
  */
 export function PageTree({ workspaceId, parentId = null, depth = 0 }: PageTreeProps) {
-  const { expanded, toggle } = usePageTreeState();
-  const children = usePageChildren(workspaceId, parentId);
+  const { expanded, toggle, children } = usePages(workspaceId, parentId);
 
   if (children.isPending) {
     return <PageTreeStatus>Загрузка…</PageTreeStatus>;
@@ -60,14 +59,14 @@ interface PageTreeNodeProps {
 }
 
 function PageTreeNode({ page, workspaceId, depth, expanded, onToggle }: PageTreeNodeProps) {
-  const prefetch = usePageChildren(workspaceId, page.id);
+  const { children } = usePages(workspaceId, page.id);
 
   return (
     <li role="treeitem" aria-expanded={expanded} style={{ paddingLeft: `${depth * 12}px` }}>
       <button
         type="button"
         onClick={onToggle}
-        onMouseEnter={() => void prefetch.refetch()}
+        onMouseEnter={() => void children.refetch()}
         className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
       >
         <span aria-hidden="true">{page.icon ?? '📄'}</span>

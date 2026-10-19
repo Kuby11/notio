@@ -10,6 +10,8 @@
  *  4. api не тянет React, TanStack Query, Zustand, core и stores: только
  *     сырые вызовы и чистые хелперы.
  *  5. В ui-папке модуля не живут hooks и stores: ui — только компоненты.
+ *  6. У модуля ровно один facade-хук: hooks/use-<module>.ts.
+ *  7. Ключи TanStack Query лежат только в utils/query-keys.ts.
  *
  * Скрипт не резолвит файл на диск — сравнивает нормализованные пути импортов.
  */
@@ -76,6 +78,40 @@ function rel(path) {
 const violations = [];
 const files = [...collectFiles(SRC), ...collectFiles(join(ROOT, 'test'))];
 
+// 6. Один facade-хук на модуль. Никаких вложенных хуков и helper-файлов:
+//    имя фиксировано — hooks/use-<module>.ts.
+const hooksByModule = new Map();
+
+for (const file of files) {
+  const relativePath = relative(SRC, file).split('\\').join('/');
+  const match = relativePath.match(/^modules\/([^/]+)\/hooks\/(.+\.ts)$/u);
+
+  if (match === null || relativePath.includes('.test.')) {
+    continue;
+  }
+
+  const [, moduleName, fileName] = match;
+  const hooks = hooksByModule.get(moduleName) ?? [];
+  hooks.push({ relativePath, fileName });
+  hooksByModule.set(moduleName, hooks);
+}
+
+for (const [moduleName, hooks] of hooksByModule) {
+  if (hooks.length > 1) {
+    violations.push(
+      `modules/${moduleName}/hooks: у модуля должен быть один facade-хук, найдено ${hooks.length}`,
+    );
+  }
+
+  for (const hook of hooks) {
+    if (hook.fileName !== `use-${moduleName}.ts`) {
+      violations.push(
+        `${hook.relativePath}: в hooks допускается только facade-хук use-${moduleName}.ts`,
+      );
+    }
+  }
+}
+
 for (const file of files) {
   const source = readFileSync(file, 'utf8');
   const specifiers = [
@@ -87,6 +123,17 @@ for (const file of files) {
   const fromModule = moduleOf(file);
   const isShared = fromRel.startsWith('apps/web/src/shared/');
   const isApi = fromModule !== null && fromModule.rest.startsWith('api/');
+
+  // 7. Ключи TanStack Query — только в utils/query-keys.ts своего модуля.
+  const relativePath = relative(SRC, file).split('\\').join('/');
+
+  if (
+    relativePath.startsWith('modules/') &&
+    /(?:^|\/)query-keys(?:\.test)?\.ts$/u.test(relativePath) &&
+    !/^modules\/[^/]+\/utils\/query-keys(?:\.test)?\.ts$/u.test(relativePath)
+  ) {
+    violations.push(`${fromRel}: ключи TanStack Query живут в utils/query-keys.ts`);
+  }
 
   // 5. ui — слой компонентов: хукам и сторам здесь не место.
   if (/modules\/[^/]+\/ui\/(?:hooks|stores)\//u.test(fromRel)) {

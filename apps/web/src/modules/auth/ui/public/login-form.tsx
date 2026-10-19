@@ -8,7 +8,8 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { MIN_PASSWORD_LENGTH } from '../../utils/credentials';
-import { authErrorMessage, useSignIn, useSignInWithProvider } from '../../hooks/use-auth';
+import { authErrorMessage } from '../../utils/error-mapper';
+import { useAuth } from '../../hooks/use-auth';
 import { OAuthButtons } from '../private/oauth-buttons';
 
 const LoginSchema = z.object({
@@ -20,8 +21,7 @@ type LoginFields = z.infer<typeof LoginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
-  const signIn = useSignIn();
-  const oauth = useSignInWithProvider();
+  const { signIn, signInWithProvider } = useAuth();
   const {
     register,
     handleSubmit,
@@ -89,13 +89,13 @@ export function LoginForm() {
 
       <OAuthButtons
         mode="sign-in"
-        pending={oauth.isPending}
-        onSelect={(provider) => oauth.mutate(provider)}
+        pending={signInWithProvider.isPending}
+        onSelect={(provider) => signInWithProvider.mutate(provider)}
       />
 
-      {oauth.error !== null ? (
+      {signInWithProvider.error !== null ? (
         <p role="alert" className="text-sm text-red-600">
-          {authErrorMessage(oauth.error)}
+          {authErrorMessage(signInWithProvider.error)}
         </p>
       ) : null}
 

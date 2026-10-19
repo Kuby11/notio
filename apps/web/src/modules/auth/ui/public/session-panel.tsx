@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { authErrorMessage, useSession, useSignOut } from '../../hooks/use-auth';
+import { authErrorMessage } from '../../utils/error-mapper';
+import { useAuth } from '../../hooks/use-auth';
 
 /**
  * Панель текущей сессии.
@@ -11,8 +12,7 @@ import { authErrorMessage, useSession, useSignOut } from '../../hooks/use-auth';
  */
 export function SessionPanel() {
   const router = useRouter();
-  const session = useSession();
-  const signOut = useSignOut();
+  const { session, signOut } = useAuth();
 
   if (session.isPending) {
     return <p className="text-sm text-neutral-500">Проверяем сессию…</p>;

@@ -8,7 +8,8 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { MIN_PASSWORD_LENGTH } from '../../utils/credentials';
-import { authErrorMessage, useSignUp, useSignInWithProvider } from '../../hooks/use-auth';
+import { authErrorMessage } from '../../utils/error-mapper';
+import { useAuth } from '../../hooks/use-auth';
 import { OAuthButtons } from '../private/oauth-buttons';
 
 const RegisterSchema = z.object({
@@ -20,8 +21,7 @@ const RegisterSchema = z.object({
 type RegisterFields = z.infer<typeof RegisterSchema>;
 
 export function RegisterForm() {
-  const signUp = useSignUp();
-  const oauth = useSignInWithProvider();
+  const { signUp, signInWithProvider } = useAuth();
   const [sentTo, setSentTo] = useState<string | null>(null);
   const {
     register,
@@ -123,13 +123,13 @@ export function RegisterForm() {
 
       <OAuthButtons
         mode="sign-up"
-        pending={oauth.isPending}
-        onSelect={(provider) => oauth.mutate(provider)}
+        pending={signInWithProvider.isPending}
+        onSelect={(provider) => signInWithProvider.mutate(provider)}
       />
 
-      {oauth.error !== null ? (
+      {signInWithProvider.error !== null ? (
         <p role="alert" className="text-sm text-red-600">
-          {authErrorMessage(oauth.error)}
+          {authErrorMessage(signInWithProvider.error)}
         </p>
       ) : null}
 

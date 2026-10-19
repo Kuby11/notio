@@ -5,14 +5,8 @@ import type { AuthGateway } from './types/ports';
 export { LoginForm } from './ui/public/login-form';
 export { RegisterForm } from './ui/public/register-form';
 export { SessionPanel } from './ui/public/session-panel';
-export {
-  authErrorMessage,
-  useSession,
-  useSignIn,
-  useSignInWithProvider,
-  useSignOut,
-  useSignUp,
-} from './hooks/use-auth';
+export { useAuth } from './hooks/use-auth';
+export { authErrorMessage } from './utils/error-mapper';
 export { AuthError, isAuthError } from './types/errors';
 export type { AuthErrorCode } from './types/errors';
 export type { AuthGateway, AuthSession, SessionUser } from './types/ports';

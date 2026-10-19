@@ -3,44 +3,35 @@ import { useContainer } from '../../../core/container';
 import { usePageTreeStore } from '../stores/page-tree.store';
 import type { CreatePageFormInput } from '../types/ports';
 import { assertCanMove, normalizePageTitle, type PageNode } from '../utils/page';
-import { pageKeys } from './query-keys';
+import { pageKeys } from '../utils/query-keys';
 
 /**
- * Хуки страниц: TanStack Query — единственный источник серверного состояния.
- * Оптимистичные обновления с откатом живут в мутациях, а не в Zustand.
+ * Единственный facade-хук модуля страниц.
+ *
+ * Хук оркестрирует всё состояние модуля: раскрытые узлы из приватного стора,
+ * загрузку детей и мутации с оптимистичными обновлениями. `workspaceId` и
+ * `parentId` задают уровень дерева, поэтому рекурсивный `PageTree` вызывает
+ * тот же хук для каждой ветки.
  *
  * Бизнес-правила (перемещение, заголовок по умолчанию) берутся из `utils`,
  * репозиторий приходит из контейнера, а компоненты не знают ни о том, ни
- * о другом. Стейт дерева (раскрытые узлы) хранится в Zustand-сторе модуля,
- * но наружу — в том числе другим модулям — отдаётся только через facade-хук
- * `usePageTreeState`. Прямой импорт стора за пределами модуля запрещён.
+ * о другом. Стейт дерева наружу отдаётся только этим хуком.
  */
-
-/** Facade над UI-состоянием дерева: единственная публичная точка входа. */
-export function usePageTreeState() {
+export function usePages(workspaceId: string, parentId: string | null = null) {
+  const { pages } = useContainer();
+  const queryClient = useQueryClient();
   const expanded = usePageTreeStore((state) => state.expanded);
   const toggle = usePageTreeStore((state) => state.toggle);
   const setExpanded = usePageTreeStore((state) => state.setExpanded);
   const reset = usePageTreeStore((state) => state.reset);
 
-  return { expanded, toggle, setExpanded, reset };
-}
-
-export function usePageChildren(workspaceId: string, parentId: string | null) {
-  const { pages } = useContainer();
-
-  return useQuery({
+  const children = useQuery({
     queryKey: pageKeys.children(workspaceId, parentId),
     queryFn: () => pages.listChildren(workspaceId, parentId, false),
     staleTime: 30_000,
   });
-}
 
-export function useCreatePage() {
-  const { pages } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const createPage = useMutation({
     mutationFn: (input: CreatePageFormInput) =>
       pages.create({
         workspaceId: input.workspaceId,
@@ -52,13 +43,8 @@ export function useCreatePage() {
       await queryClient.invalidateQueries({ queryKey: pageKeys.all(page.workspaceId) });
     },
   });
-}
 
-export function useMovePage() {
-  const { pages } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const movePage = useMutation({
     mutationFn: (input: {
       pageId: string;
       workspaceId: string;
@@ -80,10 +66,10 @@ export function useMovePage() {
         snapshot: queryClient.getQueryData(pageKeys.children(input.workspaceId, input.newParentId)),
       };
     },
-    onError: (_error, _input, context) => {
+    onError: (_error, input, context) => {
       if (context?.snapshot !== undefined) {
         queryClient.setQueryData(
-          pageKeys.children(_input.workspaceId, _input.newParentId),
+          pageKeys.children(input.workspaceId, input.newParentId),
           context.snapshot,
         );
       }
@@ -92,21 +78,23 @@ export function useMovePage() {
       await queryClient.invalidateQueries({ queryKey: pageKeys.all(input.workspaceId) });
     },
   });
-}
 
-export function useRenamePage() {
-  const { pages } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, workspaceId, title }: { id: string; workspaceId: string; title: string }) =>
-      pages.update(id, workspaceId, { title: normalizePageTitle(title) }),
-    onMutate: async ({ id, workspaceId, title }) => {
-      await queryClient.cancelQueries({ queryKey: pageKeys.all(workspaceId) });
-      const previous = queryClient.getQueryData(pageKeys.children(workspaceId, null));
+  const renamePage = useMutation({
+    mutationFn: ({
+      id,
+      workspaceId: targetWorkspaceId,
+      title,
+    }: {
+      id: string;
+      workspaceId: string;
+      title: string;
+    }) => pages.update(id, targetWorkspaceId, { title: normalizePageTitle(title) }),
+    onMutate: async ({ id, workspaceId: targetWorkspaceId, title }) => {
+      await queryClient.cancelQueries({ queryKey: pageKeys.all(targetWorkspaceId) });
+      const previous = queryClient.getQueryData(pageKeys.children(targetWorkspaceId, null));
 
       // Оптимистичное обновление: показываем новое имя сразу.
-      queryClient.setQueryData(pageKeys.children(workspaceId, null), (old: unknown) => {
+      queryClient.setQueryData(pageKeys.children(targetWorkspaceId, null), (old: unknown) => {
         if (!Array.isArray(old)) {
           return old;
         }
@@ -118,59 +106,58 @@ export function useRenamePage() {
 
       return { previous };
     },
-    onError: (_error, _variables, context) => {
+    onError: (_error, variables, context) => {
       if (context?.previous !== undefined) {
-        queryClient.setQueryData(pageKeys.children(_variables.workspaceId, null), context.previous);
+        queryClient.setQueryData(pageKeys.children(variables.workspaceId, null), context.previous);
       }
     },
     onSettled: async (_data, _error, variables) => {
       await queryClient.invalidateQueries({ queryKey: pageKeys.all(variables.workspaceId) });
     },
   });
-}
 
-export function useTrashPage() {
-  const { pages } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, workspaceId }: { id: string; workspaceId: string }) =>
-      pages.update(id, workspaceId, { isTrashed: true }),
+  const trashPage = useMutation({
+    mutationFn: ({ id, workspaceId: targetWorkspaceId }: { id: string; workspaceId: string }) =>
+      pages.update(id, targetWorkspaceId, { isTrashed: true }),
     onSuccess: async (page) => {
       await queryClient.invalidateQueries({ queryKey: pageKeys.all(page.workspaceId) });
     },
   });
-}
 
-export function useRestorePage() {
-  const { pages } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, workspaceId }: { id: string; workspaceId: string }) =>
-      pages.update(id, workspaceId, { isTrashed: false }),
+  const restorePage = useMutation({
+    mutationFn: ({ id, workspaceId: targetWorkspaceId }: { id: string; workspaceId: string }) =>
+      pages.update(id, targetWorkspaceId, { isTrashed: false }),
     onSuccess: async (page) => {
       await queryClient.invalidateQueries({ queryKey: pageKeys.all(page.workspaceId) });
     },
   });
-}
 
-export function useToggleFavorite() {
-  const { pages } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const toggleFavorite = useMutation({
     mutationFn: ({
       id,
-      workspaceId,
+      workspaceId: targetWorkspaceId,
       isFavorite,
     }: {
       id: string;
       workspaceId: string;
       isFavorite: boolean;
-    }) => pages.update(id, workspaceId, { isFavorite }),
+    }) => pages.update(id, targetWorkspaceId, { isFavorite }),
     onSuccess: async (page) => {
       await queryClient.invalidateQueries({ queryKey: pageKeys.all(page.workspaceId) });
     },
   });
+
+  return {
+    expanded,
+    toggle,
+    setExpanded,
+    reset,
+    children,
+    createPage,
+    movePage,
+    renamePage,
+    trashPage,
+    restorePage,
+    toggleFavorite,
+  };
 }

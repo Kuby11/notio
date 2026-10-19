@@ -9,19 +9,8 @@ import type {
   WorkspaceRole,
 } from './types/ports';
 
-export {
-  useAcceptInvitation,
-  useArchiveWorkspace,
-  useChangeMemberRole,
-  useCreateInvitation,
-  useCreateWorkspace,
-  useMembers,
-  useRemoveMember,
-  useRenameWorkspace,
-  useRevokeInvitation,
-  useWorkspaces,
-} from './hooks/use-workspaces';
-export { workspaceKeys } from './hooks/query-keys';
+export { useWorkspaces } from './hooks/use-workspaces';
+export { workspaceKeys } from './utils/query-keys';
 export type { WorkspaceGateway } from './types/ports';
 export type { Invitation, Member, Workspace, WorkspaceListItem, WorkspaceRole };
 export {

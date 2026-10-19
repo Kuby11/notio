@@ -3,17 +3,8 @@ import type { TokenProvider } from '../../shared/types';
 import type { PageRepository } from './types/ports';
 
 export { PageTree } from './ui/public/page-tree';
-export {
-  useCreatePage,
-  useMovePage,
-  usePageChildren,
-  usePageTreeState,
-  useRenamePage,
-  useRestorePage,
-  useToggleFavorite,
-  useTrashPage,
-} from './hooks/use-pages';
-export { pageKeys } from './hooks/query-keys';
+export { usePages } from './hooks/use-pages';
+export { pageKeys } from './utils/query-keys';
 export type { PageNode } from './utils/page';
 export {
   assertCanMove,
