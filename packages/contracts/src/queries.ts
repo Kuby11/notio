@@ -31,3 +31,9 @@ export const PageFavoritesQuerySchema = z.object({
   workspaceId: IdSchema,
 });
 export type PageFavoritesQuery = z.infer<typeof PageFavoritesQuerySchema>;
+
+/** Корзина, как и избранное, собирается по всему workspace, а не по уровню дерева. */
+export const PageTrashQuerySchema = z.object({
+  workspaceId: IdSchema,
+});
+export type PageTrashQuery = z.infer<typeof PageTrashQuerySchema>;

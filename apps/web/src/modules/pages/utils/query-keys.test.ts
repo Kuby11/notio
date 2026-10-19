@@ -19,4 +19,9 @@ describe('pageKeys', () => {
     expect(pageKeys.favorites('ws-1')).toEqual([...pageKeys.all('ws-1'), 'favorites']);
     expect(pageKeys.favorites('ws-1')).not.toEqual(pageKeys.children('ws-1', null));
   });
+
+  it('держит корзину под тем же корнем, но отдельно от избранного', () => {
+    expect(pageKeys.trash('ws-1')).toEqual([...pageKeys.all('ws-1'), 'trash']);
+    expect(pageKeys.trash('ws-1')).not.toEqual(pageKeys.favorites('ws-1'));
+  });
 });

@@ -6,7 +6,12 @@ import {
   isAllowedMimeType,
   MAX_UPLOAD_SIZE_BYTES,
 } from './file';
-import { BooleanQuerySchema, PageFavoritesQuerySchema, PageListQuerySchema } from './queries';
+import {
+  BooleanQuerySchema,
+  PageFavoritesQuerySchema,
+  PageListQuerySchema,
+  PageTrashQuerySchema,
+} from './queries';
 import { UserSchema } from './user';
 import { ROLE_PERMISSIONS, roleCan, WORKSPACE_ROLES, WorkspaceSchema } from './workspace';
 
@@ -177,6 +182,18 @@ describe('PageFavoritesQuerySchema', () => {
 
   it('требует корректный workspaceId', () => {
     expect(() => PageFavoritesQuerySchema.parse({ workspaceId: 'ws' })).toThrow();
+  });
+});
+
+describe('PageTrashQuerySchema', () => {
+  const workspaceId = '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f';
+
+  it('принимает запрос корзины по workspace', () => {
+    expect(PageTrashQuerySchema.parse({ workspaceId })).toEqual({ workspaceId });
+  });
+
+  it('требует корректный workspaceId', () => {
+    expect(() => PageTrashQuerySchema.parse({ workspaceId: 'ws' })).toThrow();
   });
 });
 

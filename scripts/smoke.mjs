@@ -417,6 +417,32 @@ async function runChecks() {
       'Избранная страница не появилась в /api/pages/favorites',
     );
 
+    const trashed = await fetch(
+      `${BASE_URL}/api/pages/${createdBody.id}?workspaceId=${WORKSPACE_ID}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${jwt}`,
+          'cf-connecting-ip': '203.0.113.75',
+        },
+        body: JSON.stringify({ isTrashed: true }),
+      },
+    );
+
+    check(trashed.status === 200, `Перенос в корзину вернул ${trashed.status}, ожидался 200`);
+
+    const trash = await fetch(`${BASE_URL}/api/pages/trash?workspaceId=${WORKSPACE_ID}`, {
+      headers: { authorization: `Bearer ${jwt}`, 'cf-connecting-ip': '203.0.113.75' },
+    });
+    const trashBody = await json(trash);
+
+    check(trash.status === 200, `GET /api/pages/trash вернул ${trash.status}, ожидался 200`);
+    check(
+      Array.isArray(trashBody.items) && trashBody.items.some((page) => page.id === createdBody.id),
+      'Удалённая страница не появилась в /api/pages/trash',
+    );
+
     check(
       created.headers.get('x-content-type-options') === 'nosniff',
       'Ответ прокси не содержит x-content-type-options: nosniff',
@@ -456,7 +482,7 @@ async function runChecks() {
   }
 
   console.log(
-    '\nSmoke-проверка пройдена: регистрация с отказом на занятом email, подтверждение почты, вход, JWT, отказ по подделанному токену, запись страницы в D1 и список избранного работают.',
+    '\nSmoke-проверка пройдена: регистрация с отказом на занятом email, подтверждение почты, вход, JWT, отказ по подделанному токену, запись страницы в D1, списки избранного и корзины работают.',
   );
 
   return true;

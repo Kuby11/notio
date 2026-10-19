@@ -4,6 +4,7 @@ import type {
   Page,
   PageFavoritesQuery,
   PageListQuery,
+  PageTrashQuery,
   UpdatePageInput,
 } from '@notio/contracts';
 import { IdSchema, newId } from '@notio/contracts';
@@ -82,6 +83,13 @@ export class PageService {
   /** Избранное не листается: это короткий список ссылок, а не дерево. */
   async listFavorites(query: PageFavoritesQuery): Promise<PageListResult> {
     const items = await this.pages.listFavorites(query.workspaceId);
+
+    return { items, nextCursor: null };
+  }
+
+  /** Корзина тоже плоская: восстановить страницу можно независимо от её родителя. */
+  async listTrashed(query: PageTrashQuery): Promise<PageListResult> {
+    const items = await this.pages.listTrashed(query.workspaceId);
 
     return { items, nextCursor: null };
   }

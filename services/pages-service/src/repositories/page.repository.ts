@@ -112,6 +112,17 @@ export class PageRepository {
     return rows.map((row) => this.toPage(row));
   }
 
+  /** Удалённые страницы всего workspace: их можно восстановить из корзины. */
+  async listTrashed(workspaceId: string): Promise<Page[]> {
+    const rows = await this.db
+      .select()
+      .from(pages)
+      .where(and(eq(pages.workspaceId, workspaceId), eq(pages.isTrashed, true)))
+      .orderBy(desc(pages.updatedAt), desc(pages.id));
+
+    return rows.map((row) => this.toPage(row));
+  }
+
   /**
    * Границы для новой позиции.
    *

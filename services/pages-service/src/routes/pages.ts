@@ -11,6 +11,7 @@ import {
   PageListQuerySchema,
   PageListResultSchema,
   PageSchema,
+  PageTrashQuerySchema,
   PageVersionSchema,
   toProblemErrors,
   UpdateBlockInputSchema,
@@ -76,11 +77,18 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
     return c.json(PageListResultSchema.parse(result), 200);
   });
 
-  // Статический маршрут объявлен до `/pages/:id`: иначе Hono попробует
-  // разобрать «favorites» как UUID и вернёт 400 вместо списка.
+  // Статические маршруты объявлены до `/pages/:id`: иначе Hono попробует
+  // разобрать «favorites» или «trash» как UUID и вернёт 400 вместо списка.
   routes.get('/pages/favorites', async (c) => {
     const query = parseOrThrow(PageFavoritesQuerySchema, c.req.query());
     const result = await createService(c.env).listFavorites(query);
+
+    return c.json(PageListResultSchema.parse(result), 200);
+  });
+
+  routes.get('/pages/trash', async (c) => {
+    const query = parseOrThrow(PageTrashQuerySchema, c.req.query());
+    const result = await createService(c.env).listTrashed(query);
 
     return c.json(PageListResultSchema.parse(result), 200);
   });
