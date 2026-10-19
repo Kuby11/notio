@@ -2,12 +2,12 @@ import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
 
 /**
- * Тесты фронтенда: домен, use cases и адаптеры работают в обычном Node,
+ * Тесты фронтенда: домен и адаптеры работают в обычном Node,
  * компоненты — в jsdom с Testing Library.
  *
- * Покрытие меряется для чистой логики модулей (`hooks/use-cases` и `utils`):
- * фасады и UI-компоненты проверяются компонентными тестами, а их тонкая
- * обвязка не искажает метрику бизнес-правил.
+ * Покрытие меряется для чистой логики модулей (`utils`): хуки и UI
+ * проверяются компонентными тестами и smoke, а их тонкая обвязка
+ * не искажает метрику бизнес-правил.
  */
 export default defineConfig({
   resolve: {
@@ -25,7 +25,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
-      include: ['src/modules/**/hooks/use-cases/**/*.ts', 'src/modules/**/utils/**/*.ts'],
+      include: ['src/modules/**/utils/**/*.ts'],
       exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
       thresholds: {
         lines: 80,

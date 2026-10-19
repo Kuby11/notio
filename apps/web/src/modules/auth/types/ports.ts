@@ -1,10 +1,10 @@
-import type { Credentials } from '../utils/credentials';
+import type { Credentials, SignUpInput } from '../utils/credentials';
 
 /**
  * Порт аутентификации.
  *
- * Реализация — адаптер поверх Better Auth за gateway; use cases знают только
- * этот интерфейс, поэтому в тестах подставляется in-memory версия без сети.
+ * Реализация — адаптер поверх Better Auth; facade-хуки знают только этот
+ * интерфейс, поэтому в тестах подставляется in-memory версия без сети.
  */
 
 export interface SessionUser {
@@ -17,10 +17,6 @@ export interface SessionUser {
 export interface AuthSession {
   user: SessionUser;
   expiresAt: string;
-}
-
-export interface SignUpInput extends Credentials {
-  name: string;
 }
 
 export interface AuthGateway {
@@ -46,3 +42,5 @@ export interface AuthGateway {
    */
   accessToken(): Promise<string | null>;
 }
+
+export type { Credentials, SignUpInput };

@@ -16,9 +16,10 @@ import { env } from '../shared/configs/env';
  * Composition root: единственное место, где модули встречаются друг с другом.
  *
  * Контейнер не знает ни про адаптеры, ни про DTO: он вызывает фабрики
- * модулей (`createAuthModule`, `createPagesModule`, ...). Каждая фабрика
- * сама собирает свои api + use cases. Так правило «api используется только
- * внутри своего модуля» соблюдается на уровне сборки приложения.
+ * модулей (`createAuthModule`, `createPagesModule`, ...). Фабрики собирают
+ * свои api-адаптеры и отдают наружу только порты, от которых зависят хуки:
+ * так правило «api используется только внутри своего модуля» соблюдается
+ * на уровне сборки приложения.
  */
 
 export interface Container {
@@ -61,7 +62,7 @@ export function ContainerProvider({
   container?: Container;
 }) {
   // Контейнер создаётся один раз на приложение: пересборка на каждый рендер
-  // ломала бы стабильность use cases между рендерами.
+  // ломала бы стабильность портов и кеша JWT между рендерами.
   const value = useMemo(() => container ?? createAppContainer(), [container]);
 
   return <ContainerContext.Provider value={value}>{children}</ContainerContext.Provider>;

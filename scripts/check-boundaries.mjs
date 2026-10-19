@@ -9,6 +9,7 @@
  *  3. stores и api модуля доступны только внутри этого же модуля.
  *  4. api не тянет React, TanStack Query, Zustand, core и stores: только
  *     сырые вызовы и чистые хелперы.
+ *  5. В ui-папке модуля не живут hooks и stores: ui — только компоненты.
  *
  * Скрипт не резолвит файл на диск — сравнивает нормализованные пути импортов.
  */
@@ -86,6 +87,16 @@ for (const file of files) {
   const fromModule = moduleOf(file);
   const isShared = fromRel.startsWith('apps/web/src/shared/');
   const isApi = fromModule !== null && fromModule.rest.startsWith('api/');
+
+  // 5. ui — слой компонентов: хукам и сторам здесь не место.
+  if (/modules\/[^/]+\/ui\/(?:hooks|stores)\//u.test(fromRel)) {
+    violations.push(`${fromRel}: hooks/stores не могут жить внутри ui`);
+  }
+
+  // 6. Отдельных use case-классов нет: бизнес-логика живёт в хуках.
+  if (/modules\/[^/]+\/hooks\/use-cases\//u.test(fromRel)) {
+    violations.push(`${fromRel}: папка use-cases не используется — логика живёт в хуках`);
+  }
 
   for (const specifier of specifiers) {
     const target = resolveSpecifier(file, specifier);

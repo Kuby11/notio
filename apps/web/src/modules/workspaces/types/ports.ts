@@ -9,8 +9,8 @@ import type {
 /**
  * Порты работы с рабочими пространствами.
  *
- * Реализация — адаптер поверх gateway; use cases знают только этот интерфейс,
- * поэтому в тестах подставляется in-memory версия без сети.
+ * Реализация — адаптер поверх gateway; facade-хуки знают только этот
+ * интерфейс, поэтому в тестах подставляется in-memory версия без сети.
  */
 export interface WorkspaceGateway {
   list(): Promise<WorkspaceListItem[]>;

@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import type { Block } from '@notio/contracts';
 import {
+  blockToText,
   canMoveBlock,
+  contentToText,
   createEmptyBlock,
   deserializeDocument,
   getBlockDefinition,
   listBlockDefinitions,
   registerBlock,
   serializeDocument,
+  toEditorText,
 } from './block';
 
 describe('registerBlock / getBlockDefinition', () => {
@@ -77,5 +81,44 @@ describe('canMoveBlock', () => {
 
   it('разрешает перемещение в конец (null)', () => {
     expect(canMoveBlock([], 'b1', null)).toBe(true);
+  });
+});
+
+function block(id: string, type: Block['type'], content: Block['content']): Block {
+  return {
+    id,
+    pageId: 'page-1',
+    type,
+    position: 'a0',
+    content,
+    createdAt: '2026-10-18T00:00:00.000Z',
+    updatedAt: '2026-10-18T00:00:00.000Z',
+  };
+}
+
+describe('blockToText / contentToText', () => {
+  it('текст незарегистрированного типа берётся из content', () => {
+    const quote = block('b1', 'quote', { type: 'quote', content: 'Цитата' });
+
+    expect(blockToText(quote)).toBe('Цитата');
+  });
+
+  it('у блока без текстового содержимого текста нет', () => {
+    const divider = block('b2', 'divider', { type: 'divider' });
+
+    expect(contentToText(divider.content)).toBe('');
+    expect(blockToText(divider)).toBe('');
+  });
+});
+
+describe('toEditorText', () => {
+  it('собирает плоский текст документа и пропускает пустые строки', () => {
+    const blocks = [
+      block('b1', 'paragraph', { type: 'paragraph', content: 'Первая' }),
+      block('b2', 'paragraph', { type: 'paragraph', content: '' }),
+      block('b3', 'paragraph', { type: 'paragraph', content: 'Третья' }),
+    ];
+
+    expect(toEditorText(blocks)).toBe('Первая\nТретья');
   });
 });

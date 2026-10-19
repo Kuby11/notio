@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { capabilitiesOf, isInvitableRole, roleLabel, INVITABLE_ROLES } from './rules';
+import {
+  assertWorkspaceName,
+  capabilitiesOf,
+  isInvitableRole,
+  roleLabel,
+  INVITABLE_ROLES,
+} from './rules';
 
 describe('capabilitiesOf', () => {
   it('owner может всё', () => {
@@ -53,5 +59,15 @@ describe('INVITABLE_ROLES', () => {
   it('не включает owner', () => {
     expect(INVITABLE_ROLES).not.toContain('owner');
     expect(INVITABLE_ROLES).toHaveLength(2);
+  });
+});
+
+describe('assertWorkspaceName', () => {
+  it('обрезает пробелы вокруг названия', () => {
+    expect(assertWorkspaceName('  Мой офис  ')).toBe('Мой офис');
+  });
+
+  it('не пропускает пустое название', () => {
+    expect(() => assertWorkspaceName('   ')).toThrowError(/Название не может быть пустым/);
   });
 });

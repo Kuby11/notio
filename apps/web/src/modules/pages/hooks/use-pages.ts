@@ -1,15 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useContainer } from '../../../core/container';
 import { usePageTreeStore } from '../stores/page-tree.store';
-import type { PageNode } from '../utils/page';
+import type { CreatePageFormInput } from '../types/ports';
+import { assertCanMove, normalizePageTitle, type PageNode } from '../utils/page';
 import { pageKeys } from './query-keys';
 
 /**
  * Хуки страниц: TanStack Query — единственный источник серверного состояния.
  * Оптимистичные обновления с откатом живут в мутациях, а не в Zustand.
  *
- * Стейт дерева (раскрытые узлы) хранится в Zustand-сторе модуля, но наружу —
- * в том числе другим модулям — отдаётся только через facade-хук
+ * Бизнес-правила (перемещение, заголовок по умолчанию) берутся из `utils`,
+ * репозиторий приходит из контейнера, а компоненты не знают ни о том, ни
+ * о другом. Стейт дерева (раскрытые узлы) хранится в Zustand-сторе модуля,
+ * но наружу — в том числе другим модулям — отдаётся только через facade-хук
  * `usePageTreeState`. Прямой импорт стора за пределами модуля запрещён.
  */
 
@@ -28,7 +31,7 @@ export function usePageChildren(workspaceId: string, parentId: string | null) {
 
   return useQuery({
     queryKey: pageKeys.children(workspaceId, parentId),
-    queryFn: () => pages.listChildren.execute(workspaceId, parentId, false),
+    queryFn: () => pages.listChildren(workspaceId, parentId, false),
     staleTime: 30_000,
   });
 }
@@ -38,8 +41,13 @@ export function useCreatePage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: { workspaceId: string; parentId?: string | null; title?: string }) =>
-      pages.createPage.execute(input),
+    mutationFn: (input: CreatePageFormInput) =>
+      pages.create({
+        workspaceId: input.workspaceId,
+        parentId: input.parentId ?? null,
+        title: input.title ?? '',
+        icon: input.icon,
+      }),
     onSuccess: async (page) => {
       await queryClient.invalidateQueries({ queryKey: pageKeys.all(page.workspaceId) });
     },
@@ -57,7 +65,14 @@ export function useMovePage() {
       newParentId: string | null;
       afterPageId?: string;
       tree: readonly PageNode[];
-    }) => pages.movePage.execute(input),
+    }) => {
+      assertCanMove(input.tree, input.pageId, input.newParentId);
+
+      return pages.move(input.pageId, input.workspaceId, {
+        parentId: input.newParentId,
+        afterPageId: input.afterPageId,
+      });
+    },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: pageKeys.all(input.workspaceId) });
 
@@ -85,7 +100,7 @@ export function useRenamePage() {
 
   return useMutation({
     mutationFn: ({ id, workspaceId, title }: { id: string; workspaceId: string; title: string }) =>
-      pages.renamePage.execute(id, workspaceId, title),
+      pages.update(id, workspaceId, { title: normalizePageTitle(title) }),
     onMutate: async ({ id, workspaceId, title }) => {
       await queryClient.cancelQueries({ queryKey: pageKeys.all(workspaceId) });
       const previous = queryClient.getQueryData(pageKeys.children(workspaceId, null));
@@ -120,7 +135,20 @@ export function useTrashPage() {
 
   return useMutation({
     mutationFn: ({ id, workspaceId }: { id: string; workspaceId: string }) =>
-      pages.trashPage.execute(id, workspaceId),
+      pages.update(id, workspaceId, { isTrashed: true }),
+    onSuccess: async (page) => {
+      await queryClient.invalidateQueries({ queryKey: pageKeys.all(page.workspaceId) });
+    },
+  });
+}
+
+export function useRestorePage() {
+  const { pages } = useContainer();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, workspaceId }: { id: string; workspaceId: string }) =>
+      pages.update(id, workspaceId, { isTrashed: false }),
     onSuccess: async (page) => {
       await queryClient.invalidateQueries({ queryKey: pageKeys.all(page.workspaceId) });
     },
@@ -140,7 +168,7 @@ export function useToggleFavorite() {
       id: string;
       workspaceId: string;
       isFavorite: boolean;
-    }) => pages.toggleFavorite.execute(id, workspaceId, isFavorite),
+    }) => pages.update(id, workspaceId, { isFavorite }),
     onSuccess: async (page) => {
       await queryClient.invalidateQueries({ queryKey: pageKeys.all(page.workspaceId) });
     },

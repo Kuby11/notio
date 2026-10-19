@@ -56,7 +56,6 @@ apps/web/
 │  │  ├─ providers.tsx            # QueryClient + ContainerProvider
 │  │  └─ ui/                      # AppLayout, AppSidebar (собирают модули вместе)
 │  ├─ shared/                     # переиспользуемый код, который не знает о домене
-│  │  ├─ hooks/                   # generic-хуки
 │  │  ├─ ui/                      # примитивы (shadcn) + cn
 │  │  ├─ configs/                 # env и константы
 │  │  └─ types/                   # общие типы (TokenProvider)
@@ -69,45 +68,43 @@ apps/web/
 └─ test/                          # общие фикстуры тестов (auth-fixture и т.п.)
 ```
 
-Анатомия **каждого** модуля строго фиксирована:
+Анатомия модуля: `hooks/`, `types/` и `index.ts` есть всегда, остальные папки появляются по мере надобности. Пустые каталоги не создаются: нет стора — нет папки `stores`; нет внутренних компонентов — нет `ui/private`.
 
 ```
 modules/<module>/
 ├─ hooks/
 │  ├─ use-<module>.ts        # facade hook: оркестрация API + состояния
-│  ├─ query-keys.ts          # фабрики ключей TanStack Query
-│  └─ use-cases/             # use cases: бизнес-сценарии без React
+│  └─ query-keys.ts          # фабрики ключей TanStack Query
 ├─ stores/                   # Zustand: только UI-состояние модуля, *.store.ts
-├─ api/                      # только сырые вызовы сети: fetch/RPC + Zod
+├─ api/                      # вызовы сети: fetch/RPC + Zod, кеш токена
 ├─ types/                    # типы, порты (интерфейсы), DTO-схемы
-├─ utils/                    # чистые функции: правила, мапперы
+├─ utils/                    # чистые функции: правила, мапперы, assert-проверки
 ├─ ui/
 │  ├─ private/               # компоненты, используемые только внутри модуля
 │  └─ public/                # компоненты, доступные другим модулям и app
 └─ index.ts                  # публичный API модуля: единственная точка входа
 ```
 
-Пустые каталоги помечаются `.gitkeep`, чтобы структура была видна в git.
+В `ui` живут только компоненты: ни `hooks`, ни `stores` там быть не может (проверяется `check-boundaries`).
 
 ### Назначение и запреты по папкам
 
-| Папка             | Что можно                                                          | Что нельзя                                                   |
-| ----------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
-| `hooks/use-cases` | use case-классы с одним методом `execute`, порты через конструктор | React, Query, Zustand, `fetch`, `Date.now()` внутри правил   |
-| `hooks/*.ts`      | facade-хуки: Query/Mutation, оркестрация use cases и стора         | прямой `fetch`, знание о DTO и чужих модулях                 |
-| `stores`          | простые сырые методы состояния (set/toggle/reset)                  | серверные данные, сеть, бизнес-логика, значения `Date.now()` |
-| `api`             | `fetch`/RPC, Zod-валидация ответов, маппинг ошибок                 | React, Query, Zustand, `core`, `stores`, чужой UI            |
-| `types`           | типы, порты-интерфейсы, DTO-схемы, константы                       | логика и побочные эффекты                                    |
-| `utils`           | чистые функции (правила, мапперы DTO)                              | React, сеть, глобальное состояние                            |
-| `ui/private`      | компоненты только для этого модуля                                 | экспорт через `index.ts`                                     |
-| `ui/public`       | компоненты для других модулей/app; экспортируются через `index.ts` | бизнес-логика и прямые вызовы API                            |
-| `index.ts`        | фабрика модуля, facade-хуки, public UI, публичные типы             | экспорт `api`, `stores`, `ui/private` наружу                 |
+| Папка        | Что можно                                                                    | Что нельзя                                                    |
+| ------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `hooks`      | facade-хуки и хуки операций: Query/Mutation, вызов порта, правила из `utils` | прямой `fetch`, знание о DTO и чужих модулях, классы use case |
+| `stores`     | простые сырые методы состояния (set/toggle/reset)                            | серверные данные, сеть, бизнес-логика, значения `Date.now()`  |
+| `api`        | `fetch`/RPC, Zod-валидация ответов, маппинг ошибок, кеш токена               | React, Query, Zustand, `core`, `stores`, чужой UI             |
+| `types`      | типы, порты-интерфейсы, DTO-схемы, константы                                 | логика и побочные эффекты                                     |
+| `utils`      | чистые функции (правила, мапперы DTO, assert-проверки)                       | React, сеть, глобальное состояние                             |
+| `ui/private` | компоненты только для этого модуля                                           | экспорт через `index.ts`, хуки и сторы                        |
+| `ui/public`  | компоненты для других модулей/app; экспортируются через `index.ts`           | бизнес-логика и прямые вызовы API, хуки и сторы               |
+| `index.ts`   | фабрика модуля, facade-хуки, public UI, публичные типы                       | экспорт `api`, `stores`, `ui/private` наружу                  |
 
 ### Текущие модули
 
 | Модуль       | Ответственность                                                         | Фасадный хук     |
 | ------------ | ----------------------------------------------------------------------- | ---------------- |
-| `auth`       | вход/регистрация, OAuth, сессия, JWT `AccessToken`, выход               | `use-auth`       |
+| `auth`       | вход/регистрация, OAuth, сессия, JWT-провайдер с кешем, выход           | `use-auth`       |
 | `pages`      | дерево страниц, создание/переименование/перемещение, избранное, корзина | `use-pages`      |
 | `workspaces` | рабочие пространства, участники, роли, инвайты                          | `use-workspaces` |
 | `editor`     | блочный документ, вставка/удаление/перемещение блоков, версии           | `use-editor`     |
@@ -118,11 +115,11 @@ modules/<module>/
 
 1. **`shared` не импортирует ничего из `modules`, `core` и `app`.** Shared ничего не знает о домене: если код зависит от модуля — он живёт в `core` или в модуле.
 2. **Другой код видит только `modules/<module>` (index.ts).** Глубокие импорты (`modules/x/hooks/...`, `modules/x/api/...`, `modules/x/stores/...`) запрещены и ломают `pnpm lint`.
-3. **`api` используется только внутри своего модуля.** Наружу модуль отдаёт фабрику (`createPagesModule`) — она сама собирает use cases поверх репозитория.
+3. **`api` используется только внутри своего модуля.** Наружу модуль отдаёт фабрику (`createPagesModule`), которая собирает адаптер и возвращает порт; с портом работают хуки модуля.
 4. **`stores` импортируются только внутри своего модуля** и только из хуков/компонентов этого модуля. Состояние стора для других модулей доступно через facade-хук (`usePageTreeState`, `useEditorUi`).
 5. **UI-компоненты содержат только UI-логику.** Вся работа с сетью/состоянием — в хуках. Компонент не вызывает `fetch`, не знает про DTO и не импортирует `api`.
-6. **В каждом модуле минимум один facade-хук**, который оркестрирует его состояние и вызовы API. Компоненты обращаются к модулю только через него.
-7. **Инверсия зависимостей сохраняется.** Use case зависит от порта из `types/ports.ts`; реализацию (адаптер) даёт `api`; связывает их composition root. Use case никогда не импортирует `fetch`, Query, Zustand, React или `localStorage`.
+6. **В каждом модуле минимум один facade-хук**, который оркестрирует его состояние и вызовы API. Компоненты обращаются к модулю только через него. Бизнес-логика (проверки, оркестрация) живёт в хуках, доменные правила — в `utils`.
+7. **Инверсия зависимостей сохраняется.** Хуки зависят от порта из `types/ports.ts`; реализацию (адаптер) даёт `api`; связывает их composition root. Код модуля не знает про Better Auth, `fetch` и `localStorage`.
 
 ### Матрица допустимых импортов
 
@@ -134,7 +131,7 @@ modules/<module>/
 | модуль (`api`)    | ✅ (`configs`, `types`) |         ❌          | ✅ (свой index, если нужно) | ✅ свои `types`/`utils` |          ❌          |
 | `shared`          |           ✅            |         ❌          |             ❌              |           ❌            |          ❌          |
 
-Правила проверяются автоматически: `pnpm lint` запускает oxlint и `scripts/check-boundaries.mjs`. Скрипт падает при нарушении shared-границы, глубоком импорте модуля, импорте чужого `stores`/`api` и при React/Query/Zustand внутри `api`.
+Правила проверяются автоматически: `pnpm lint` запускает oxlint и `scripts/check-boundaries.mjs`. Скрипт падает при нарушении shared-границы, глубоком импорте модуля, импорте чужого `stores`/`api`, React/Query/Zustand внутри `api`, папке `hooks/use-cases` и `hooks`/`stores` внутри `ui`.
 
 ---
 
@@ -145,29 +142,28 @@ UI-компонент
    │  вызывает facade-хук (use-pages, use-editor, ...)
    ▼
 facade hook ──► useContainer() ──► Container (core/container.tsx)
-   │                                   │
-   │  Query/Mutation                   ▼
-   └──────────────► use case (hooks/use-cases) ──► порт (types/ports.ts)
-                                                       ▲
-                                                       │ реализует
-                                                  api-адаптер ──► gateway ──► сервисы
+   │                                   │  порты
+   │  Query/Mutation + правила из utils│
+   └──────────────────────────────────► порт (types/ports.ts)
+                                            ▲
+                                            │ реализует
+                                       api-адаптер ──► gateway ──► сервисы
 ```
 
 - **Composition root — `core/container.tsx`.** Единственное место, где модули встречаются друг с другом. Контейнер не знает ни про адаптеры, ни про DTO: он вызывает фабрики модулей.
 - `createAuthModule({ baseUrl })` создаёт модуль поверх Better Auth; `createAuthModuleWithGateway(gateway)` — для тестов.
-- `createPagesModule({ accessToken })`, `createWorkspacesModule({ accessToken })`, `createEditorModule({ accessToken })` собирают свои репозитории внутри себя.
+- `createPagesModule({ accessToken })`, `createWorkspacesModule({ accessToken })`, `createEditorModule({ accessToken })` собирают api-адаптеры и отдают наружу только порты (`PageRepository`, `WorkspaceGateway`, `BlockRepository`).
 - Токен передаётся как `TokenProvider` из `shared/types`: модули не зависят от auth-модуля, а auth-модуль не знает, кто использует его токен.
 - Доступ в React — `useContainer()`. Компоненты не создают адаптеры и не вызывают фабрики напрямую.
 - В тестах контейнер собирается с in-memory gateway: `createContainer(fakeGateway)` — см. `test/auth-fixture.tsx`.
 
-### Как добавить use case
+### Как добавить операцию в модуль
 
 1. Опиши/дополни порт в `types/ports.ts` модуля.
 2. Реализуй метод в `api/*.repository.api.ts` (Zod на ответ, ошибка при `!response.ok`).
-3. Добавь use case в `hooks/use-cases/` — класс с одним `execute`, порт через конструктор.
-4. Зарегистрируй его в фабрике модуля (`index.ts`).
-5. Вызови из facade-хука: `queryFn`/`mutationFn` внутри Query/Mutation.
-6. Покрой use case unit-тестом с in-memory портом.
+3. Если у операции есть доменные ограничения — добавь правило или `assert`-функцию в `utils/` с unit-тестом.
+4. Вызови операцию из facade-хука (`queryFn`/`mutationFn`), применив правило; фабрика модуля из `index.ts` уже отдаёт нужный порт.
+5. Покрой поведение: правило — unit-тестом, сценарий пользователя — компонентным тестом или smoke.
 
 ---
 
@@ -206,7 +202,7 @@ facade hook ──► useContainer() ──► Container (core/container.tsx)
 
 ## 7. Безопасность на фронтенде
 
-- Токены и сессии не храним в `localStorage`/`sessionStorage`/Zustand. Сессия — httpOnly cookies Better Auth; JWT кешируется только в памяти (`AccessToken`, TTL 60 секунд).
+- Токены и сессии не храним в `localStorage`/`sessionStorage`/Zustand. Сессия — httpOnly cookies Better Auth; JWT кешируется только в памяти (`createAccessToken` из `api/access-token.ts`, TTL 60 секунд).
 - Защита роутов — `src/proxy.ts`: без cookie сессии редирект на `/login`. Это UX-барьер; настоящая авторизация — на gateway (RBAC проверяется там).
 - Весь пользовательский контент редактора рендерится безопасным рендерером; `dangerouslySetInnerHTML` без санитизации и обоснования запрещён.
 - Внешние ссылки: `rel="noopener noreferrer"`, схемы только `http(s)`/`mailto`.
@@ -245,7 +241,7 @@ facade hook ──► useContainer() ──► Container (core/container.tsx)
 | Компоненты   | `PascalCase.tsx` в `ui/private` или `ui/public` | `page-tree.tsx`, `oauth-buttons.tsx` |
 | Facade-хуки  | `use-<module>.ts`                               | `use-pages.ts`                       |
 | Ключи Query  | `query-keys.ts`                                 | `pageKeys`                           |
-| Use cases    | kebab-case в `hooks/use-cases`                  | `create-page.ts` → `CreatePage`      |
+| Правила      | `utils/*.ts`, assert-функции                    | `assertWorkspaceName`                |
 | Стор         | `*.store.ts`                                    | `page-tree.store.ts`                 |
 | API-адаптеры | `*.repository.api.ts` / `*.api.ts`              | `page.repository.api.ts`             |
 | Мапперы      | `utils/*.mapper.ts`                             | `mapper.ts`                          |
@@ -257,16 +253,15 @@ facade hook ──► useContainer() ──► Container (core/container.tsx)
 
 ## 11. Тестирование
 
-| Слой              | Где тест                            | Что проверяем                                                                 |
-| ----------------- | ----------------------------------- | ----------------------------------------------------------------------------- |
-| Утилиты и правила | `utils/*.test.ts`                   | чистые функции, правила, мапперы DTO                                          |
-| Use cases         | `hooks/use-cases/use-cases.test.ts` | сценарии и ветки ошибок с in-memory портами                                   |
-| API-адаптеры      | `api/*.api.test.ts`                 | Zod-валидация ответов, маппинг RFC 7807, мок `fetch`/клиента                  |
-| UI                | `ui/**/*.test.tsx`                  | рендер, взаимодействие, a11y; контейнер подменяется через `test/auth-fixture` |
-| Сквозные          | `scripts/smoke.mjs`                 | auth, workspace, дерево страниц, блоки через реальный gateway                 |
+| Слой              | Где тест            | Что проверяем                                                                                            |
+| ----------------- | ------------------- | -------------------------------------------------------------------------------------------------------- |
+| Утилиты и правила | `utils/*.test.ts`   | чистые функции, правила, assert-проверки, мапперы DTO                                                    |
+| Хуки и UI         | `ui/**/*.test.tsx`  | поведение пользователя: формы, сессия, инвалидация кеша; контейнер подменяется через `test/auth-fixture` |
+| API-адаптеры      | `api/*.test.ts`     | Zod-валидация ответов, маппинг RFC 7807, TTL кеша токена, мок `fetch`/клиента                            |
+| Сквозные          | `scripts/smoke.mjs` | auth, workspace, дерево страниц, блоки через реальный gateway                                            |
 
-- Покрытие меряется для чистой логики модулей: `hooks/use-cases` + `utils`, порог 80% (lines/functions/branches/statements) в `vitest.config.ts`.
-- Тесты use cases не поднимают React и сеть.
+- Покрытие меряется для чистой логики модулей (`utils`), порог 80% (lines/functions/branches/statements) в `vitest.config.ts`.
+- Тесты правил не поднимают React и сеть; сценарии хуков проверяются через компоненты.
 - Негативные security-сценарии обязательны: viewer не редактирует, чужой workspace недоступен, истёкшая сессия ведёт на логин, payload в блоке не исполняется.
 - Нетривиальные решения фиксируются ADR в `docs/adr/`.
 
@@ -277,13 +272,11 @@ facade hook ──► useContainer() ──► Container (core/container.tsx)
 1. Определи, в какой модуль входит фича; не создавай новый модуль без доменной причины.
 2. Добавь правила и мапперы в `utils/` + unit-тесты.
 3. Опиши порт в `types/ports.ts`, реализуй вызов в `api/`, добавь DTO-схему (из `packages/contracts`).
-4. Добавь use case в `hooks/use-cases/` + тест с in-memory портом.
-5. Зарегистрируй use case в фабрике модуля (`index.ts`).
-6. Подключи вызов в facade-хуке (Query/Mutation, оптимистичные обновления, ключи из `query-keys.ts`).
-7. Собери UI: компонент в `ui/private` (если внутренний) или `ui/public` (если нужен другим); только UI-логика.
-8. Если компонент виден наружу — экспортируй из `index.ts`.
-9. Подключи роут в `app/` (тонкий).
-10. Прогони `pnpm lint && pnpm format:check && pnpm typecheck && pnpm test`, при необходимости `pnpm test:coverage` и `pnpm smoke`.
+4. Подключи вызов в facade-хуке (Query/Mutation, оптимистичные обновления, правила, ключи из `query-keys.ts`).
+5. Собери UI: компонент в `ui/private` (если внутренний) или `ui/public` (если нужен другим); только UI-логика.
+6. Если компонент виден наружу — экспортируй из `index.ts`.
+7. Подключи роут в `app/` (тонкий).
+8. Прогони `pnpm lint && pnpm format:check && pnpm typecheck && pnpm test`, при необходимости `pnpm test:coverage` и `pnpm smoke`.
 
 ## 13. Definition of Done
 
@@ -303,7 +296,7 @@ pnpm format          # oxfmt
 pnpm format:check    # проверка форматирования
 pnpm typecheck       # turbo run typecheck
 pnpm test            # turbo run test
-pnpm test:coverage   # покрытие (порог 80% для use-cases + utils)
+pnpm test:coverage   # покрытие (порог 80% для utils)
 pnpm build           # turbo run build
 pnpm smoke           # сквозной сценарий против локальных воркеров
 ```

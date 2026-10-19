@@ -9,6 +9,16 @@ import { IdSchema } from '@notio/contracts';
 
 export type PageNode = Page & { children: PageNode[] };
 
+/** Заголовок страницы по умолчанию: пустая строка в интерфейсе не читается. */
+export const DEFAULT_PAGE_TITLE = 'Без названия';
+
+/** Обрезает пробелы и подставляет заголовок по умолчанию вместо пустого. */
+export function normalizePageTitle(title: string): string {
+  const trimmed = title.trim();
+
+  return trimmed.length === 0 ? DEFAULT_PAGE_TITLE : trimmed;
+}
+
 /** Сортирует страницы по position (fractional indexing, лексикографически). */
 export function sortPages(pages: readonly Page[]): Page[] {
   return [...pages].toSorted((left, right) => left.position.localeCompare(right.position));
@@ -75,6 +85,23 @@ export function canMove(
   }
 
   return findNode(subtree.children, newParentId) === null;
+}
+
+/**
+ * Проверка перемещения с доменной ошибкой.
+ *
+ * Цикл проверяется на клиенте до запроса: иначе пользователь ждал бы сетевой
+ * ответ, чтобы узнать, что действие запрещено. Сервер всё равно проверяет
+ * повторно — клиент не источник истины.
+ */
+export function assertCanMove(
+  tree: readonly PageNode[],
+  pageId: string,
+  newParentId: string | null,
+): void {
+  if (!canMove(tree, pageId, newParentId)) {
+    throw new Error('Нельзя переместить страницу внутрь собственного потомка');
+  }
 }
 
 /** Оптимистичное перемещение: возвращает новое дерево без мутации исходного. */

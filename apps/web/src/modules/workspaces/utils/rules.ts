@@ -39,3 +39,19 @@ export function roleLabel(role: WorkspaceRole): string {
 export function isInvitableRole(role: string): role is (typeof INVITABLE_ROLES)[number] {
   return INVITABLE_ROLES.includes(role as (typeof INVITABLE_ROLES)[number]);
 }
+
+/**
+ * Обрезает пробелы и запрещает пустое название.
+ *
+ * Пустое имя сервис отклонит так же, но проверка на клиенте не гоняет
+ * пользователя в сеть ради отказа.
+ */
+export function assertWorkspaceName(name: string): string {
+  const trimmed = name.trim();
+
+  if (trimmed.length === 0) {
+    throw new Error('Название не может быть пустым');
+  }
+
+  return trimmed;
+}

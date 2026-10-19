@@ -10,8 +10,8 @@ import type {
 /**
  * Порт страниц.
  *
- * Реализация — адаптер поверх gateway; use cases знают только этот интерфейс,
- * поэтому в тестах подставляется in-memory версия без сети.
+ * Реализация — адаптер поверх gateway; facade-хуки знают только этот
+ * интерфейс, поэтому в тестах подставляется in-memory версия без сети.
  */
 export interface PageRepository {
   listChildren(
@@ -24,12 +24,6 @@ export interface PageRepository {
   update(id: string, workspaceId: string, patch: UpdatePageInput): Promise<Page>;
   move(id: string, workspaceId: string, input: MovePageInput): Promise<Page>;
 }
-
-export interface Clock {
-  now(): Date;
-}
-
-export const systemClock: Clock = { now: () => new Date() };
 
 /** Входная форма создания страницы: минимум полей для UI. */
 export type CreatePageFormInput = {

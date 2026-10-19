@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { buildTree, canMove, findNode, moveInTree, sortPages } from './page';
+import {
+  assertCanMove,
+  buildTree,
+  canMove,
+  findNode,
+  flattenTree,
+  isPageId,
+  moveInTree,
+  normalizePageTitle,
+  sortPages,
+} from './page';
 
 const sample = [
   {
@@ -123,5 +133,50 @@ describe('moveInTree', () => {
     const moved = moveInTree(tree, 'root-a', 'child-a1', 'a0');
 
     expect(moved).toEqual(tree);
+  });
+});
+
+describe('normalizePageTitle', () => {
+  it('обрезает пробелы', () => {
+    expect(normalizePageTitle('  Новая  ')).toBe('Новая');
+  });
+
+  it('подставляет заголовок по умолчанию для пустой строки', () => {
+    expect(normalizePageTitle('   ')).toBe('Без названия');
+  });
+});
+
+describe('assertCanMove', () => {
+  it('пропускает допустимое перемещение', () => {
+    const tree = buildTree(sample);
+
+    expect(() => assertCanMove(tree, 'child-a1', 'root-b')).not.toThrow();
+  });
+
+  it('бросает доменную ошибку для перемещения внутрь потомка', () => {
+    const tree = buildTree(sample);
+
+    expect(() => assertCanMove(tree, 'root-a', 'child-a1')).toThrow(/потомка/);
+  });
+});
+
+describe('flattenTree', () => {
+  it('разворачивает дерево в плоский список без children', () => {
+    const flat = flattenTree(buildTree(sample));
+
+    expect(flat.map((page) => page.id)).toEqual(['root-a', 'child-a1', 'child-a2', 'root-b']);
+    expect(flat.every((page) => !('children' in page))).toBe(true);
+  });
+});
+
+describe('isPageId', () => {
+  it('принимает UUID v4 и отклоняет мусор', () => {
+    expect(isPageId('9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f')).toBe(true);
+    expect(isPageId('page-1')).toBe(false);
+    expect(isPageId('')).toBe(false);
+  });
+
+  it('отклоняет UUID другой версии: id страниц всегда v4', () => {
+    expect(isPageId('9f1c0e2a-3b4d-1c5e-8f90-1a2b3c4d5e6f')).toBe(false);
   });
 });
