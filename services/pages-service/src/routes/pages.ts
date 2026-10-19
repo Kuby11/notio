@@ -10,6 +10,7 @@ import {
   PageListQuerySchema,
   PageListResultSchema,
   PageSchema,
+  PageVersionSchema,
   toProblemErrors,
   UpdateBlockInputSchema,
   UpdatePageInputSchema,
@@ -17,9 +18,10 @@ import {
 import type { z } from 'zod';
 import { Hono } from 'hono';
 import type { AppEnv, Bindings } from '../env';
-import { ValidationError } from '../errors';
+import { NotFoundError, ValidationError } from '../errors';
 import { requireActorId, type PageService } from '../services/page.service';
 import { createBlockService, type BlockService } from '../services/block.service';
+import { createPageVersionService } from '../services/page-version.service';
 
 /**
  * Сценарий создаётся на каждый запрос: в Workers биндинги приходят в `env`,
@@ -144,6 +146,35 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
     const block = await createBlockService(c.env).moveBlock(id, input.afterBlockId);
 
     return c.json(BlockSchema.parse(block), 200);
+  });
+
+  // Версионирование страниц.
+  routes.post('/pages/:pageId/versions', async (c) => {
+    const pageId = parseOrThrow(IdSchema, c.req.param('pageId'));
+    const actorId = requireActorId(c.req.header(INTERNAL_HEADERS.ACTOR_ID));
+
+    const version = await createPageVersionService(c.env).createSnapshot(pageId, actorId);
+
+    return c.json(PageVersionSchema.parse(version), 201);
+  });
+
+  routes.get('/pages/:pageId/versions', async (c) => {
+    const pageId = parseOrThrow(IdSchema, c.req.param('pageId'));
+
+    const versions = await createPageVersionService(c.env).listVersions(pageId);
+
+    return c.json({ items: versions }, 200);
+  });
+
+  routes.get('/pages/:pageId/versions/:versionId', async (c) => {
+    const versionId = parseOrThrow(IdSchema, c.req.param('versionId'));
+    const version = await createPageVersionService(c.env).getVersion(versionId);
+
+    if (!version) {
+      throw new NotFoundError('Версия не найдена');
+    }
+
+    return c.json(PageVersionSchema.parse(version), 200);
   });
 
   return routes;

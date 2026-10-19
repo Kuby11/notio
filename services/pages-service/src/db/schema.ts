@@ -68,7 +68,21 @@ export const blocksRelations = relations(blocks, ({ one }) => ({
   }),
 }));
 
-export const schema = { pages, blocks, pagesRelations, blocksRelations };
+export const pageVersions = sqliteTable(
+  'page_versions',
+  {
+    id: text('id').primaryKey(),
+    pageId: text('page_id')
+      .notNull()
+      .references(() => pages.id, { onDelete: 'cascade' }),
+    content: text('content', { mode: 'json' }).$type<unknown[]>().notNull(),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [index('page_versions_page_created_idx').on(table.pageId, table.createdAt)],
+);
+
+export const schema = { pages, blocks, pageVersions, pagesRelations, blocksRelations };
 
 export type PageRow = typeof pages.$inferSelect;
 export type NewPageRow = typeof pages.$inferInsert;

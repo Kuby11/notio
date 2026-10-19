@@ -8,6 +8,13 @@
       "when": 1792330348242,
       "tag": "0000_loving_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792365228831,
+      "tag": "0001_stale_mimic",
+      "breakpoints": true
     }
   ]
 }
