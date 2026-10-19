@@ -1,4 +1,4 @@
-import { Editor } from '@/features/editor';
+import { Editor } from '@/modules/editor';
 
 export default async function PageView({
   params,

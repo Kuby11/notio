@@ -1,5 +1,5 @@
-import { AppLayout } from '../shared/components/app-layout';
-import { PageTree } from '../features/pages/ui/page-tree';
+import { AppLayout } from '@/core/ui/app-layout';
+import { PageTree } from '@/modules/pages';
 
 /**
  * Главная страница приложения: сайдбар с переключателем workspace и деревом

@@ -2,160 +2,53 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import {
-  AccessToken,
-  CurrentSession,
-  SignIn,
-  SignInWithProvider,
-  SignOut,
-  SignUp,
-  createBetterAuthGateway,
+  createAuthModule,
+  createAuthModuleWithGateway,
   type AuthGateway,
-} from '../features/auth';
-import {
-  CreatePage,
-  ListChildren,
-  MovePage,
-  RenamePage,
-  RestorePage,
-  ToggleFavorite,
-  TrashPage,
-  createPageRepositoryApi,
-} from '../features/pages';
-import {
-  createBlockRepositoryApi,
-  DeleteBlock,
-  InsertBlock,
-  LoadDocument,
-  MoveBlock,
-  UpdateBlock,
-} from '../features/editor';
-import {
-  AcceptInvitation,
-  ArchiveWorkspace,
-  ChangeMemberRole,
-  CreateInvitation,
-  CreateWorkspace,
-  ListMembers,
-  ListWorkspaces,
-  RemoveMember,
-  RenameWorkspace,
-  RevokeInvitation,
-  createWorkspaceRepositoryApi,
-  type Invitation,
-  type Member,
-  type Workspace,
-  type WorkspaceListItem,
-  type WorkspaceRole,
-} from '../features/workspaces';
-import { env } from '../shared/config/env';
+  type AuthModule,
+} from '../modules/auth';
+import { createEditorModule, type EditorModule } from '../modules/editor';
+import { createPagesModule, type PagesModule } from '../modules/pages';
+import { createWorkspacesModule, type WorkspacesModule } from '../modules/workspaces';
+import { env } from '../shared/configs/env';
 
 /**
- * Composition root: единственное место, где адаптеры встречаются с use cases.
- * Компоненты получают готовые сценарии через useContainer и не импортируют
- * ни адаптеры, ни порты напрямую.
+ * Composition root: единственное место, где модули встречаются друг с другом.
+ *
+ * Контейнер не знает ни про адаптеры, ни про DTO: он вызывает фабрики
+ * модулей (`createAuthModule`, `createPagesModule`, ...). Каждая фабрика
+ * сама собирает свои api + use cases. Так правило «api используется только
+ * внутри своего модуля» соблюдается на уровне сборки приложения.
  */
 
-export interface AuthUseCases {
-  signIn: SignIn;
-  signInWithProvider: SignInWithProvider;
-  signUp: SignUp;
-  signOut: SignOut;
-  currentSession: CurrentSession;
-  accessToken: AccessToken;
-}
-
 export interface Container {
-  auth: AuthUseCases;
-  pages: PageUseCases;
-  workspaces: WorkspaceUseCases;
-  editor: EditorUseCases;
+  auth: AuthModule;
+  pages: PagesModule;
+  workspaces: WorkspacesModule;
+  editor: EditorModule;
 }
 
-export interface EditorUseCases {
-  loadDocument: LoadDocument;
-  insertBlock: InsertBlock;
-  updateBlock: UpdateBlock;
-  deleteBlock: DeleteBlock;
-  moveBlock: MoveBlock;
-}
-
-export interface WorkspaceUseCases {
-  list: () => Promise<WorkspaceListItem[]>;
-  create: (name: string) => Promise<Workspace>;
-  rename: (id: string, name: string) => Promise<Workspace>;
-  archive: (id: string) => Promise<Workspace>;
-  listMembers: (id: string) => Promise<Member[]>;
-  changeRole: (workspaceId: string, userId: string, role: WorkspaceRole) => Promise<Member>;
-  removeMember: (workspaceId: string, userId: string) => Promise<void>;
-  createInvitation: (workspaceId: string, role: 'editor' | 'viewer') => Promise<Invitation>;
-  revokeInvitation: (workspaceId: string, token: string) => Promise<void>;
-  acceptInvitation: (token: string) => Promise<Member>;
-}
-
-export interface PageUseCases {
-  createPage: CreatePage;
-  listChildren: ListChildren;
-  movePage: MovePage;
-  renamePage: RenamePage;
-  trashPage: TrashPage;
-  restorePage: RestorePage;
-  toggleFavorite: ToggleFavorite;
-}
-
+/** Собирает приложение поверх готового auth-gateway (тесты, storybook). */
 export function createContainer(gateway: AuthGateway): Container {
-  const accessToken = new AccessToken(gateway);
-  const pageRepository = createPageRepositoryApi(accessToken);
-  const workspaceRepository = createWorkspaceRepositoryApi(accessToken);
-  const blockRepository = createBlockRepositoryApi(accessToken);
+  return createContainerWithAuth(createAuthModuleWithGateway(gateway));
+}
+
+/** Собирает продакшен-контейнер поверх HTTP-gateway. */
+export function createAppContainer(): Container {
+  return createContainerWithAuth(createAuthModule({ baseUrl: env.NEXT_PUBLIC_GATEWAY_URL }));
+}
+
+function createContainerWithAuth(auth: AuthModule): Container {
+  // Токен — общий ресурс модулей, но зависимость объявлена как TokenProvider
+  // из shared: модули не знают, что за ней стоит auth-модуль.
+  const accessToken = auth.accessToken;
 
   return {
-    auth: {
-      signIn: new SignIn(gateway),
-      signInWithProvider: new SignInWithProvider(gateway),
-      signUp: new SignUp(gateway),
-      signOut: new SignOut(gateway),
-      currentSession: new CurrentSession(gateway),
-      accessToken,
-    },
-    pages: {
-      createPage: new CreatePage(pageRepository),
-      listChildren: new ListChildren(pageRepository),
-      movePage: new MovePage(pageRepository),
-      renamePage: new RenamePage(pageRepository),
-      trashPage: new TrashPage(pageRepository),
-      restorePage: new RestorePage(pageRepository),
-      toggleFavorite: new ToggleFavorite(pageRepository),
-    },
-    workspaces: {
-      list: () => new ListWorkspaces(workspaceRepository).execute(),
-      create: (name: string) => new CreateWorkspace(workspaceRepository).execute(name),
-      rename: (id: string, name: string) =>
-        new RenameWorkspace(workspaceRepository).execute(id, name),
-      archive: (id: string) => new ArchiveWorkspace(workspaceRepository).execute(id),
-      listMembers: (id: string) => new ListMembers(workspaceRepository).execute(id),
-      changeRole: (workspaceId: string, userId: string, role: WorkspaceRole) =>
-        new ChangeMemberRole(workspaceRepository).execute(workspaceId, userId, role),
-      removeMember: (workspaceId: string, userId: string) =>
-        new RemoveMember(workspaceRepository).execute(workspaceId, userId),
-      createInvitation: (workspaceId: string, role: 'editor' | 'viewer') =>
-        new CreateInvitation(workspaceRepository).execute(workspaceId, role),
-      revokeInvitation: (workspaceId: string, token: string) =>
-        new RevokeInvitation(workspaceRepository).execute(workspaceId, token),
-      acceptInvitation: (token: string) => new AcceptInvitation(workspaceRepository).execute(token),
-    },
-    editor: {
-      loadDocument: new LoadDocument(blockRepository),
-      insertBlock: new InsertBlock(blockRepository),
-      updateBlock: new UpdateBlock(blockRepository),
-      deleteBlock: new DeleteBlock(blockRepository),
-      moveBlock: new MoveBlock(blockRepository),
-    },
+    auth,
+    pages: createPagesModule({ accessToken }),
+    workspaces: createWorkspacesModule({ accessToken }),
+    editor: createEditorModule({ accessToken }),
   };
-}
-
-/** Контейнер для приложения: адаптер Better Auth поверх gateway. */
-export function createAppContainer(): Container {
-  return createContainer(createBetterAuthGateway({ baseUrl: env.NEXT_PUBLIC_GATEWAY_URL }));
 }
 
 const ContainerContext = createContext<Container | null>(null);

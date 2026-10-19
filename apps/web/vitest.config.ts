@@ -5,8 +5,9 @@ import { fileURLToPath } from 'node:url';
  * Тесты фронтенда: домен, use cases и адаптеры работают в обычном Node,
  * компоненты — в jsdom с Testing Library.
  *
- * Покрытие меряется для слоёв domain → application → adapters → ui:
- * порог отражает качество кода, а не наличие или отсутствие DOM-тестов.
+ * Покрытие меряется для чистой логики модулей (`hooks/use-cases` и `utils`):
+ * фасады и UI-компоненты проверяются компонентными тестами, а их тонкая
+ * обвязка не искажает метрику бизнес-правил.
  */
 export default defineConfig({
   resolve: {
@@ -24,10 +25,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
-      include: [
-        'src/features/**/{domain,application,adapters,ui}/**/*.ts',
-        'src/features/**/*.tsx',
-      ],
+      include: ['src/modules/**/hooks/use-cases/**/*.ts', 'src/modules/**/utils/**/*.ts'],
       exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
       thresholds: {
         lines: 80,

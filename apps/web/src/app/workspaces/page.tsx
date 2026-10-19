@@ -1,6 +1,6 @@
 'use client';
 
-import { useWorkspaces, useCreateWorkspace } from '../../features/workspaces/ui/use-workspaces';
+import { useWorkspaces, useCreateWorkspace } from '@/modules/workspaces';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';

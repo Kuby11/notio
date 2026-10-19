@@ -14,7 +14,7 @@
     "dev:pages": "pnpm --filter @notio/pages-service dev",
     "smoke": "node scripts/smoke.mjs",
     "build": "turbo run build",
-    "lint": "oxlint",
+    "lint": "oxlint && node scripts/check-boundaries.mjs",
     "lint:fix": "oxlint --fix",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

@@ -1,4 +1,4 @@
-import { LoginForm } from '../../../features/auth/ui/login-form';
+import { LoginForm } from '@/modules/auth';
 
 export const metadata = { title: 'Вход — notio' };
 

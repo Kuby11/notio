@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { AppProviders } from '../core/providers';
-import { env } from '../shared/config/env';
+import { env } from '../shared/configs/env';
 import './globals.css';
 import { Geist } from 'next/font/google';
-import { cn } from '@/shared/lib/utils';
+import { cn } from '@/shared/ui/utils';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 

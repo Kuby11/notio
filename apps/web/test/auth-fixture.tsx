@@ -3,9 +3,13 @@ import { render } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { vi, type Mock } from 'vitest';
 import { ContainerProvider, createContainer } from '../src/core/container';
-import type { AuthGateway, AuthSession, SignUpInput } from '../src/features/auth/application/ports';
-import type { Credentials } from '../src/features/auth/domain/credentials';
-import type { AuthError } from '../src/features/auth/domain/errors';
+import type {
+  AuthError,
+  AuthGateway,
+  AuthSession,
+  Credentials,
+  SignUpInput,
+} from '../src/modules/auth';
 
 /**
  * Общие фикстуры для компонентных тестов.
