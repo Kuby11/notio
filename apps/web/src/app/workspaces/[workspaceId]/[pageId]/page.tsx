@@ -1,3 +1,4 @@
+import { AppLayout } from '@/core/ui/app-layout';
 import { Editor } from '@/modules/editor';
 
 export default async function PageView({
@@ -5,13 +6,11 @@ export default async function PageView({
 }: {
   params: Promise<{ workspaceId: string; pageId: string }>;
 }) {
-  const { pageId } = await params;
+  const { workspaceId, pageId } = await params;
 
   return (
-    <div className="flex h-screen">
-      <main className="flex-1 overflow-y-auto p-6">
-        <Editor pageId={pageId} />
-      </main>
-    </div>
+    <AppLayout workspaceId={workspaceId}>
+      <Editor pageId={pageId} />
+    </AppLayout>
   );
 }
