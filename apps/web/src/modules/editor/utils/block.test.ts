@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Block } from '@notio/contracts';
+import { BLOCK_TYPES, type Block } from '@notio/contracts';
 import {
   blockToText,
   canMoveBlock,
@@ -27,12 +27,16 @@ describe('registerBlock / getBlockDefinition', () => {
     expect(listBlockDefinitions().map((definition) => definition.type)).toContain('paragraph');
   });
 
-  it('создаёт пустой блок зарегистрированного типа', () => {
-    expect(createEmptyBlock('paragraph')).toEqual({ type: 'paragraph', content: '' });
+  it('регистрирует все типы из контракта', () => {
+    expect(
+      listBlockDefinitions()
+        .map((definition) => definition.type)
+        .toSorted(),
+    ).toEqual([...BLOCK_TYPES].toSorted());
   });
 
-  it('падает на незарегистрированном типе', () => {
-    expect(() => createEmptyBlock('heading')).toThrow(/не зарегистрирован/);
+  it('создаёт пустой блок зарегистрированного типа', () => {
+    expect(createEmptyBlock('heading')).toEqual({ type: 'heading', level: 1, content: '' });
   });
 });
 

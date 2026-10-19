@@ -1,11 +1,11 @@
 'use client';
 
-import { useEditor as useTiptap, EditorContent } from '@tiptap/react';
-import { StarterKit } from '@tiptap/starter-kit';
-import { Placeholder } from '@tiptap/extension-placeholder';
+import { useEffect, useRef } from 'react';
+import { EditorContent, useEditor as useTiptap } from '@tiptap/react';
 import { useEditor } from '../../hooks/use-editor';
-import { toEditorText } from '../../utils/block';
+import { blocksToEditorDocument, findBlockIdAtSelection } from '../../utils/block';
 import { EditorStatus } from '../private/editor-status';
+import { editorExtensions } from '../private/editor-extensions';
 
 interface EditorProps {
   pageId: string;
@@ -16,28 +16,48 @@ interface EditorProps {
  *
  * Компонент — только UI: документ, UI-состояние (выделение, slash-меню)
  * и операции с блоками приходят из единственного facade-хука `useEditor`.
- * Автосохранение через PATCH с debounce 1000 мс будет подключено в
- * facade-хуке модуля, а не здесь.
+ * Блоки гидратируются в JSON-документ Tiptap с blockId в attrs, поэтому
+ * выделение и будущее автосохранение работают с id строк БД, а не с
+ * позициями ProseMirror.
  */
 export function Editor({ pageId }: EditorProps) {
-  const { document, setSelectedBlock } = useEditor(pageId);
+  const { document: pageDocument, setSelectedBlock } = useEditor(pageId);
+  const hydratedPageId = useRef<string | null>(null);
 
   const editor = useTiptap({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder: 'Начните писать или введите / для команд…' }),
-    ],
-    content: document.data ? toEditorText(document.data) : '',
+    extensions: editorExtensions,
+    content: blocksToEditorDocument(pageDocument.data ?? []),
+    // Редактор создаётся на клиенте: SSR-разметка Tiptap не должна
+    // расходиться с первым клиентским рендером.
+    immediatelyRender: false,
+    onCreate: ({ editor: currentEditor }) => {
+      setSelectedBlock(findBlockIdAtSelection(currentEditor.state));
+    },
     onSelectionUpdate: ({ editor: currentEditor }) => {
-      setSelectedBlock(currentEditor.state.selection.anchor.toString());
+      setSelectedBlock(findBlockIdAtSelection(currentEditor.state));
     },
   });
 
-  if (document.isPending) {
+  useEffect(() => {
+    if (!editor || !pageDocument.data) {
+      return;
+    }
+
+    // Гидратация выполняется один раз на страницу. Повторный setContent
+    // после инвалидации кеша сбросил бы курсор и несохранённые изменения.
+    if (hydratedPageId.current === pageId) {
+      return;
+    }
+
+    editor.commands.setContent(blocksToEditorDocument(pageDocument.data), { emitUpdate: false });
+    hydratedPageId.current = pageId;
+  }, [editor, pageId, pageDocument.data]);
+
+  if (pageDocument.isPending) {
     return <EditorStatus>Загрузка документа…</EditorStatus>;
   }
 
-  if (document.isError) {
+  if (pageDocument.isError) {
     return <EditorStatus tone="error">Не удалось загрузить документ</EditorStatus>;
   }
 

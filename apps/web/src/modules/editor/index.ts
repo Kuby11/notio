@@ -6,15 +6,25 @@ export { Editor } from './ui/public/editor';
 export { useEditor } from './hooks/use-editor';
 export { editorKeys } from './utils/query-keys';
 export {
+  DEFAULT_BLOCK_DEFINITIONS,
   blockToText,
+  blocksToEditorDocument,
   canMoveBlock,
   createEmptyBlock,
   deserializeDocument,
+  editorDocumentToBlocks,
+  findBlockIdAtSelection,
   getBlockDefinition,
   listBlockDefinitions,
   registerBlock,
   serializeDocument,
   toEditorText,
+} from './utils/block';
+export type {
+  BlockSelectionLike,
+  EditorBlockContent,
+  EditorDocument,
+  EditorNode,
 } from './utils/block';
 export type { BlockRepository } from './types/ports';
 
