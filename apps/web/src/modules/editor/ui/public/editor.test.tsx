@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Block, BlockContent } from '@notio/contracts';
 import { gatewayStub, renderWithProviders } from '../../../../../test/auth-fixture';
@@ -76,6 +76,14 @@ describe('Editor', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Заголовок' })).toBeInTheDocument();
     expect(screen.getByText('Пункт списка')).toBeInTheDocument();
     expect(screen.getByText('Задача')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Отметить задачу' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    expect(screen.getByText('Задача').closest('[data-block-id]')).toHaveAttribute(
+      'data-block-id',
+      TODO_ID,
+    );
     expect(screen.getByText('Цитата')).toBeInTheDocument();
     expect(screen.getByText('const x = 1;')).toBeInTheDocument();
     expect(screen.getByText('Подпись')).toBeInTheDocument();
@@ -94,6 +102,48 @@ describe('Editor', () => {
     const bulletItem = screen.getByText('Пункт списка').closest('li');
     expect(bulletItem).toHaveClass('notion-list-item');
     expect(bulletItem?.querySelector('.notion-list-marker')).not.toBeNull();
+  });
+
+  it('переключает чек-лист и зачёркивает выполненную задачу', async () => {
+    const gateway = gatewayStub();
+    gateway.accessToken.mockResolvedValue('jwt');
+    mockBlockResponse([block(TODO_ID, 'a0', { type: 'toDo', checked: false, content: 'Задача' })]);
+
+    renderWithProviders(<Editor pageId={PAGE_ID} />, gateway);
+
+    const checkbox = await screen.findByRole('checkbox', { name: 'Отметить задачу' });
+    fireEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(screen.getByRole('checkbox', { name: 'Снять отметку' })).toHaveAttribute(
+        'aria-checked',
+        'true',
+      );
+      expect(screen.getByText('Задача').closest('.line-through')).not.toBeNull();
+    });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Снять отметку' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('checkbox', { name: 'Отметить задачу' })).toHaveAttribute(
+        'aria-checked',
+        'false',
+      );
+      expect(screen.getByText('Задача').closest('.line-through')).toBeNull();
+    });
+  });
+
+  it('показывает подсказку в пустом чек-листе', async () => {
+    const gateway = gatewayStub();
+    gateway.accessToken.mockResolvedValue('jwt');
+    mockBlockResponse([block(TODO_ID, 'a0', { type: 'toDo', checked: false, content: '' })]);
+
+    renderWithProviders(<Editor pageId={PAGE_ID} />, gateway);
+
+    await screen.findByRole('checkbox', { name: 'Отметить задачу' });
+    await waitFor(() => {
+      expect(screen.getByText('Press / for commands')).toBeInTheDocument();
+    });
   });
 
   it('показывает подсказку в текущей пустой строке', async () => {

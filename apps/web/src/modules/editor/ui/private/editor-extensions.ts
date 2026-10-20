@@ -1,9 +1,16 @@
-import { Extension, Node, mergeAttributes, textblockTypeInputRule } from '@tiptap/react';
+import {
+  Extension,
+  Node,
+  ReactNodeViewRenderer,
+  mergeAttributes,
+  textblockTypeInputRule,
+} from '@tiptap/react';
 import { ListItem } from '@tiptap/extension-list';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Plugin } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { StarterKit } from '@tiptap/starter-kit';
+import { ToDoNodeView } from './to-do-node-view';
 
 /** Общий парсер/рендерер data-атрибута с id блока. */
 const blockIdAttribute = {
@@ -100,7 +107,7 @@ const ImageBlock = Node.create({
   },
 });
 
-/** To-do хранит отметку в attrs; интерактивный чекбокс добавим вместе с toolbar. */
+/** To-do хранит отметку в attrs; чекбокс и зачёркивание рендерит React-компонент. */
 const ToDoBlock = Node.create({
   name: 'toDo',
   group: 'block',
@@ -122,15 +129,20 @@ const ToDoBlock = Node.create({
     return [{ tag: 'div[data-block-type="to-do"]' }];
   },
   renderHTML({ node, HTMLAttributes }) {
+    const checked = node.attrs['checked'] === true;
+
     return [
       'div',
       mergeAttributes(HTMLAttributes, {
         'data-block-type': 'to-do',
         class: 'flex items-start gap-2',
       }),
-      ['span', { class: 'select-none', 'aria-hidden': 'true' }, node.attrs['checked'] ? '☑' : '☐'],
-      ['span', { class: 'flex-1' }, 0],
+      ['span', { class: 'select-none', 'aria-hidden': 'true' }, checked ? '☑' : '☐'],
+      ['span', { class: checked ? 'flex-1 text-muted-foreground line-through' : 'flex-1' }, 0],
     ];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ToDoNodeView);
   },
   addInputRules() {
     return [textblockTypeInputRule({ find: /^\[\]\s$/u, type: this.type })];

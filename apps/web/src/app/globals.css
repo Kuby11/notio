@@ -49,7 +49,7 @@ body {
  * data-placeholder на пустой textblock, но не рисует сам текст — это делает
  * CSS. `height: 0` не даёт подсказке раздвигать строку.
  */
-.tiptap [data-placeholder].is-empty:not([data-block-type])::before {
+.tiptap :is(p, h1, h2, h3, h4, blockquote).is-empty[data-placeholder]::before {
   content: attr(data-placeholder);
   color: var(--muted-foreground);
   float: left;
