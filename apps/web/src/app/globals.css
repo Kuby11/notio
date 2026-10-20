@@ -173,6 +173,58 @@ body {
   margin: 0;
 }
 
+/*
+ * Toggle: первый абзац — заголовок, остальные блоки — тело. В закрытом
+ * состоянии тело скрыто, а стрелка поворачивается через класс иконки.
+ */
+.tiptap .notion-toggle {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.25rem;
+  margin: 0.125rem 0;
+}
+
+.tiptap .notion-toggle-arrow {
+  align-items: center;
+  border-radius: calc(var(--radius) * 0.6);
+  color: var(--muted-foreground);
+  display: flex;
+  flex-shrink: 0;
+  height: 1.5rem;
+  justify-content: center;
+  margin-top: 0.05rem;
+  width: 1.5rem;
+}
+
+.tiptap .notion-toggle-arrow:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+.tiptap .notion-toggle-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.tiptap .notion-toggle-content > :first-child,
+.tiptap .notion-toggle-content > [data-node-view-content-react] > :first-child {
+  margin-top: 0;
+}
+
+.tiptap .notion-toggle-content > :not(:first-child),
+.tiptap .notion-toggle-content > [data-node-view-content-react] > :not(:first-child) {
+  margin-left: 1.5rem;
+}
+
+.tiptap .notion-toggle[data-open='false'] .notion-toggle-content > :not(:first-child),
+.tiptap
+  .notion-toggle[data-open='false']
+  .notion-toggle-content
+  > [data-node-view-content-react]
+  > :not(:first-child) {
+  display: none;
+}
+
 .tiptap blockquote {
   border-left: 3px solid var(--border);
   color: var(--muted-foreground);

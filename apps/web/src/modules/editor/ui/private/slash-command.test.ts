@@ -95,11 +95,21 @@ describe('applySlashCommand', () => {
     expect(editor.getText()).toBe('');
   });
 
-  it('превращает блок в toggle и to-do', () => {
-    const toggleEditor = createEditor('<p>/toggle</p>');
-    applySlashCommand(toggleEditor, command('toggle'), { from: 1, to: 8 });
-    expect(toggleEditor.getJSON().content?.[0]?.type).toBe('toggle');
+  it('превращает блок в toggle с заголовком и пустым телом', () => {
+    const toggleEditor = createEditor('<p>Введение /toggle</p>');
+    applySlashCommand(toggleEditor, command('toggle'), { from: 10, to: 17 });
 
+    expect(toggleEditor.getJSON().content?.[0]).toMatchObject({
+      type: 'toggle',
+      attrs: { open: true },
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Введение ' }] },
+        { type: 'paragraph' },
+      ],
+    });
+  });
+
+  it('превращает блок в to-do', () => {
     const todoEditor = createEditor('<p>/todo</p>');
     applySlashCommand(todoEditor, command('checkList'), { from: 1, to: 6 });
     expect(todoEditor.getJSON().content?.[0]?.type).toBe('toDo');
@@ -156,7 +166,11 @@ describe('markdown-триггеры', () => {
     editor.commands.insertContent('>');
 
     expect(typeInputRule(editor, ' ')).toBe(true);
-    expect(editor.getJSON().content?.[0]?.type).toBe('toggle');
+    expect(editor.getJSON().content?.[0]).toMatchObject({
+      type: 'toggle',
+      attrs: { open: true },
+      content: [{ type: 'paragraph' }, { type: 'paragraph' }],
+    });
   });
 
   it('превращает - в маркированный список, а 1. — в нумерованный', () => {

@@ -78,6 +78,12 @@ export function createEmptyBlock(type: BlockType): BlockContent {
 }
 
 function contentText(content: BlockContent): string {
+  if (content.type === 'toggle') {
+    return [content.content, ...(content.children ?? []).map(contentText)]
+      .filter((line) => line.length > 0)
+      .join('\n');
+  }
+
   return 'content' in content ? content.content : '';
 }
 
@@ -300,12 +306,144 @@ function paragraphNode(text: string): EditorNode {
   return { type: 'paragraph', content: inlineNodes(text, true) };
 }
 
-function listItemNode(blockId: string, text: string): EditorNode {
+function listItemNode(blockId: string | null, text: string): EditorNode {
   return {
     type: 'listItem',
     attrs: { blockId },
     content: [paragraphNode(text)],
   };
+}
+
+interface ContentEntry {
+  id: string | null;
+  content: BlockContent;
+}
+
+function toggleNode(
+  blockId: string | null,
+  content: Extract<BlockContent, { type: 'toggle' }>,
+): EditorNode {
+  const children = entriesToNodes(
+    (content.children ?? []).map((child) => ({ id: null, content: child })),
+  );
+
+  return {
+    type: 'toggle',
+    attrs: { blockId, open: content.open !== false },
+    content: [
+      paragraphNode(content.content),
+      ...(children.length > 0 ? children : [paragraphNode('')]),
+    ],
+  };
+}
+
+/** Преобразует один блок в узел; списки обрабатываются группой в entriesToNodes. */
+function entryToNode(entry: ContentEntry): EditorNode | null {
+  const { content } = entry;
+
+  switch (content.type) {
+    case 'paragraph':
+      return {
+        type: 'paragraph',
+        attrs: { blockId: entry.id },
+        content: inlineNodes(content.content, true),
+      };
+
+    case 'heading':
+      return {
+        type: 'heading',
+        attrs: { blockId: entry.id, level: content.level },
+        content: inlineNodes(content.content, true),
+      };
+
+    case 'quote':
+      return {
+        type: 'blockquote',
+        attrs: { blockId: entry.id },
+        content: [paragraphNode(content.content)],
+      };
+
+    case 'code':
+      return {
+        type: 'codeBlock',
+        attrs: { blockId: entry.id, language: content.language },
+        content: inlineNodes(content.content, false),
+      };
+
+    case 'divider':
+      return { type: 'horizontalRule', attrs: { blockId: entry.id } };
+
+    case 'toDo':
+      return {
+        type: 'toDo',
+        attrs: { blockId: entry.id, checked: content.checked },
+        content: inlineNodes(content.content, true),
+      };
+
+    case 'image':
+      return {
+        type: 'image',
+        attrs: {
+          blockId: entry.id,
+          fileId: content.fileId,
+          caption: content.caption,
+        },
+      };
+
+    case 'toggle':
+      return toggleNode(entry.id, content);
+
+    case 'bulletedListItem':
+    case 'numberedListItem':
+      return null;
+  }
+}
+
+/**
+ * Преобразует последовательность блоков в узлы, объединяя соседние элементы
+ * одного списка. Вложенные блоки toggle проходят через ту же функцию.
+ */
+function entriesToNodes(entries: readonly ContentEntry[]): EditorNode[] {
+  const content: EditorNode[] = [];
+  let index = 0;
+
+  while (index < entries.length) {
+    const entry = entries[index];
+
+    if (!entry) {
+      break;
+    }
+
+    if (entry.content.type === 'bulletedListItem' || entry.content.type === 'numberedListItem') {
+      const itemType = entry.content.type;
+      const listType = itemType === 'bulletedListItem' ? 'bulletList' : 'orderedList';
+      const items: EditorNode[] = [];
+
+      while (index < entries.length) {
+        const current = entries[index];
+
+        if (!current || current.content.type !== itemType) {
+          break;
+        }
+
+        items.push(listItemNode(current.id, current.content.content));
+        index += 1;
+      }
+
+      content.push({ type: listType, content: items });
+      continue;
+    }
+
+    const node = entryToNode(entry);
+
+    if (node) {
+      content.push(node);
+    }
+
+    index += 1;
+  }
+
+  return content;
 }
 
 function headingLevelOf(node: EditorNode): 1 | 2 | 3 | 4 {
@@ -334,106 +472,10 @@ function captionOf(node: EditorNode): string | null {
  * выделение и последующее сохранение могли сопоставить узлы с БД.
  */
 export function blocksToEditorDocument(blocks: readonly Block[]): EditorDocument {
-  const content: EditorNode[] = [];
-  let index = 0;
-
-  while (index < blocks.length) {
-    const block = blocks[index];
-
-    if (!block) {
-      break;
-    }
-
-    switch (block.content.type) {
-      case 'bulletedListItem':
-      case 'numberedListItem': {
-        const itemType = block.content.type;
-        const listType = itemType === 'bulletedListItem' ? 'bulletList' : 'orderedList';
-        const items: EditorNode[] = [];
-
-        while (index < blocks.length) {
-          const current = blocks[index];
-
-          if (!current || current.content.type !== itemType) {
-            break;
-          }
-
-          items.push(listItemNode(current.id, current.content.content));
-          index += 1;
-        }
-
-        content.push({ type: listType, content: items });
-        continue;
-      }
-
-      case 'paragraph':
-        content.push({
-          type: 'paragraph',
-          attrs: { blockId: block.id },
-          content: inlineNodes(block.content.content, true),
-        });
-        break;
-
-      case 'heading':
-        content.push({
-          type: 'heading',
-          attrs: { blockId: block.id, level: block.content.level },
-          content: inlineNodes(block.content.content, true),
-        });
-        break;
-
-      case 'quote':
-        content.push({
-          type: 'blockquote',
-          attrs: { blockId: block.id },
-          content: [paragraphNode(block.content.content)],
-        });
-        break;
-
-      case 'code':
-        content.push({
-          type: 'codeBlock',
-          attrs: { blockId: block.id, language: block.content.language },
-          content: inlineNodes(block.content.content, false),
-        });
-        break;
-
-      case 'divider':
-        content.push({ type: 'horizontalRule', attrs: { blockId: block.id } });
-        break;
-
-      case 'toDo':
-        content.push({
-          type: 'toDo',
-          attrs: { blockId: block.id, checked: block.content.checked },
-          content: inlineNodes(block.content.content, true),
-        });
-        break;
-
-      case 'image':
-        content.push({
-          type: 'image',
-          attrs: {
-            blockId: block.id,
-            fileId: block.content.fileId,
-            caption: block.content.caption,
-          },
-        });
-        break;
-
-      case 'toggle':
-        content.push({
-          type: 'toggle',
-          attrs: { blockId: block.id },
-          content: inlineNodes(block.content.content, true),
-        });
-        break;
-    }
-
-    index += 1;
-  }
-
-  return { type: 'doc', content };
+  return {
+    type: 'doc',
+    content: entriesToNodes(blocks.map((block) => ({ id: block.id, content: block.content }))),
+  };
 }
 
 function collectListItems(
@@ -461,93 +503,147 @@ function collectListItems(
   }
 }
 
+function collectListContents(
+  node: EditorNode,
+  type: 'bulletedListItem' | 'numberedListItem',
+  result: BlockContent[],
+): void {
+  for (const item of node.content ?? []) {
+    if (item.type !== 'listItem') {
+      continue;
+    }
+
+    result.push({ type, content: blockText(item) });
+
+    for (const child of item.content ?? []) {
+      if (child.type === 'bulletList') {
+        collectListContents(child, 'bulletedListItem', result);
+      } else if (child.type === 'orderedList') {
+        collectListContents(child, 'numberedListItem', result);
+      }
+    }
+  }
+}
+
+function toggleContentFromNode(node: EditorNode): Extract<BlockContent, { type: 'toggle' }> {
+  const [header, ...body] = node.content ?? [];
+  const children = contentsFromNodes(body);
+
+  // Пустой служебный абзац тела не сохраняем: при гидратации он создастся снова.
+  for (;;) {
+    const last = children.at(-1);
+
+    if (last?.type !== 'paragraph' || last.content !== '') {
+      break;
+    }
+
+    children.pop();
+  }
+
+  return {
+    type: 'toggle',
+    content: header ? inlineText(header) : '',
+    ...(node.attrs?.['open'] === false ? { open: false } : {}),
+    ...(children.length > 0 ? { children } : {}),
+  };
+}
+
+/** Преобразует один узел (кроме списка) в доменный BlockContent. */
+function nodeToContent(node: EditorNode): BlockContent | null {
+  switch (node.type) {
+    case 'paragraph':
+      return { type: 'paragraph', content: inlineText(node) };
+
+    case 'heading':
+      return {
+        type: 'heading',
+        level: headingLevelOf(node),
+        content: inlineText(node),
+      };
+
+    case 'blockquote':
+      return { type: 'quote', content: blockText(node) };
+
+    case 'codeBlock':
+      return { type: 'code', language: codeLanguageOf(node), content: inlineText(node) };
+
+    case 'horizontalRule':
+      return { type: 'divider' };
+
+    case 'toDo':
+      return {
+        type: 'toDo',
+        checked: node.attrs?.['checked'] === true,
+        content: inlineText(node),
+      };
+
+    case 'image': {
+      const fileId = node.attrs?.['fileId'];
+
+      // Без fileId блок изображения невалиден по контракту и не сохраняется.
+      return typeof fileId === 'string' && fileId.length > 0
+        ? { type: 'image', fileId, caption: captionOf(node) }
+        : null;
+    }
+
+    case 'toggle':
+      return toggleContentFromNode(node);
+
+    default:
+      return null;
+  }
+}
+
+/** Доменные блоки внутри toggle: без id, потому что они часть строки toggle. */
+function contentsFromNodes(nodes: readonly EditorNode[]): BlockContent[] {
+  const result: BlockContent[] = [];
+
+  for (const node of nodes) {
+    if (node.type === 'bulletList') {
+      collectListContents(node, 'bulletedListItem', result);
+      continue;
+    }
+
+    if (node.type === 'orderedList') {
+      collectListContents(node, 'numberedListItem', result);
+      continue;
+    }
+
+    const content = nodeToContent(node);
+
+    if (content) {
+      result.push(content);
+    }
+  }
+
+  return result;
+}
+
 /**
- * Преобразует JSON-документ Tiptap обратно в плоские блоки контракта.
+ * Преобразует JSON-документ Tiptap обратно в блоки контракта.
  *
  * Списки разворачиваются в отдельные блоки: контракт хранит каждый элемент
- * списка отдельной строкой. Вложенные списки также разворачиваются, поэтому
- * после сохранения их иерархия не сохраняется — это ограничение текущей
- * схемы BlockContent, а не редактора.
+ * списка отдельной строкой. Вложенные блоки toggle остаются внутри его
+ * `content.children` и сохраняются атомарно вместе с заголовком.
  */
 export function editorDocumentToBlocks(document: EditorDocument): EditorBlockContent[] {
   const result: EditorBlockContent[] = [];
 
   for (const node of document.content) {
-    switch (node.type) {
-      case 'paragraph':
-        result.push({
-          id: blockIdOf(node),
-          content: { type: 'paragraph', content: inlineText(node) },
-        });
-        break;
+    if (node.type === 'bulletList') {
+      collectListItems(node, 'bulletedListItem', result);
+      continue;
+    }
 
-      case 'heading':
-        result.push({
-          id: blockIdOf(node),
-          content: {
-            type: 'heading',
-            level: headingLevelOf(node),
-            content: inlineText(node),
-          },
-        });
-        break;
+    if (node.type === 'orderedList') {
+      collectListItems(node, 'numberedListItem', result);
+      continue;
+    }
 
-      case 'blockquote':
-        result.push({ id: blockIdOf(node), content: { type: 'quote', content: blockText(node) } });
-        break;
+    const content = nodeToContent(node);
 
-      case 'codeBlock':
-        result.push({
-          id: blockIdOf(node),
-          content: { type: 'code', language: codeLanguageOf(node), content: inlineText(node) },
-        });
-        break;
-
-      case 'horizontalRule':
-        result.push({ id: blockIdOf(node), content: { type: 'divider' } });
-        break;
-
-      case 'toDo':
-        result.push({
-          id: blockIdOf(node),
-          content: {
-            type: 'toDo',
-            checked: node.attrs?.['checked'] === true,
-            content: inlineText(node),
-          },
-        });
-        break;
-
-      case 'image': {
-        const fileId = node.attrs?.['fileId'];
-
-        // Без fileId блок изображения невалиден по контракту и не сохраняется.
-        if (typeof fileId === 'string' && fileId.length > 0) {
-          result.push({
-            id: blockIdOf(node),
-            content: { type: 'image', fileId, caption: captionOf(node) },
-          });
-        }
-        break;
-      }
-
-      case 'toggle':
-        result.push({
-          id: blockIdOf(node),
-          content: { type: 'toggle', content: inlineText(node) },
-        });
-        break;
-
-      case 'bulletList':
-        collectListItems(node, 'bulletedListItem', result);
-        break;
-
-      case 'orderedList':
-        collectListItems(node, 'numberedListItem', result);
-        break;
-
-      default:
-        break;
+    if (content) {
+      result.push({ id: blockIdOf(node), content });
     }
   }
 

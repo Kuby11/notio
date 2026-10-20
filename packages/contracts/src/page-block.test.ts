@@ -107,6 +107,24 @@ describe('BlockContentSchema', () => {
     expect(() => BlockContentSchema.parse({ type: 'divider', content: 'лишнее' })).toThrow();
   });
 
+  it('разрешает вложенные блоки и свёрнутость toggle', () => {
+    const toggle = {
+      type: 'toggle',
+      content: 'Переключатель',
+      open: false,
+      children: [
+        { type: 'paragraph', content: 'Внутри' },
+        {
+          type: 'toggle',
+          content: 'Вложенный',
+          children: [{ type: 'toDo', checked: true, content: 'Задача' }],
+        },
+      ],
+    };
+
+    expect(BlockContentSchema.parse(toggle)).toEqual(toggle);
+  });
+
   it('требует fileId для изображения и nullable caption', () => {
     expect(() => BlockContentSchema.parse({ type: 'image', caption: null })).toThrow();
     expect(

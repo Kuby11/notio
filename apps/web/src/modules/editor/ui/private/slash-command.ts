@@ -1,5 +1,6 @@
 import type { Editor } from '@tiptap/react';
 import { detectSlashTrigger, type SlashCommand, type SlashRange } from '../../utils/slash';
+import { replaceTextblockWithToggle } from './toggle-command';
 
 export interface EditorSlashTrigger {
   query: string;
@@ -65,7 +66,7 @@ export function applySlashCommand(editor: Editor, command: SlashCommand, range: 
       chain.setNode('toDo');
       break;
     case 'toggle':
-      chain.setNode('toggle');
+      chain.command(({ tr }) => replaceTextblockWithToggle(tr));
       break;
   }
 

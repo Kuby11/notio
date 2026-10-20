@@ -76,6 +76,31 @@ describe('blocksToEditorDocument', () => {
     expect(document.content[1]?.content).toEqual([{ type: 'text', text: 'Первая\nВторая' }]);
   });
 
+  it('вкладывает дочерние блоки в toggle и сохраняет свёрнутость', () => {
+    const toggle = block('b1', {
+      type: 'toggle',
+      content: 'Заголовок toggle',
+      open: false,
+      children: [
+        { type: 'paragraph', content: 'Текст внутри' },
+        { type: 'toDo', checked: true, content: 'Задача внутри' },
+      ],
+    });
+
+    const document = blocksToEditorDocument([toggle]);
+
+    expect(document.content[0]).toMatchObject({
+      type: 'toggle',
+      attrs: { blockId: 'b1', open: false },
+    });
+    expect(document.content[0]?.content?.map((node) => node.type)).toEqual([
+      'paragraph',
+      'paragraph',
+      'toDo',
+    ]);
+    expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: toggle.content }]);
+  });
+
   it('поддерживает заголовок четвёртого уровня', () => {
     const heading = block('b1', { type: 'heading', level: 4, content: 'Заголовок 4' });
     const document = blocksToEditorDocument([heading]);

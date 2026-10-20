@@ -1,5 +1,6 @@
 import {
   Extension,
+  InputRule,
   Node,
   ReactNodeViewRenderer,
   mergeAttributes,
@@ -11,6 +12,8 @@ import { Plugin } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { StarterKit } from '@tiptap/starter-kit';
 import { ToDoNodeView } from './to-do-node-view';
+import { replaceTextblockWithToggle } from './toggle-command';
+import { ToggleNodeView } from './toggle-node-view';
 
 /** Общий парсер/рендерер data-атрибута с id блока. */
 const blockIdAttribute = {
@@ -149,17 +152,30 @@ const ToDoBlock = Node.create({
   },
 });
 
-/** Toggle пока хранит только текст: вложенные блоки появятся позже. */
+/**
+ * Toggle — контейнер: первый абзац является заголовком, остальные блоки —
+ * раскрывающимся телом. React-компонент рисует стрелку и прячет тело при
+ * `open: false`.
+ */
 const ToggleBlock = Node.create({
   name: 'toggle',
   group: 'block',
-  content: 'inline*',
+  content: 'paragraph block*',
   defining: true,
   // Выше blockquote: иначе встроенное правило `> ` превратит строку в цитату,
   // а в Notion этот триггер означает toggle-список.
   priority: 101,
   addAttributes() {
-    return { blockId: blockIdAttribute };
+    return {
+      blockId: blockIdAttribute,
+      open: {
+        default: true,
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-open') !== 'false',
+        renderHTML: (attributes: Record<string, unknown>) => ({
+          'data-open': attributes['open'] === false ? 'false' : 'true',
+        }),
+      },
+    };
   },
   parseHTML() {
     return [{ tag: 'div[data-block-type="toggle"]' }];
@@ -169,14 +185,25 @@ const ToggleBlock = Node.create({
       'div',
       mergeAttributes(HTMLAttributes, {
         'data-block-type': 'toggle',
-        class: 'flex items-start gap-2',
+        class: 'notion-toggle',
       }),
-      ['span', { class: 'select-none', 'aria-hidden': 'true' }, '▸'],
-      ['span', { class: 'flex-1' }, 0],
+      ['div', { class: 'notion-toggle-content' }, 0],
     ];
   },
+  addNodeView() {
+    return ReactNodeViewRenderer(ToggleNodeView);
+  },
   addInputRules() {
-    return [textblockTypeInputRule({ find: /^>\s$/u, type: this.type })];
+    return [
+      new InputRule({
+        find: /^>\s$/u,
+        handler: ({ state, range }) => {
+          const transaction = state.tr.delete(range.from, range.to);
+
+          replaceTextblockWithToggle(transaction, range.from);
+        },
+      }),
+    ];
   },
 });
 

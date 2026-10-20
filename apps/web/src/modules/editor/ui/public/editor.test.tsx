@@ -104,6 +104,44 @@ describe('Editor', () => {
     expect(bulletItem?.querySelector('.notion-list-marker')).not.toBeNull();
   });
 
+  it('раскрывает и сворачивает toggle, поворачивая стрелку', async () => {
+    const gateway = gatewayStub();
+    gateway.accessToken.mockResolvedValue('jwt');
+    mockBlockResponse([
+      block(TOGGLE_ID, 'a0', {
+        type: 'toggle',
+        content: 'Переключатель',
+        children: [{ type: 'paragraph', content: 'Содержимое toggle' }],
+      }),
+    ]);
+
+    renderWithProviders(<Editor pageId={PAGE_ID} />, gateway);
+
+    const collapse = await screen.findByRole('button', { name: 'Свернуть переключатель' });
+    const toggle = screen.getByText('Переключатель').closest('[data-block-type="toggle"]');
+
+    expect(collapse).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveAttribute('data-open', 'true');
+    expect(toggle).toHaveAttribute('data-block-id', TOGGLE_ID);
+    expect(screen.getByText('Содержимое toggle')).toBeInTheDocument();
+    expect(collapse.querySelector('svg')).toHaveClass('rotate-90');
+
+    fireEvent.click(collapse);
+
+    const expand = await screen.findByRole('button', { name: 'Развернуть переключатель' });
+    expect(expand).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveAttribute('data-open', 'false');
+    expect(expand.querySelector('svg')).not.toHaveClass('rotate-90');
+
+    fireEvent.click(expand);
+
+    expect(await screen.findByRole('button', { name: 'Свернуть переключатель' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(toggle).toHaveAttribute('data-open', 'true');
+  });
+
   it('переключает чек-лист и зачёркивает выполненную задачу', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
