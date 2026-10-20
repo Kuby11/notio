@@ -28,6 +28,7 @@ export function SlashMenu({ query, position, onSelect, onClose }: SlashMenuProps
   const [activeIndex, setActiveIndex] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const activeItemRef = useRef<HTMLButtonElement | null>(null);
+  const pointerSelected = useRef(false);
 
   const currentIndex = commands.length === 0 ? 0 : Math.min(activeIndex, commands.length - 1);
   const activeCommand = commands[currentIndex];
@@ -144,9 +145,28 @@ export function SlashMenu({ query, position, onSelect, onClose }: SlashMenuProps
                 type="button"
                 role="option"
                 aria-selected={active}
-                onMouseDown={(event) => event.preventDefault()}
+                onPointerDown={(event) => {
+                  if (event.button > 0) {
+                    return;
+                  }
+
+                  // Выбираем команду уже на pointerdown: меню может
+                  // размонтироваться до события click, и тогда выбор терялся.
+                  event.preventDefault();
+                  pointerSelected.current = true;
+                  onSelect(command);
+                }}
                 onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => onSelect(command)}
+                onClick={() => {
+                  // Для мыши команда уже применена в pointerdown.
+                  // Click с клавиатуры/assistive tech приходит без pointerdown.
+                  if (pointerSelected.current) {
+                    pointerSelected.current = false;
+                    return;
+                  }
+
+                  onSelect(command);
+                }}
                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                   active ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/60'
                 }`}

@@ -70,6 +70,18 @@ describe('SlashMenu', () => {
     expect(onSelect.mock.calls[0]?.[0]).toMatchObject({ id: 'toggle' });
   });
 
+  it('вставляет команду уже по pointerdown и не дублирует её на click', () => {
+    const onSelect = selectMock();
+    render(<SlashMenu query="" position={POSITION} onSelect={onSelect} onClose={closeMock()} />);
+
+    const option = screen.getByRole('option', { name: /Список задач/ });
+    fireEvent.pointerDown(option, { button: 0 });
+    fireEvent.click(option);
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0]?.[0]).toMatchObject({ id: 'checkList' });
+  });
+
   it('закрывается по Escape', () => {
     const onClose = closeMock();
     render(<SlashMenu query="" position={POSITION} onSelect={selectMock()} onClose={onClose} />);

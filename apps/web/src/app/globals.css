@@ -44,6 +44,171 @@ body {
   margin: 0;
 }
 
+/*
+ * Placeholder для текущего пустого блока. Расширение PlaceholderHint ставит
+ * data-placeholder на пустой textblock, но не рисует сам текст — это делает
+ * CSS. `height: 0` не даёт подсказке раздвигать строку.
+ */
+.tiptap [data-placeholder].is-empty:not([data-block-type])::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* У toggle/to-do подсказка должна стоять после иконки, а не перед ней. */
+.tiptap [data-block-type].is-empty::after {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  pointer-events: none;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/*
+ * Базовые стили блоков редактора.
+ *
+ * Tailwind preflight обнуляет размеры заголовков и убирает маркеры списков,
+ * а @tailwindcss/typography в проекте не подключён. Поэтому визуальные
+ * уровни H1–H4 и отступы задаются здесь явно.
+ */
+.tiptap {
+  max-width: 52rem;
+  min-height: 70vh;
+  outline: none;
+}
+
+.tiptap h1,
+.tiptap h2,
+.tiptap h3,
+.tiptap h4 {
+  color: var(--foreground);
+  margin: 1.25rem 0 0.25rem;
+}
+
+.tiptap h1:first-child,
+.tiptap h2:first-child,
+.tiptap h3:first-child,
+.tiptap h4:first-child {
+  margin-top: 0;
+}
+
+.tiptap h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.tiptap h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.tiptap h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.tiptap h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.tiptap p {
+  line-height: 1.65;
+  margin: 0.125rem 0;
+}
+
+.tiptap ul,
+.tiptap ol {
+  list-style: none;
+  margin: 0.125rem 0;
+  padding-left: 0;
+}
+
+.tiptap .notion-list-item {
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.tiptap .notion-list-marker {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  left: 0;
+  line-height: 1.65rem;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  user-select: none;
+}
+
+.tiptap ol {
+  counter-reset: notion-list;
+}
+
+.tiptap ol > li {
+  counter-increment: notion-list;
+}
+
+.tiptap ul > li > .notion-list-marker::before {
+  content: '•';
+}
+
+.tiptap ol > li > .notion-list-marker::before {
+  content: counter(notion-list) '.';
+}
+
+.tiptap li p {
+  margin: 0;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid var(--border);
+  color: var(--muted-foreground);
+  margin: 0.5rem 0;
+  padding-left: 1rem;
+}
+
+.tiptap blockquote p {
+  margin: 0;
+}
+
+.tiptap pre {
+  background: var(--muted);
+  border-radius: var(--radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  padding: 0.75rem 1rem;
+}
+
+.tiptap code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875em;
+}
+
+.tiptap pre code {
+  font-size: inherit;
+}
+
+.tiptap hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 1rem 0;
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);

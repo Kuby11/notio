@@ -127,7 +127,7 @@ export function Editor({ pageId }: EditorProps) {
         return;
       }
 
-      const range = slashRange;
+      const range = findSlashTrigger(editor)?.range ?? slashRange;
       dismissedSlashFrom.current = null;
       closeSlashMenu();
       applySlashCommand(editor, command, range);

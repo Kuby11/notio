@@ -1,5 +1,8 @@
 import { Extension, Node, mergeAttributes, textblockTypeInputRule } from '@tiptap/react';
-import { Placeholder } from '@tiptap/extension-placeholder';
+import { ListItem } from '@tiptap/extension-list';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import { Plugin } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { StarterKit } from '@tiptap/starter-kit';
 
 /** Общий парсер/рендерер data-атрибута с id блока. */
@@ -24,6 +27,33 @@ const BlockIdAttribute = Extension.create({
           blockId: blockIdAttribute,
         },
       },
+    ];
+  },
+});
+
+/**
+ * Стандартная схема listItem с кастомным DOM.
+ *
+ * Списки остаются нативными для ProseMirror (Enter/Backspace/вложенность
+ * работают из коробки), но получают Notion-подобный non-editable маркер.
+ * Символ и номер рисует CSS, поэтому маркер не участвует в тексте блока.
+ */
+const ListItemBlock = ListItem.extend({
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'li',
+      mergeAttributes(HTMLAttributes, { class: 'notion-list-item' }),
+      [
+        'span',
+        {
+          'data-list-marker': '',
+          'aria-hidden': 'true',
+          contenteditable: 'false',
+          class: 'notion-list-marker',
+        },
+        '',
+      ],
+      ['div', { class: 'notion-list-content' }, 0],
     ];
   },
 });
@@ -139,6 +169,95 @@ const ToggleBlock = Node.create({
 });
 
 /**
+ * Ищет первый пустой textblock — нужен для пустой страницы с AllSelection.
+ */
+function findFirstEmptyTextblock(doc: ProseMirrorNode): { from: number; size: number } | null {
+  let result: { from: number; size: number } | null = null;
+
+  doc.descendants((child, position) => {
+    if (result) {
+      return false;
+    }
+
+    if (child.type.isTextblock && child.type.name !== 'codeBlock' && child.content.size === 0) {
+      result = { from: position, size: child.nodeSize };
+      return false;
+    }
+
+    return true;
+  });
+
+  return result;
+}
+
+/**
+ * Подсказка в текущем пустом блоке.
+ *
+ * Встроенный Placeholder при showOnlyCurrent смотрит только на top-level
+ * узел. В списке курсор находится в paragraph внутри listItem, поэтому
+ * встроенное расширение там подсказку не показывало. Здесь decoration
+ * вешается на непосредственный textblock под курсором.
+ */
+const PlaceholderHint = Extension.create({
+  name: 'placeholderHint',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        props: {
+          decorations: ({ doc, selection }) => {
+            const isEmptyDocument = doc.textBetween(0, doc.content.size, '\n', '\n').length === 0;
+            const isAllSelected =
+              selection.from === 0 && selection.to === doc.content.size && isEmptyDocument;
+
+            if (!selection.empty && !isAllSelected) {
+              return null;
+            }
+
+            let from: number;
+            let nodeSize: number;
+
+            if (selection.empty) {
+              const { $from } = selection;
+              const node = $from.depth > 0 ? $from.parent : $from.nodeAfter;
+
+              if (
+                !node ||
+                !node.type.isTextblock ||
+                node.type.name === 'codeBlock' ||
+                node.content.size > 0
+              ) {
+                return null;
+              }
+
+              from = $from.depth > 0 ? $from.before() : $from.pos;
+              nodeSize = node.nodeSize;
+            } else {
+              // На пустой странице Tiptap может держать AllSelection
+              // (from 0 до конца документа). Подсказка всё равно нужна.
+              const firstEmptyBlock = findFirstEmptyTextblock(doc);
+
+              if (!firstEmptyBlock) {
+                return null;
+              }
+
+              from = firstEmptyBlock.from;
+              nodeSize = firstEmptyBlock.size;
+            }
+
+            return DecorationSet.create(doc, [
+              Decoration.node(from, from + nodeSize, {
+                class: 'is-empty',
+                'data-placeholder': 'Press / for commands',
+              }),
+            ]);
+          },
+        },
+      }),
+    ];
+  },
+});
+
+/**
  * Набор расширений редактора.
  *
  * Mark-расширения (bold/italic/...) отключены: BlockContent сейчас хранит
@@ -154,10 +273,12 @@ export const editorExtensions = [
     underline: false,
     link: false,
     trailingNode: false,
+    listItem: false,
   }),
+  ListItemBlock,
   BlockIdAttribute,
   ImageBlock,
   ToDoBlock,
   ToggleBlock,
-  Placeholder.configure({ placeholder: 'Начните писать или введите / для команд…' }),
+  PlaceholderHint,
 ];

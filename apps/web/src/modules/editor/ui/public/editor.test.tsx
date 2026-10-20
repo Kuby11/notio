@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Block, BlockContent } from '@notio/contracts';
 import { gatewayStub, renderWithProviders } from '../../../../../test/auth-fixture';
@@ -90,5 +90,38 @@ describe('Editor', () => {
       'data-block-id',
       BULLET_ID,
     );
+
+    const bulletItem = screen.getByText('Пункт списка').closest('li');
+    expect(bulletItem).toHaveClass('notion-list-item');
+    expect(bulletItem?.querySelector('.notion-list-marker')).not.toBeNull();
+  });
+
+  it('показывает подсказку в текущей пустой строке', async () => {
+    const gateway = gatewayStub();
+    gateway.accessToken.mockResolvedValue('jwt');
+    mockBlockResponse([block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: '' })]);
+
+    renderWithProviders(<Editor pageId={PAGE_ID} />, gateway);
+
+    await screen.findByRole('textbox');
+    await waitFor(() => {
+      const emptyBlock = document.querySelector('.ProseMirror [data-placeholder]');
+      expect(emptyBlock).toHaveAttribute('data-placeholder', 'Press / for commands');
+    });
+  });
+
+  it('показывает подсказку и кастомный маркер в пустом пункте списка', async () => {
+    const gateway = gatewayStub();
+    gateway.accessToken.mockResolvedValue('jwt');
+    mockBlockResponse([block(BULLET_ID, 'a0', { type: 'bulletedListItem', content: '' })]);
+
+    renderWithProviders(<Editor pageId={PAGE_ID} />, gateway);
+
+    await screen.findByRole('textbox');
+    await waitFor(() => {
+      const emptyBlock = document.querySelector('.ProseMirror li [data-placeholder]');
+      expect(emptyBlock).toHaveAttribute('data-placeholder', 'Press / for commands');
+      expect(emptyBlock?.closest('li')?.querySelector('.notion-list-marker')).not.toBeNull();
+    });
   });
 });
