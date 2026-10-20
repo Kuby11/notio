@@ -105,8 +105,22 @@ export function Editor({ pageId }: EditorProps) {
       return;
     }
 
-    editor.commands.setContent(blocksToEditorDocument(pageDocument.data), { emitUpdate: false });
-    hydratedPageId.current = pageId;
+    const content = blocksToEditorDocument(pageDocument.data);
+
+    // React-узлы Tiptap (чек-лист) монтируются через flushSync. Вызов
+    // setContent прямо из useEffect попадает в lifecycle React и даёт
+    // предупреждение «flushSync was called from inside a lifecycle method».
+    // Откладываем гидратацию на следующий task, когда commit уже завершён.
+    const hydrationTimer = window.setTimeout(() => {
+      if (editor.isDestroyed) {
+        return;
+      }
+
+      editor.commands.setContent(content, { emitUpdate: false });
+      hydratedPageId.current = pageId;
+    }, 0);
+
+    return () => window.clearTimeout(hydrationTimer);
   }, [editor, pageId, pageDocument.data]);
 
   useEffect(() => {
