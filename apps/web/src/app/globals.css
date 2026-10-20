@@ -80,6 +80,7 @@ body {
  * уровни H1–H4 и отступы задаются здесь явно.
  */
 .tiptap {
+  margin: 0 auto;
   max-width: 52rem;
   min-height: 70vh;
   outline: none;
