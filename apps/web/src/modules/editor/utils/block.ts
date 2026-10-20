@@ -308,10 +308,10 @@ function listItemNode(blockId: string, text: string): EditorNode {
   };
 }
 
-function headingLevelOf(node: EditorNode): 1 | 2 | 3 {
+function headingLevelOf(node: EditorNode): 1 | 2 | 3 | 4 {
   const level = node.attrs?.['level'];
 
-  return level === 1 || level === 2 || level === 3 ? level : 1;
+  return level === 1 || level === 2 || level === 3 || level === 4 ? level : 1;
 }
 
 function codeLanguageOf(node: EditorNode): string | null {

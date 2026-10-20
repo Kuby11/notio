@@ -95,11 +95,14 @@ describe('BlockContentSchema', () => {
     expect(
       BlockContentSchema.parse({ type: 'heading', level: 2, content: 'Заголовок' }),
     ).toMatchObject({ level: 2 });
+    expect(
+      BlockContentSchema.parse({ type: 'heading', level: 4, content: 'Заголовок 4' }),
+    ).toMatchObject({ level: 4 });
     expect(BlockContentSchema.parse({ type: 'divider' })).toEqual({ type: 'divider' });
   });
 
   it('проверяет поля конкретного типа', () => {
-    expect(() => BlockContentSchema.parse({ type: 'heading', level: 4, content: 'x' })).toThrow();
+    expect(() => BlockContentSchema.parse({ type: 'heading', level: 5, content: 'x' })).toThrow();
     expect(() => BlockContentSchema.parse({ type: 'paragraph' })).toThrow();
     expect(() => BlockContentSchema.parse({ type: 'divider', content: 'лишнее' })).toThrow();
   });

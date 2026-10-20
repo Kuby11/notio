@@ -75,6 +75,17 @@ describe('blocksToEditorDocument', () => {
     ]);
     expect(document.content[1]?.content).toEqual([{ type: 'text', text: 'Первая\nВторая' }]);
   });
+
+  it('поддерживает заголовок четвёртого уровня', () => {
+    const heading = block('b1', { type: 'heading', level: 4, content: 'Заголовок 4' });
+    const document = blocksToEditorDocument([heading]);
+
+    expect(document.content[0]).toMatchObject({
+      type: 'heading',
+      attrs: { blockId: 'b1', level: 4 },
+    });
+    expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: heading.content }]);
+  });
 });
 
 describe('editorDocumentToBlocks', () => {

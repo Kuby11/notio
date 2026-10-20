@@ -1,4 +1,4 @@
-import { Extension, Node, mergeAttributes } from '@tiptap/react';
+import { Extension, Node, mergeAttributes, textblockTypeInputRule } from '@tiptap/react';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { StarterKit } from '@tiptap/starter-kit';
 
@@ -102,6 +102,9 @@ const ToDoBlock = Node.create({
       ['span', { class: 'flex-1' }, 0],
     ];
   },
+  addInputRules() {
+    return [textblockTypeInputRule({ find: /^\[\]\s$/u, type: this.type })];
+  },
 });
 
 /** Toggle пока хранит только текст: вложенные блоки появятся позже. */
@@ -110,6 +113,9 @@ const ToggleBlock = Node.create({
   group: 'block',
   content: 'inline*',
   defining: true,
+  // Выше blockquote: иначе встроенное правило `> ` превратит строку в цитату,
+  // а в Notion этот триггер означает toggle-список.
+  priority: 101,
   addAttributes() {
     return { blockId: blockIdAttribute };
   },
@@ -127,6 +133,9 @@ const ToggleBlock = Node.create({
       ['span', { class: 'flex-1' }, 0],
     ];
   },
+  addInputRules() {
+    return [textblockTypeInputRule({ find: /^>\s$/u, type: this.type })];
+  },
 });
 
 /**
@@ -137,6 +146,7 @@ const ToggleBlock = Node.create({
  */
 export const editorExtensions = [
   StarterKit.configure({
+    heading: { levels: [1, 2, 3, 4] },
     bold: false,
     italic: false,
     strike: false,

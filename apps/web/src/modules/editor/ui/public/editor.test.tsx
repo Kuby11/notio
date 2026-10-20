@@ -31,6 +31,18 @@ function block(id: string, position: string, content: BlockContent): Block {
   };
 }
 
+function mockBlockResponse(blocks: Block[]) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      return new Response(JSON.stringify({ items: blocks, nextCursor: null }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }),
+  );
+}
+
 const BLOCKS: Block[] = [
   block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: 'Первый абзац' }),
   block(HEADING_ID, 'a1', { type: 'heading', level: 2, content: 'Заголовок' }),
@@ -45,16 +57,8 @@ const BLOCKS: Block[] = [
 
 beforeEach(() => {
   useEditorStore.getState().setSelectedBlock(null);
-
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async () => {
-      return new Response(JSON.stringify({ items: BLOCKS, nextCursor: null }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
-    }),
-  );
+  useEditorStore.getState().closeSlashMenu();
+  mockBlockResponse(BLOCKS);
 });
 
 afterEach(() => {

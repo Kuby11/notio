@@ -18,6 +18,7 @@ export function useEditor(pageId: string) {
   const selectedBlockId = useEditorStore((state) => state.selectedBlockId);
   const slashMenuOpen = useEditorStore((state) => state.slashMenuOpen);
   const slashQuery = useEditorStore((state) => state.slashQuery);
+  const slashRange = useEditorStore((state) => state.slashRange);
   const setSelectedBlock = useEditorStore((state) => state.setSelectedBlock);
   const openSlashMenu = useEditorStore((state) => state.openSlashMenu);
   const closeSlashMenu = useEditorStore((state) => state.closeSlashMenu);
@@ -66,6 +67,7 @@ export function useEditor(pageId: string) {
     selectedBlockId,
     slashMenuOpen,
     slashQuery,
+    slashRange,
     setSelectedBlock,
     openSlashMenu,
     closeSlashMenu,

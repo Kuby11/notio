@@ -32,7 +32,7 @@ export const BlockContentSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('paragraph'), content: z.string() }),
   z.strictObject({
     type: z.literal('heading'),
-    level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
     content: z.string(),
   }),
   z.strictObject({ type: z.literal('bulletedListItem'), content: z.string() }),

@@ -26,6 +26,8 @@ export type {
   EditorDocument,
   EditorNode,
 } from './utils/block';
+export { SLASH_COMMANDS, detectSlashTrigger, filterSlashCommands } from './utils/slash';
+export type { SlashCommand, SlashRange, SlashTrigger } from './utils/slash';
 export type { BlockRepository } from './types/ports';
 
 /**
