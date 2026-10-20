@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
+import { shouldRetryQuery } from '../shared/configs/query-policy';
 import { ContainerProvider } from './container';
 
 /**
@@ -15,7 +16,7 @@ function createQueryClient(): QueryClient {
       queries: {
         staleTime: 30_000,
         refetchOnWindowFocus: false,
-        retry: 1,
+        retry: shouldRetryQuery,
       },
     },
   });

@@ -198,6 +198,34 @@ describe('GET /pages', () => {
     expect(after.items.map((item) => item.title)).toEqual(['Первая', 'Между', 'Вторая', 'Третья']);
   });
 
+  it('помечает hasChildren только у страниц с видимыми детьми', async () => {
+    const client = api();
+    const parent = await createPage({ workspaceId, title: 'Родитель' });
+    const child = await createPage({ workspaceId, parentId: parent.id, title: 'Ребёнок' });
+    await client.createPage({ workspaceId, title: 'Лист' });
+
+    const body = (await (await client.listPages(`workspaceId=${workspaceId}`)).json()) as {
+      items: { title: string; hasChildren: boolean }[];
+    };
+    const byTitle = new Map(body.items.map((item) => [item.title, item.hasChildren]));
+
+    expect(byTitle.get('Родитель')).toBe(true);
+    expect(byTitle.get('Лист')).toBe(false);
+
+    // Ребёнок в корзине не должен делать родителя раскрываемым.
+    await client.patchPage(child.id, `workspaceId=${workspaceId}`, { isTrashed: true });
+
+    const visible = (await (await client.listPages(`workspaceId=${workspaceId}`)).json()) as {
+      items: { title: string; hasChildren: boolean }[];
+    };
+    const withTrashed = (await (
+      await client.listPages(`workspaceId=${workspaceId}&includeTrashed=true`)
+    ).json()) as { items: { title: string; hasChildren: boolean }[] };
+
+    expect(visible.items.find((item) => item.title === 'Родитель')?.hasChildren).toBe(false);
+    expect(withTrashed.items.find((item) => item.title === 'Родитель')?.hasChildren).toBe(true);
+  });
+
   it('не отдаёт страницы чужого workspace', async () => {
     await api().createPage({ workspaceId, title: 'Своя' });
 

@@ -2,7 +2,7 @@ import type { Bindings } from '../env';
 import type { Page, UpdatePageInput } from '@notio/contracts';
 import { PageSchema } from '@notio/contracts';
 import { createDb } from '@notio/db';
-import { and, asc, desc, eq, gt, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { pages, schema, type NewPageRow, type PageRow } from '../db/schema';
 
@@ -21,6 +21,12 @@ export interface ListChildrenFilter {
 }
 
 /**
+ * D1 ограничивает число bound-параметров в запросе. Режем список id на
+ * порции, чтобы проверка hasChildren работала и при `limit=100`.
+ */
+const CHILD_QUERY_CHUNK_SIZE = 90;
+
+/**
  * Репозиторий страниц: единственное место, которое знает про Drizzle и SQL.
  * Наружу отдаёт доменные объекты, валидированные Zod-схемой PageSchema —
  * данные из базы тоже не считаются доверенными.
@@ -32,7 +38,7 @@ export class PageRepository {
     this.db = createDb(env, schema);
   }
 
-  private toPage(row: PageRow): Page {
+  private toPage(row: PageRow, hasChildren?: boolean): Page {
     return PageSchema.parse({
       id: row.id,
       workspaceId: row.workspaceId,
@@ -43,10 +49,44 @@ export class PageRepository {
       position: row.position,
       isFavorite: row.isFavorite,
       isTrashed: row.isTrashed,
+      ...(hasChildren === undefined ? {} : { hasChildren }),
       createdBy: row.createdBy,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
+  }
+
+  /** Родители из списка, у которых есть хотя бы один ребёнок. */
+  private async parentsWithChildren(
+    workspaceId: string,
+    parentIds: readonly string[],
+    includeTrashed: boolean,
+  ): Promise<Set<string>> {
+    const uniqueIds = [...new Set(parentIds)];
+    const result = new Set<string>();
+
+    for (let offset = 0; offset < uniqueIds.length; offset += CHILD_QUERY_CHUNK_SIZE) {
+      const chunk = uniqueIds.slice(offset, offset + CHILD_QUERY_CHUNK_SIZE);
+      const conditions = [eq(pages.workspaceId, workspaceId), inArray(pages.parentId, chunk)];
+
+      if (!includeTrashed) {
+        conditions.push(eq(pages.isTrashed, false));
+      }
+
+      const rows = await this.db
+        .select({ parentId: pages.parentId })
+        .from(pages)
+        .where(and(...conditions))
+        .groupBy(pages.parentId);
+
+      for (const row of rows) {
+        if (row.parentId !== null) {
+          result.add(row.parentId);
+        }
+      }
+    }
+
+    return result;
   }
 
   async create(row: NewPageRow): Promise<Page> {
@@ -86,7 +126,13 @@ export class PageRepository {
       .orderBy(asc(pages.position))
       .limit(filter.limit);
 
-    return rows.map((row) => this.toPage(row));
+    const parents = await this.parentsWithChildren(
+      filter.workspaceId,
+      rows.map((row) => row.id),
+      filter.includeTrashed,
+    );
+
+    return rows.map((row) => this.toPage(row, parents.has(row.id)));
   }
 
   /**

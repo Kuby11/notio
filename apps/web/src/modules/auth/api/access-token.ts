@@ -25,6 +25,10 @@ export function createAccessToken(
   now: () => number = () => Date.now(),
 ): AccessTokenProvider {
   let cached: { token: string; expiresAt: number } | null = null;
+  let inFlight: Promise<string | null> | null = null;
+  // Поколение защищает от гонки: ответ, начатый до clear(), не должен
+  // вернуть старый токен обратно в кеш после выхода из аккаунта.
+  let generation = 0;
 
   return {
     async execute(): Promise<string | null> {
@@ -34,21 +38,44 @@ export function createAccessToken(
         return cached.token;
       }
 
-      const token = await auth.accessToken();
-
-      if (token !== null) {
-        // Кешируем на TTL: токен живёт дольше, но обновление раз в минуту
-        // достаточно, чтобы не бить по auth-service на каждый запрос.
-        cached = { token, expiresAt: currentTime + ACCESS_TOKEN_TTL_MS };
-      } else {
-        cached = null;
+      // Параллельные запросы страниц не должны устраивать stampede
+      // в /api/auth/token: все ждут один и тот же in-flight запрос.
+      if (inFlight !== null) {
+        return inFlight;
       }
 
-      return token;
+      const requestGeneration = generation;
+      const request = (async () => {
+        const token = await auth.accessToken();
+
+        if (requestGeneration === generation) {
+          if (token !== null) {
+            // Кешируем на TTL: токен живёт дольше, но обновление раз в минуту
+            // достаточно, чтобы не бить по auth-service на каждый запрос.
+            cached = { token, expiresAt: now() + ACCESS_TOKEN_TTL_MS };
+          } else {
+            cached = null;
+          }
+        }
+
+        return token;
+      })();
+
+      inFlight = request;
+
+      try {
+        return await request;
+      } finally {
+        if (inFlight === request) {
+          inFlight = null;
+        }
+      }
     },
 
     clear(): void {
+      generation += 1;
       cached = null;
+      inFlight = null;
     },
   };
 }

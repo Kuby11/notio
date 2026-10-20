@@ -1,7 +1,7 @@
 import type { PageRepository } from '../types/ports';
 import type { CreatePageInput, MovePageInput, UpdatePageInput } from '@notio/contracts';
 import { toPage, toPageList } from '../utils/mapper';
-import type { TokenProvider } from '../../../shared/types';
+import { HttpError, type TokenProvider } from '../../../shared/types';
 import { env } from '../../../shared/configs/env';
 
 /**
@@ -18,7 +18,7 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
     const token = await accessToken.execute();
 
     if (token === null) {
-      throw new Error('Требуется авторизация');
+      throw new HttpError(401, 'Требуется авторизация');
     }
 
     return { authorization: `Bearer ${token}` };
@@ -36,7 +36,10 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       const response = await fetch(`${baseUrl}/api/pages?${params.toString()}`, { headers });
 
       if (!response.ok) {
-        throw new Error(`Не удалось загрузить страницы: HTTP ${response.status}`);
+        throw new HttpError(
+          response.status,
+          `Не удалось загрузить страницы: HTTP ${response.status}`,
+        );
       }
 
       return toPageList(await response.json()).items;
@@ -50,7 +53,10 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new Error(`Не удалось загрузить избранное: HTTP ${response.status}`);
+        throw new HttpError(
+          response.status,
+          `Не удалось загрузить избранное: HTTP ${response.status}`,
+        );
       }
 
       return toPageList(await response.json()).items;
@@ -64,7 +70,10 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new Error(`Не удалось загрузить корзину: HTTP ${response.status}`);
+        throw new HttpError(
+          response.status,
+          `Не удалось загрузить корзину: HTTP ${response.status}`,
+        );
       }
 
       return toPageList(await response.json()).items;
@@ -79,7 +88,10 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new Error(`Не удалось создать страницу: HTTP ${response.status}`);
+        throw new HttpError(
+          response.status,
+          `Не удалось создать страницу: HTTP ${response.status}`,
+        );
       }
 
       return toPage(await response.json());
@@ -92,7 +104,10 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new Error(`Не удалось загрузить страницу: HTTP ${response.status}`);
+        throw new HttpError(
+          response.status,
+          `Не удалось загрузить страницу: HTTP ${response.status}`,
+        );
       }
 
       return toPage(await response.json());
@@ -107,7 +122,10 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new Error(`Не удалось обновить страницу: HTTP ${response.status}`);
+        throw new HttpError(
+          response.status,
+          `Не удалось обновить страницу: HTTP ${response.status}`,
+        );
       }
 
       return toPage(await response.json());
@@ -122,7 +140,10 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new Error(`Не удалось переместить страницу: HTTP ${response.status}`);
+        throw new HttpError(
+          response.status,
+          `Не удалось переместить страницу: HTTP ${response.status}`,
+        );
       }
 
       return toPage(await response.json());

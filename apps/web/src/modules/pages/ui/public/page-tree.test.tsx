@@ -26,14 +26,18 @@ function page(overrides: Partial<Page> & Pick<Page, 'id' | 'title' | 'position'>
   };
 }
 
-const ROOT = page({ id: ROOT_ID, title: 'Корень', position: 'a0' });
+const ROOT = page({ id: ROOT_ID, title: 'Корень', position: 'a0', hasChildren: true });
 const LEAF = page({ id: LEAF_ID, title: 'Лист', position: 'a1' });
 const CHILD = page({ id: CHILD_ID, title: 'Вложенная', parentId: ROOT_ID, position: 'a0' });
 
+let fetchCalls = 0;
+
 beforeEach(() => {
+  fetchCalls = 0;
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
+      fetchCalls += 1;
       const url = new URL(String(input), 'http://localhost');
       const parentId = url.searchParams.get('parentId');
       const items = parentId === ROOT_ID ? [CHILD] : parentId === null ? [ROOT, LEAF] : [];
@@ -71,12 +75,20 @@ describe('PageTree', () => {
       expect(screen.queryByRole('button', { name: 'Развернуть «Лист»' })).not.toBeInTheDocument(),
     );
 
+    // Корень и лист пришли одним запросом; дети свёрнутых узлов не грузятся.
+    expect(fetchCalls).toBe(1);
+
+    const rootLink = screen.getByRole('link', { name: /Корень/ });
+    await user.hover(rootLink);
+    expect(fetchCalls).toBe(1);
+
     await user.click(screen.getByRole('button', { name: 'Развернуть «Корень»' }));
 
     expect(await screen.findByRole('link', { name: /Вложенная/ })).toHaveAttribute(
       'href',
       `/workspaces/${WORKSPACE_ID}/${CHILD_ID}`,
     );
+    expect(fetchCalls).toBe(2);
     expect(screen.getByRole('button', { name: 'Свернуть «Корень»' })).toBeInTheDocument();
   });
 });

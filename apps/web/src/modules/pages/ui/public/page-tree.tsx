@@ -62,11 +62,15 @@ interface PageTreeNodeProps {
 }
 
 function PageTreeNode({ page, workspaceId, depth, expanded, onToggle }: PageTreeNodeProps) {
-  const { children } = usePages(workspaceId, page.id);
+  const { children } = usePages(workspaceId, page.id, 'tree', { enabled: expanded });
   const title = page.title || DEFAULT_PAGE_TITLE;
-  // Пока дети не загрузились, иконку раскрытия показываем: иначе она
-  // появится уже после того, как пользователь попробует раскрыть узел.
-  const canExpand = children.isPending || children.isError || (children.data?.length ?? 0) > 0;
+  const loadedChildren = children.data?.length ?? 0;
+  // У свёрнутого узла ориентируемся на hasChildren из списка. После
+  // раскрытия — на фактически загруженных детях: так кнопка не исчезнет,
+  // пока запрос выполняется, и обновится, если данные изменились.
+  const canExpand = expanded
+    ? children.isPending || children.isError || loadedChildren > 0
+    : (page.hasChildren ?? loadedChildren > 0);
 
   return (
     <li
@@ -92,7 +96,6 @@ function PageTreeNode({ page, workspaceId, depth, expanded, onToggle }: PageTree
         )}
         <Link
           href={`/workspaces/${workspaceId}/${page.id}`}
-          onMouseEnter={canExpand ? () => void children.refetch() : undefined}
           className="flex min-w-0 flex-1 items-center gap-2 px-1 py-1 text-sm"
         >
           <span aria-hidden="true">{page.icon ?? '📄'}</span>

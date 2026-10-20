@@ -26,6 +26,7 @@ export function usePages(
   workspaceId: string,
   parentId: string | null = null,
   scope: PagesScope = 'tree',
+  options: { enabled?: boolean } = {},
 ) {
   const { pages } = useContainer();
   const queryClient = useQueryClient();
@@ -38,7 +39,9 @@ export function usePages(
     queryKey: pageKeys.children(workspaceId, parentId),
     queryFn: () => pages.listChildren(workspaceId, parentId, false),
     staleTime: 30_000,
-    enabled: scope === 'tree',
+    // Дети свёрнутого узла не запрашиваются: hasChildren из списка уже
+    // говорит, нужна ли кнопка раскрытия.
+    enabled: scope === 'tree' && (options.enabled ?? true),
   });
 
   const favorites = useQuery({

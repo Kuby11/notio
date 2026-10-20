@@ -37,6 +37,24 @@ class InMemoryAuthGateway implements AuthGateway {
   }
 }
 
+/** Порт с управляемым ответом: нужен, чтобы удержать запрос «в полёте». */
+class DeferredAuthGateway extends InMemoryAuthGateway {
+  private pending: ((token: string | null) => void) | null = null;
+
+  override async accessToken(): Promise<string | null> {
+    this.calls += 1;
+
+    return new Promise((resolve) => {
+      this.pending = resolve;
+    });
+  }
+
+  resolve(token: string | null): void {
+    this.pending?.(token);
+    this.pending = null;
+  }
+}
+
 describe('createAccessToken', () => {
   it('возвращает токен активной сессии', async () => {
     const gateway = new InMemoryAuthGateway();
@@ -59,6 +77,44 @@ describe('createAccessToken', () => {
     now += ACCESS_TOKEN_TTL_MS - 1;
     await expect(token.execute()).resolves.toBe('jwt-token');
     expect(gateway.calls).toBe(1);
+  });
+
+  it('объединяет одновременные запросы токена в один in-flight промис', async () => {
+    const gateway = new DeferredAuthGateway();
+    const token = createAccessToken(gateway, () => 0);
+
+    const first = token.execute();
+    const second = token.execute();
+
+    expect(gateway.calls).toBe(1);
+
+    gateway.resolve('jwt-token');
+
+    await expect(first).resolves.toBe('jwt-token');
+    await expect(second).resolves.toBe('jwt-token');
+
+    // Оба запроса получили один токен и после завершения он попал в кеш.
+    await expect(token.execute()).resolves.toBe('jwt-token');
+    expect(gateway.calls).toBe(1);
+  });
+
+  it('не возвращает в кеш ответ, начатый до clear()', async () => {
+    const gateway = new DeferredAuthGateway();
+    const token = createAccessToken(gateway, () => 0);
+
+    const stale = token.execute();
+    token.clear();
+    gateway.resolve('stale-token');
+
+    await expect(stale).resolves.toBe('stale-token');
+
+    // После выхода старый ответ не должен «оживить» кеш: следующий вызов
+    // обязан снова спросить auth-service.
+    const fresh = token.execute();
+    expect(gateway.calls).toBe(2);
+
+    gateway.resolve('fresh-token');
+    await expect(fresh).resolves.toBe('fresh-token');
   });
 
   it('обновляет токен после истечения TTL', async () => {

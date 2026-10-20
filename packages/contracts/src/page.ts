@@ -16,6 +16,14 @@ export const PageSchema = z.object({
   isFavorite: z.boolean(),
   /** Корзина — мягкое удаление: строка остаётся, но скрыта из дерева. */
   isTrashed: z.boolean(),
+  /**
+   * Есть ли у страницы неудалённые дочерние страницы.
+   *
+   * Поле вычисляется сервером только в списках для дерева, чтобы клиент
+   * не запрашивал детей каждого узла, пока узел свёрнут. В одиночных
+   * ответах (создание, PATCH, GET по id) его может не быть.
+   */
+  hasChildren: z.boolean().optional(),
   createdBy: IdSchema,
   createdAt: IsoDateTimeSchema,
   updatedAt: IsoDateTimeSchema,

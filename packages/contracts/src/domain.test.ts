@@ -12,6 +12,7 @@ import {
   PageListQuerySchema,
   PageTrashQuerySchema,
 } from './queries';
+import { PageSchema } from './page';
 import { UserSchema } from './user';
 import { ROLE_PERMISSIONS, roleCan, WORKSPACE_ROLES, WorkspaceSchema } from './workspace';
 
@@ -35,6 +36,15 @@ const eventBase = {
   pageId: page.id,
   actorId: null,
 };
+
+describe('PageSchema', () => {
+  it('принимает вычисляемый hasChildren только в списках дерева', () => {
+    expect(PageSchema.parse({ ...page, hasChildren: true })).toMatchObject({
+      hasChildren: true,
+    });
+    expect(PageSchema.parse(page).hasChildren).toBeUndefined();
+  });
+});
 
 describe('UserSchema', () => {
   it('требует корректный email и непустое имя', () => {

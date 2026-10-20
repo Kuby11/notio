@@ -1,7 +1,7 @@
 import type { BlockRepository } from '../types/ports';
 import type { Block } from '@notio/contracts';
 import { toBlock, toBlockList } from '../utils/mapper';
-import type { TokenProvider } from '../../../shared/types';
+import { HttpError, type TokenProvider } from '../../../shared/types';
 import { env } from '../../../shared/configs/env';
 
 export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepository {
@@ -11,7 +11,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
     const token = await accessToken.execute();
 
     if (token === null) {
-      throw new Error('Требуется авторизация');
+      throw new HttpError(401, 'Требуется авторизация');
     }
 
     return { authorization: `Bearer ${token}` };
@@ -23,7 +23,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       const response = await fetch(`${baseUrl}/api/pages/${pageId}/blocks`, { headers });
 
       if (!response.ok) {
-        throw new Error(`Не удалось загрузить блоки: HTTP ${response.status}`);
+        throw new HttpError(response.status, `Не удалось загрузить блоки: HTTP ${response.status}`);
       }
 
       return toBlockList(await response.json()).items;
@@ -38,7 +38,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       });
 
       if (!response.ok) {
-        throw new Error(`Не удалось создать блок: HTTP ${response.status}`);
+        throw new HttpError(response.status, `Не удалось создать блок: HTTP ${response.status}`);
       }
 
       return toBlock(await response.json());
@@ -53,7 +53,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       });
 
       if (!response.ok) {
-        throw new Error(`Не удалось обновить блок: HTTP ${response.status}`);
+        throw new HttpError(response.status, `Не удалось обновить блок: HTTP ${response.status}`);
       }
 
       return toBlock(await response.json());
@@ -67,7 +67,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       });
 
       if (!response.ok) {
-        throw new Error(`Не удалось удалить блок: HTTP ${response.status}`);
+        throw new HttpError(response.status, `Не удалось удалить блок: HTTP ${response.status}`);
       }
     },
 
@@ -80,7 +80,10 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       });
 
       if (!response.ok) {
-        throw new Error(`Не удалось переместить блок: HTTP ${response.status}`);
+        throw new HttpError(
+          response.status,
+          `Не удалось переместить блок: HTTP ${response.status}`,
+        );
       }
 
       return toBlock(await response.json());
