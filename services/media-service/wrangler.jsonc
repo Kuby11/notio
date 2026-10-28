@@ -1,0 +1,23 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "media-service",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "SERVICE_VERSION": "0.1.0",
+  },
+  "workers_dev": false,
+  "r2_buckets": [
+    {
+      // Locally (wrangler dev / vitest) miniflare's R2 simulator runs;
+      // in production the name is replaced by the output of `wrangler r2 bucket create notio-media`.
+      "binding": "MEDIA",
+      "bucket_name": "notio-media",
+    },
+  ],
+}
