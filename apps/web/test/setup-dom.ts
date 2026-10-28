@@ -9,3 +9,15 @@ import { afterEach } from 'vitest';
 afterEach(() => {
   cleanup();
 });
+
+/*
+ * Base UI dispatches synthetic clicks through PointerEvent, which jsdom does
+ * not implement. MouseEvent is API-compatible for the fields the library
+ * reads, so it is enough for switches and other clickable controls in tests.
+ */
+if (typeof window !== 'undefined' && typeof window.PointerEvent === 'undefined') {
+  Object.defineProperty(window, 'PointerEvent', {
+    configurable: true,
+    value: class PointerEventPolyfill extends MouseEvent {},
+  });
+}
