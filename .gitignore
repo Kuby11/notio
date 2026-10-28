@@ -29,6 +29,7 @@ blob-report/
 # wrangler / miniflare
 .wrangler/
 .mf/
+.localflare/
 
 # сгенерированные типы Workers (`wrangler types`, задача cf-typegen в turbo)
 **/worker-configuration.d.ts
@@ -63,3 +64,4 @@ Thumbs.db
 .vscode
 .husky
 .opencode
+.workbuddy-ai

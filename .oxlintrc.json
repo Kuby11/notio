@@ -51,6 +51,7 @@
     "**/.next/**",
     "**/.wrangler/**",
     "**/.mf/**",
+    "**/.localflare/**",
     "**/coverage/**",
     "**/*.d.ts",
     "**/*.config.ts",

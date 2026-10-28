@@ -1,15 +1,15 @@
 /**
- * Smoke-проверка notio: настоящий путь запроса клиент → gateway → Service Binding →
- * сервис → D1, плюс аутентификация, защитные заголовки и rate limit.
+ * Smoke check for notio: a real request path client -> gateway -> Service Binding ->
+ * service -> D1, plus authentication, security headers and rate limiting.
  *
- *   pnpm smoke              # сам поднимает backend, проверяет и гасит его
- *   pnpm smoke -- --verbose # показывает логи workers
- *   pnpm smoke -- --reuse   # использовать уже запущенный backend (ничего не гасит)
+ *   pnpm smoke              # starts the backend itself, checks it and shuts it down
+ *   pnpm smoke -- --verbose # show worker logs
+ *   pnpm smoke -- --reuse   # use an already running backend (kills nothing)
  *
- * По умолчанию скрипт всегда поднимает свой backend: ссылка подтверждения почты
- * приходит в лог workers, и без своих логов проверка была бы неполной.
- * С `--reuse` логов не будет, поэтому токен подтверждения собирается из
- * dev-секрета — такой режим годится только для локального стенда.
+ * By default the script always starts its own backend: the email confirmation
+ * link arrives in the worker logs, and the check would be incomplete without
+ * them. With `--reuse` there are no logs, so the verification token is derived
+ * from the dev secret — that mode is only fit for a local stand.
  */
 import { spawn } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
@@ -22,7 +22,7 @@ const POLL_INTERVAL_MS = 500;
 const PROBE_TIMEOUT_MS = 2_000;
 const PASSWORD = 'correct-horse-battery';
 const SMOKE_IP = `203.0.113.${Math.floor(Math.random() * 200) + 1}`;
-/** Срок жизни ссылки подтверждения: совпадает с emailVerification.expiresIn. */
+/** Lifetime of the confirmation link: matches emailVerification.expiresIn. */
 const VERIFICATION_TTL_SECONDS = 60 * 60 * 24;
 const VERBOSE = process.argv.includes('--verbose');
 const REUSE_RUNNING_BACKEND = process.argv.includes('--reuse');
@@ -42,12 +42,13 @@ function json(response) {
 }
 
 /**
- * Ссылка подтверждения почты.
+ * The email confirmation link.
  *
- * Better Auth подписывает её JWT секретом сервиса и не кладёт в базу, поэтому
- * в dev мы берём её двумя путями: из логов workers (когда smoke сам их поднял)
- * либо собираем тем же секретом из .dev.vars. В production письмо уходит
- * на почту, и smoke так не работает — это инструмент локальной проверки.
+ * Better Auth signs it with the service JWT secret and does not store it in
+ * the database, so in dev we get it two ways: from the worker logs (when
+ * smoke started them itself) or by re-deriving it with the same secret from
+ * .dev.vars. In production the mail goes to an inbox and this does not work —
+ * the script is a local verification tool.
  */
 function verificationTokenFromLogs(email) {
   const pattern = new RegExp(
@@ -99,8 +100,8 @@ async function resolveVerificationToken(email) {
 }
 
 /**
- * На Windows `pnpm` — это обёртка .cmd, и Node не запускает такие файлы без
- * оболочки (spawn EINVAL), поэтому она включается только на win32.
+ * On Windows `pnpm` is a .cmd wrapper, which Node cannot execute without a
+ * shell (spawn EINVAL), so the shell is enabled on win32 only.
  */
 function spawnOptions(extra = {}) {
   return {
@@ -122,7 +123,7 @@ async function isGatewayUp() {
   }
 }
 
-/** Выполняет команду и возвращает её вывод; ошибка не роняет скрипт. */
+/** Runs a command and returns its output; a failure does not crash the script. */
 function run(command, args) {
   return new Promise((resolve) => {
     const child = spawn(command, args, spawnOptions());
@@ -139,7 +140,6 @@ function run(command, args) {
   });
 }
 
-/** Пишет вывод workers в буфер и (при --verbose) в терминал. */
 function collectWorkerLogs(chunk) {
   const text = String(chunk);
   workerLogs.push(text);
@@ -164,7 +164,7 @@ function stopWorkers(child) {
   }
 
   if (process.platform === 'win32') {
-    // Убиваем всё дерево: оболочка запускает pnpm, а тот — workerd.
+    // Kill the whole tree: the shell spawns pnpm, which in turn spawns workerd.
     spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
   } else {
     child.kill('SIGTERM');
@@ -172,8 +172,8 @@ function stopWorkers(child) {
 }
 
 /**
- * Останавливает уже запущенный backend перед стартом своего.
- * Скрипту нужен собственный процесс: ссылка подтверждения приходит в его лог.
+ * Stops an already running backend before starting our own.
+ * The script needs its own process: the confirmation link arrives in its logs.
  */
 function stopForeignBackend() {
   const command = process.platform === 'win32' ? 'taskkill' : 'pkill';
@@ -198,7 +198,6 @@ async function waitForGateway() {
   return false;
 }
 
-/** Cookie из ответа входа: значение пары «имя=значение» для следующего запроса. */
 function sessionCookie(response) {
   return response.headers
     .getSetCookie()
@@ -232,7 +231,6 @@ async function runChecks() {
     'Ответ /api/health не содержит состояние auth-service',
   );
 
-  // Закрытый маршрут без токена.
   const anonymous = await fetch(`${BASE_URL}/api/pages`, {
     headers: { 'cf-connecting-ip': '203.0.113.70' },
   });
@@ -242,7 +240,6 @@ async function runChecks() {
     `GET /api/pages без токена вернул ${anonymous.status}, ожидался 401`,
   );
 
-  // Полный флоу: регистрация → подтверждение → вход → JWT.
   const email = `smoke-${randomUUID().slice(0, 8)}@notio.test`;
   const signUp = await fetch(`${BASE_URL}/api/auth/sign-up/email`, {
     method: 'POST',
@@ -259,7 +256,6 @@ async function runChecks() {
     `POST /api/auth/sign-up/email вернул ${signUp.status}: ${await signUp.clone().text()}`,
   );
 
-  // Повторная регистрация той же почты должна честно сообщить о конфликте.
   const duplicate = await fetch(`${BASE_URL}/api/auth/sign-up/email`, {
     method: 'POST',
     headers: {
@@ -329,7 +325,6 @@ async function runChecks() {
     jwt = tokenBody.token ?? null;
   }
 
-  // Подделка токена: подпись не проходит проверку по JWKS.
   const forged = `${(jwt ?? 'a.b.c').split('.').slice(0, 2).join('.')}.tampered`;
   const forgedResponse = await fetch(`${BASE_URL}/api/pages`, {
     headers: {

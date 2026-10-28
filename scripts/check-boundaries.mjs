@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
- * Проверка границ фронтенд-архитектуры (apps/web).
+ * Frontend architecture boundary check (apps/web).
  *
- * Правила (см. .agents/AGENTS.md):
- *  1. shared не импортирует modules/core/app.
- *  2. Внешний код обращается к модулю только через `modules/<модуль>` (index.ts):
- *     глубокие импорты (hooks, stores, api, types, utils, ui) запрещены.
- *  3. stores и api модуля доступны только внутри этого же модуля.
- *  4. api не тянет React, TanStack Query, Zustand, core и stores: только
- *     сырые вызовы и чистые хелперы.
- *  5. В ui-папке модуля не живут hooks и stores: ui — только компоненты.
- *  6. У модуля ровно один facade-хук: hooks/use-<module>.ts.
- *  7. Ключи TanStack Query лежат только в utils/query-keys.ts.
+ * Rules (see .agents/AGENTS.md):
+ *  1. shared never imports modules/core/app.
+ *  2. Outside code reaches a module only through `modules/<module>` (index.ts):
+ *     deep imports (hooks, stores, api, types, utils, ui) are forbidden.
+ *  3. A module's stores and api are visible only inside that module.
+ *  4. api must not pull in React, TanStack Query, Zustand, core or stores:
+ *     only raw calls and pure helpers.
+ *  5. A module's ui folder holds no hooks or stores: ui is components only.
+ *  6. Each module has exactly one facade hook: hooks/use-<module>.ts.
+ *  7. TanStack Query keys live only in utils/query-keys.ts.
  *
- * Скрипт не резолвит файл на диск — сравнивает нормализованные пути импортов.
+ * The script never resolves files on disk — it compares normalised import paths.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -23,7 +23,6 @@ const SRC = join(ROOT, 'src');
 const staticImportPattern = /from\s+['"]([^'"]+)['"]/gu;
 const dynamicImportPattern = /import\s*\(\s*['"]([^'"]+)['"]\s*\)/gu;
 
-/** Собирает все .ts/.tsx файлы под каталогом. */
 function collectFiles(dir) {
   const result = [];
 
@@ -45,7 +44,6 @@ function collectFiles(dir) {
   return result;
 }
 
-/** Нормализует specifier в абсолютный путь внутри репозитория (или null). */
 function resolveSpecifier(fromFile, specifier) {
   if (specifier.startsWith('@/')) {
     return join(SRC, specifier.slice(2));
@@ -78,8 +76,8 @@ function rel(path) {
 const violations = [];
 const files = [...collectFiles(SRC), ...collectFiles(join(ROOT, 'test'))];
 
-// 6. Один facade-хук на модуль. Никаких вложенных хуков и helper-файлов:
-//    имя фиксировано — hooks/use-<module>.ts.
+// 6. One facade hook per module. No nested hooks or helper files:
+//    the name is fixed — hooks/use-<module>.ts.
 const hooksByModule = new Map();
 
 for (const file of files) {
@@ -124,7 +122,7 @@ for (const file of files) {
   const isShared = fromRel.startsWith('apps/web/src/shared/');
   const isApi = fromModule !== null && fromModule.rest.startsWith('api/');
 
-  // 7. Ключи TanStack Query — только в utils/query-keys.ts своего модуля.
+  // 7. TanStack Query keys live only in the module's own utils/query-keys.ts.
   const relativePath = relative(SRC, file).split('\\').join('/');
 
   if (
@@ -135,12 +133,12 @@ for (const file of files) {
     violations.push(`${fromRel}: ключи TanStack Query живут в utils/query-keys.ts`);
   }
 
-  // 5. ui — слой компонентов: хукам и сторам здесь не место.
+  // 5. ui is the component layer: no hooks or stores here.
   if (/modules\/[^/]+\/ui\/(?:hooks|stores)\//u.test(fromRel)) {
     violations.push(`${fromRel}: hooks/stores не могут жить внутри ui`);
   }
 
-  // 6. Отдельных use case-классов нет: бизнес-логика живёт в хуках.
+  // 6. No separate use-case classes: business logic lives in the hooks.
   if (/modules\/[^/]+\/hooks\/use-cases\//u.test(fromRel)) {
     violations.push(`${fromRel}: папка use-cases не используется — логика живёт в хуках`);
   }
@@ -155,19 +153,19 @@ for (const file of files) {
     const targetRel = relative(SRC, target).split('\\').join('/');
     const targetModule = moduleOf(target);
 
-    // 1. shared не знает про modules/core/app.
+    // 1. shared knows nothing about modules/core/app.
     if (isShared && (targetModule !== null || targetRel.startsWith('core/'))) {
       violations.push(`${fromRel}: shared не может импортировать ${specifier}`);
     }
 
-    // 2-3. Глубокие импорты модуля — только из самого модуля.
+    // 2-3. Deep module imports are allowed only from the module itself.
     if (targetModule !== null && targetModule.rest !== '' && targetModule.rest !== 'index') {
       if (fromModule === null || fromModule.name !== targetModule.name) {
         violations.push(`${fromRel}: глубокий импорт модуля запрещён: ${specifier}`);
       }
     }
 
-    // 4. api — только сырые вызовы: без React, Query, Zustand и core.
+    // 4. api is raw calls only: no React, Query, Zustand or core.
     if (isApi) {
       const bannedPackages = ['react', 'react-dom', '@tanstack/react-query', 'zustand'];
       const bannedPackage = bannedPackages.some(
