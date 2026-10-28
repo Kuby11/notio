@@ -1,24 +1,25 @@
 import { z } from 'zod';
 
 /**
- * DTO ответов auth-service.
+ * DTOs of auth-service responses.
  *
- * Сеть не считается доверенной: всё, что приходит, проверяется Zod до того,
- * как попадёт в доменную модель. Пустое тело — валидный «нет сессии»,
- * поэтому схемы строятся на nullable/unknown, а не на предположениях.
+ * The network is not trusted: everything that arrives is checked by Zod before
+ * entering the domain model. An empty body is a valid "no session", so the
+ * schemas are built on nullable/unknown rather than on assumptions.
  */
 
-const UserSchema = z.object({
+export const UserSchema = z.object({
   id: z.string().min(1),
   email: z.email(),
   name: z.string(),
   emailVerified: z.boolean(),
+  image: z.string().nullable().optional(),
 });
 
 /**
- * Ответ get-session: сессия и пользователь приходят отдельными объектами.
- * Клиент Better Auth превращает даты в `Date`, поэтому схема принимает оба вида.
- * Пустое тело (null) — валидный «нет сессии».
+ * get-session response: session and user arrive as separate objects.
+ * The Better Auth client turns dates into `Date`, so the schema accepts both.
+ * An empty body (null) is a valid "no session".
  */
 const SessionSchema = z.object({
   user: UserSchema,
@@ -43,8 +44,8 @@ export const SignInResponseSchema = z.object({
 export const TokenResponseSchema = z.object({ token: z.string().min(1) });
 
 /**
- * Тело ошибки Better Auth: код приходит в поле code, текст — в message.
- * Оба поля опциональны: прокси может вернуть problem+json без них.
+ * Better Auth error body: the code comes in the `code` field, the text in `message`.
+ * Both are optional: the proxy may return problem+json without them.
  */
 export const AuthErrorResponseSchema = z.object({
   code: z.string().optional(),

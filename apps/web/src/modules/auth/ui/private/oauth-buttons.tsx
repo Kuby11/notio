@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/ui/button';
 
 type OAuthProvider = 'google' | 'github';
@@ -11,11 +12,15 @@ interface OAuthButtonsProps {
 }
 
 /**
- * Приватный компонент модуля auth: кнопки входа через OAuth-провайдеров.
- * Используется формами входа и регистрации, наружу модуля не выходит.
+ * Private component of the auth module: sign-in buttons for OAuth providers.
+ * Used by the login and registration forms, never exported from the module.
  */
 export function OAuthButtons({ mode, pending, onSelect }: OAuthButtonsProps) {
-  const verb = mode === 'sign-in' ? 'Войти' : 'Зарегистрироваться';
+  const t = useTranslations('auth');
+  const label = (provider: string) =>
+    mode === 'sign-in'
+      ? t('signInWithProvider', { provider })
+      : t('signUpWithProvider', { provider });
 
   return (
     <div className="flex flex-col gap-2">
@@ -27,7 +32,7 @@ export function OAuthButtons({ mode, pending, onSelect }: OAuthButtonsProps) {
         className="w-full"
       >
         <GoogleLogo />
-        {verb} через Google
+        {label('Google')}
       </Button>
       <Button
         type="button"
@@ -37,13 +42,13 @@ export function OAuthButtons({ mode, pending, onSelect }: OAuthButtonsProps) {
         className="w-full"
       >
         <GitHubLogo />
-        {verb} через GitHub
+        {label('GitHub')}
       </Button>
     </div>
   );
 }
 
-/** Логотип Google: официальный четырёхцветный значок. */
+/** Google logo: the official four-colour mark. */
 function GoogleLogo() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
@@ -67,7 +72,7 @@ function GoogleLogo() {
   );
 }
 
-/** Логотип GitHub: монохромный значок. */
+/** GitHub logo: monochrome mark. */
 function GitHubLogo() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">

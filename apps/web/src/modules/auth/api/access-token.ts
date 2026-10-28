@@ -2,23 +2,22 @@ import type { TokenProvider } from '../../../shared/types';
 import type { AuthGateway } from '../types/ports';
 
 /**
- * Инфраструктура api: JWT активной сессии с кешем в памяти.
+ * api infrastructure: the active session's JWT with an in-memory cache.
  *
- * Провайдер живёт вне React: контейнер передаёт его репозиториям других
- * модулей как `TokenProvider`. Токен не сохраняется в хранилище браузера.
- * Кеш нужен, чтобы каждый запрос к страницам не создавал отдельный запрос
- * к auth-service и не исчерпывал его rate limit.
+ * The provider lives outside React: the container passes it to other modules'
+ * repositories as a `TokenProvider`. The token is never stored in browser
+ * storage. The cache exists so that every page request does not fire its own
+ * auth-service call and exhaust its rate limit.
  */
 export interface AccessTokenProvider extends TokenProvider {
-  /** Сбрасывает кеш: вызывается при выходе из аккаунта. */
+  /** Drops the cache: called on sign-out. */
   clear(): void;
 }
 
-/** Сколько живёт кеш токена в памяти. */
 export const ACCESS_TOKEN_TTL_MS = 60_000;
 
 /**
- * `now` инжектируется для тестов: поведение кеша детерминировано без таймеров.
+ * `now` is injected for tests: cache behaviour stays deterministic without timers.
  */
 export function createAccessToken(
   auth: AuthGateway,
@@ -26,8 +25,8 @@ export function createAccessToken(
 ): AccessTokenProvider {
   let cached: { token: string; expiresAt: number } | null = null;
   let inFlight: Promise<string | null> | null = null;
-  // Поколение защищает от гонки: ответ, начатый до clear(), не должен
-  // вернуть старый токен обратно в кеш после выхода из аккаунта.
+  // The generation counter guards against a race: a response started before clear()
+  // must not put the old token back into the cache after sign-out.
   let generation = 0;
 
   return {
@@ -38,8 +37,8 @@ export function createAccessToken(
         return cached.token;
       }
 
-      // Параллельные запросы страниц не должны устраивать stampede
-      // в /api/auth/token: все ждут один и тот же in-flight запрос.
+      // Parallel page requests must not stampede
+      // /api/auth/token: everyone awaits the same in-flight request.
       if (inFlight !== null) {
         return inFlight;
       }
@@ -50,8 +49,8 @@ export function createAccessToken(
 
         if (requestGeneration === generation) {
           if (token !== null) {
-            // Кешируем на TTL: токен живёт дольше, но обновление раз в минуту
-            // достаточно, чтобы не бить по auth-service на каждый запрос.
+            // Cache on TTL: the token lives longer, but refreshing once a minute is
+            // enough to stop hitting auth-service on every request.
             cached = { token, expiresAt: now() + ACCESS_TOKEN_TTL_MS };
           } else {
             cached = null;

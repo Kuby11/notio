@@ -4,9 +4,8 @@ import type { AuthGateway } from './types/ports';
 
 export { LoginForm } from './ui/public/login-form';
 export { RegisterForm } from './ui/public/register-form';
-export { SessionPanel } from './ui/public/session-panel';
 export { useAuth } from './hooks/use-auth';
-export { authErrorMessage } from './utils/error-mapper';
+export { authErrorCode } from './utils/error-mapper';
 export { AuthError, isAuthError } from './types/errors';
 export type { AuthErrorCode } from './types/errors';
 export type { AuthGateway, AuthSession, SessionUser } from './types/ports';
@@ -14,26 +13,26 @@ export type { Credentials, SignUpInput } from './utils/credentials';
 export { MIN_PASSWORD_LENGTH, normalizeEmail, validateCredentials } from './utils/credentials';
 
 /**
- * Публичный API модуля аутентификации.
+ * Public API of the authentication module.
  *
- * Наружу выходят только фабрика, facade-хуки и UI-компоненты. Адаптер
- * Better Auth, кеш JWT и DTO остаются внутренними деталями: контейнер
- * получает из модуля лишь порты.
+ * Only the factory, the facade hooks and the UI components face outward. The
+ * Better Auth adapter, the JWT cache and the DTOs stay internal: the container
+ * gets ports from the module and nothing else.
  */
 
 export interface AuthModule {
-  /** Порт аутентификации: facade-хуки зависят только от этого интерфейса. */
+  /** Authentication port: facade hooks depend only on this interface. */
   gateway: AuthGateway;
-  /** JWT активной сессии с кешем: контейнер передаёт его другим модулям. */
+  /** The active session's JWT with a cache: the container passes it to other modules. */
   accessToken: AccessTokenProvider;
 }
 
-/** Собирает модуль аутентификации поверх Better Auth (продакшен и e2e). */
+/** Builds the authentication module over Better Auth (production and e2e). */
 export function createAuthModule(options: { baseUrl: string }): AuthModule {
   return createAuthModuleWithGateway(createBetterAuthGateway(options));
 }
 
-/** Собирает модуль аутентификации поверх готового gateway (тесты, storybook). */
+/** Builds the authentication module over a ready-made gateway (tests, storybook). */
 export function createAuthModuleWithGateway(gateway: AuthGateway): AuthModule {
   return { gateway, accessToken: createAccessToken(gateway) };
 }

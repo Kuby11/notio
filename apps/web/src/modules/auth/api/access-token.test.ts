@@ -3,10 +3,26 @@ import type { AuthGateway, AuthSession } from '../types/ports';
 import { ACCESS_TOKEN_TTL_MS, createAccessToken } from './access-token';
 
 /**
- * In-memory порт: кеш токена тестируется без React и без сети.
- * Методы, кроме accessToken, этому тесту не нужны, но тип требует порт целиком.
+ * In-memory port: the token cache is tested without React and without network.
+ * Methods other than accessToken are not needed by this test, but the type requires the whole port.
  */
 class InMemoryAuthGateway implements AuthGateway {
+  updateUser = async () => {
+    throw new Error('not implemented in test');
+  };
+
+  changeEmail = async () => {
+    throw new Error('not implemented in test');
+  };
+
+  changePassword = async () => {
+    throw new Error('not implemented in test');
+  };
+
+  deleteAccount = async () => {
+    throw new Error('not implemented in test');
+  };
+
   token: string | null = null;
   calls = 0;
 
@@ -37,7 +53,7 @@ class InMemoryAuthGateway implements AuthGateway {
   }
 }
 
-/** Порт с управляемым ответом: нужен, чтобы удержать запрос «в полёте». */
+/** Port with a controlled response: needed to hold a request "in flight". */
 class DeferredAuthGateway extends InMemoryAuthGateway {
   private pending: ((token: string | null) => void) | null = null;
 
@@ -93,7 +109,7 @@ describe('createAccessToken', () => {
     await expect(first).resolves.toBe('jwt-token');
     await expect(second).resolves.toBe('jwt-token');
 
-    // Оба запроса получили один токен и после завершения он попал в кеш.
+    // Both requests received one token and it landed in the cache once they settled.
     await expect(token.execute()).resolves.toBe('jwt-token');
     expect(gateway.calls).toBe(1);
   });
@@ -108,8 +124,8 @@ describe('createAccessToken', () => {
 
     await expect(stale).resolves.toBe('stale-token');
 
-    // После выхода старый ответ не должен «оживить» кеш: следующий вызов
-    // обязан снова спросить auth-service.
+    // After sign-out the old response must not "revive" the cache: the next call
+    // has to ask auth-service again.
     const fresh = token.execute();
     expect(gateway.calls).toBe(2);
 

@@ -1,10 +1,10 @@
 import type { Credentials, SignUpInput } from '../utils/credentials';
 
 /**
- * Порт аутентификации.
+ * Authentication port.
  *
- * Реализация — адаптер поверх Better Auth; facade-хуки знают только этот
- * интерфейс, поэтому в тестах подставляется in-memory версия без сети.
+ * The implementation is an adapter over Better Auth; facade hooks know only
+ * this interface, so tests substitute an in-memory version without network.
  */
 
 export interface SessionUser {
@@ -12,6 +12,8 @@ export interface SessionUser {
   email: string;
   name: string;
   emailVerified: boolean;
+  /** URL of the avatar (a media file) or null. */
+  image?: string | null;
 }
 
 export interface AuthSession {
@@ -20,27 +22,44 @@ export interface AuthSession {
 }
 
 export interface AuthGateway {
-  /** Регистрация. Сессия не создаётся: сначала подтверждение почты. */
+  /** Registration. No session is created: email confirmation comes first. */
   signUp(input: SignUpInput): Promise<void>;
-  /** Вход по паролю. Бросает AuthError с кодом EMAIL_NOT_VERIFIED, если почта не подтверждена. */
+  /** Password sign-in. Throws an AuthError with code EMAIL_NOT_VERIFIED when the email is unconfirmed. */
   signIn(credentials: Credentials): Promise<void>;
   /**
-   * Вход через внешнего провайдера (Google, GitHub).
+   * Sign-in through an external provider (Google, GitHub).
    *
-   * Браузер перенаправляется на страницу провайдера; после возврата
-   * сессия устанавливается автоматически и пользователь оказывается на
-   * callbackURL. Токен в клиенте не хранится.
+   * The browser redirects to the provider's page; on return the session is
+   * established automatically and the user ends up on callbackURL. No token is
+   * stored in the client.
    */
   signInWithProvider(provider: 'google' | 'github', callbackUrl?: string): Promise<void>;
-  /** Выход: сервер отзывает сессию, клиент теряет cookie. */
+  /** Sign-out: the server revokes the session, the client loses the cookie. */
   signOut(): Promise<void>;
-  /** Текущая сессия или null, если пользователь не входит. */
+  /** The current session, or null when nobody is signed in. */
   currentSession(): Promise<AuthSession | null>;
   /**
-   * Короткоживущий JWT для вызовов закрытого API.
-   * Токен живёт только в памяти вызова и не сохраняется в хранилище браузера.
+   * Short-lived JWT for calls to the closed API.
+   * The token exists only in memory for the duration of the call and is never
+   * written to browser storage.
    */
   accessToken(): Promise<string | null>;
+  /**
+   * Profile update: name and avatar (URL of a media file or null).
+   *
+   * Returns the user as the server persisted it: the update endpoint answers
+   * with a bare status, so the state is read back instead of guessed.
+   */
+  updateUser(input: { name?: string; image?: string | null }): Promise<SessionUser>;
+  /**
+   * Email change request. The address changes only after the confirmation
+   * link sent to the new inbox is opened.
+   */
+  changeEmail(newEmail: string): Promise<void>;
+  /** Password change for accounts that have one (email sign-up, not OAuth). */
+  changePassword(input: { currentPassword: string; newPassword: string }): Promise<void>;
+  /** Irreversible account deletion: the session and the user row go away. */
+  deleteAccount(): Promise<void>;
 }
 
 export type { Credentials, SignUpInput };

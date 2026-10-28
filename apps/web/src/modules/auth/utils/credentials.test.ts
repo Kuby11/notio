@@ -11,7 +11,7 @@ import {
 } from './credentials';
 import { AUTH_ERROR_CODES, AuthError, isAuthError } from '../types/errors';
 
-/** Код доменной ошибки, которой упала функция: ассерт по коду, а не по тексту. */
+/** Code of the domain error the function threw: assert on code, not on text. */
 function codeOf(run: () => unknown): string | undefined {
   try {
     run();

@@ -7,13 +7,13 @@ import {
   SignUpResponseSchema,
   TokenResponseSchema,
 } from '../types/dto';
-import { authErrorFromPayload, authErrorFromStatus, messageFor } from '../utils/error-mapper';
+import { authErrorFromPayload, authErrorFromStatus } from '../utils/error-mapper';
 
 const BASE_URL = 'http://localhost:8787';
 
 /**
- * Контрактный тест адаптера: клиент Better Auth работает поверх fetch,
- * поэтому сетевой слой подменяется целиком — проверяется наш код, а не библиотека.
+ * Contract test of the adapter: the Better Auth client runs over fetch, so the
+ * network layer is replaced entirely — our code is checked, not the library.
  */
 function stubFetch(handler: (url: string, init?: RequestInit) => Response) {
   const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
@@ -122,6 +122,80 @@ describe('адаптер аутентификации', () => {
     await expect(
       gateway.signIn({ email: 'user@notio.dev', password: 'correct-horse-battery' }),
     ).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
+  });
+
+  it('после обновления профиля отдаёт состояние из сессии, а не тело ответа', async () => {
+    // update-user отвечает `{ status: true }` — раньше это ломалось на разборе.
+    const fetchMock = stubFetch((url) => {
+      if (url.includes('/update-user')) {
+        return json({ status: true });
+      }
+
+      return json({
+        user: { ...USER, name: 'Ваня' },
+        session: { id: 'session-1', expiresAt: '2026-10-19T00:00:00.000Z' },
+      });
+    });
+    const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
+
+    const user = await gateway.updateUser({ name: 'Ваня' });
+
+    expect(user.name).toBe('Ваня');
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/update-user'))).toBe(true);
+  });
+
+  it('падает, если после обновления профиля сессии уже нет', async () => {
+    stubFetch((url) => (url.includes('/update-user') ? json({ status: true }) : json(null)));
+    const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
+
+    await expect(gateway.updateUser({ name: 'Ваня' })).rejects.toMatchObject({ code: 'UNKNOWN' });
+  });
+
+  it('отправляет подтверждение смены почты и не ждёт тела пользователя', async () => {
+    const fetchMock = stubFetch(() => json({ status: true }));
+    const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
+
+    await expect(gateway.changeEmail('new@notio.dev')).resolves.toBeUndefined();
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/api/auth/change-email');
+  });
+
+  it('переводит неверный текущий пароль в INVALID_PASSWORD', async () => {
+    stubFetch(() => json({ code: 'INVALID_PASSWORD' }, 400));
+    const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
+
+    await expect(
+      gateway.changePassword({
+        currentPassword: 'old-password-12',
+        newPassword: 'new-password-34',
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_PASSWORD' });
+  });
+
+  it('объясняет отсутствие пароля у OAuth-аккаунта', async () => {
+    stubFetch(() => json({ code: 'CREDENTIAL_ACCOUNT_NOT_FOUND' }, 400));
+    const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
+
+    await expect(
+      gateway.changePassword({
+        currentPassword: 'old-password-12',
+        newPassword: 'new-password-34',
+      }),
+    ).rejects.toMatchObject({ code: 'PASSWORD_NOT_SET' });
+  });
+
+  it('просит войти заново, когда сессия слишком стара для удаления', async () => {
+    stubFetch(() => json({ code: 'SESSION_NOT_FRESH' }, 403));
+    const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
+
+    await expect(gateway.deleteAccount()).rejects.toMatchObject({ code: 'SESSION_EXPIRED' });
+  });
+
+  it('удаляет аккаунт через delete-user', async () => {
+    const fetchMock = stubFetch(() => json({ success: true, message: 'User deleted' }));
+    const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
+
+    await expect(gateway.deleteAccount()).resolves.toBeUndefined();
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/api/auth/delete-user');
   });
 
   it('возвращает null, когда сессии нет', async () => {
@@ -243,7 +317,7 @@ describe('перевод кодов ошибок', () => {
   it('считает 429 ограничением по частоте', () => {
     expect(authErrorFromStatus(429).code).toBe('RATE_LIMITED');
     expect(authErrorFromStatus(500).code).toBe('UNKNOWN');
-    expect(messageFor('INVALID_CREDENTIALS')).toContain('пароль');
+    expect(authErrorFromStatus(500).message).toBe('UNKNOWN');
   });
 });
 

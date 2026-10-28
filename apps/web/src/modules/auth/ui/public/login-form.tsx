@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,18 +9,29 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { MIN_PASSWORD_LENGTH } from '../../utils/credentials';
-import { authErrorMessage } from '../../utils/error-mapper';
+import { authErrorCode } from '../../utils/error-mapper';
+import { oauthErrorKey } from '../../utils/oauth-error';
 import { useAuth } from '../../hooks/use-auth';
 import { OAuthButtons } from '../private/oauth-buttons';
 
 const LoginSchema = z.object({
-  email: z.email('Почта выглядит некорректно'),
-  password: z.string().min(1, 'Укажите пароль'),
+  email: z.email('invalid-email'),
+  password: z.string().min(1, 'required'),
 });
 
 type LoginFields = z.infer<typeof LoginSchema>;
 
-export function LoginForm() {
+interface LoginFormProps {
+  /**
+   * Provider error code from `?error=` after a failed OAuth redirect. The
+   * provider sends the user back here, so the form is the only place that can
+   * explain what happened.
+   */
+  providerError?: string | null;
+}
+
+export function LoginForm({ providerError = null }: LoginFormProps) {
+  const t = useTranslations('auth');
   const router = useRouter();
   const { signIn, signInWithProvider } = useAuth();
   const {
@@ -38,15 +50,13 @@ export function LoginForm() {
         password: values.password,
       });
       router.push('/');
-    } catch {
-      // Текст ошибки берётся из мутации.
-    }
+    } catch {}
   });
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Почта</Label>
+        <Label htmlFor="email">{t('email')}</Label>
         <Input
           id="email"
           type="email"
@@ -56,13 +66,13 @@ export function LoginForm() {
         />
         {errors.email !== undefined ? (
           <p role="alert" className="text-xs text-red-600">
-            {errors.email.message}
+            {t('errors.emailInvalid')}
           </p>
         ) : null}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Пароль</Label>
+        <Label htmlFor="password">{t('password')}</Label>
         <Input
           id="password"
           type="password"
@@ -72,19 +82,19 @@ export function LoginForm() {
         />
         {errors.password !== undefined ? (
           <p role="alert" className="text-xs text-red-600">
-            {errors.password.message}
+            {t('errors.passwordRequired')}
           </p>
         ) : null}
       </div>
 
       {signIn.error !== null ? (
         <p role="alert" className="text-sm text-red-600">
-          {authErrorMessage(signIn.error)}
+          {t(`errors.${authErrorCode(signIn.error) ?? 'UNKNOWN'}`)}
         </p>
       ) : null}
 
       <Button type="submit" disabled={signIn.isPending} className="w-full">
-        {signIn.isPending ? 'Входим…' : 'Войти'}
+        {signIn.isPending ? t('signInBusy') : t('signIn')}
       </Button>
 
       <OAuthButtons
@@ -93,18 +103,26 @@ export function LoginForm() {
         onSelect={(provider) => signInWithProvider.mutate(provider)}
       />
 
+      {providerError !== null ? (
+        <p role="alert" className="text-sm text-red-600">
+          {t(`errors.${oauthErrorKey(providerError)}`)}
+        </p>
+      ) : null}
+
       {signInWithProvider.error !== null ? (
         <p role="alert" className="text-sm text-red-600">
-          {authErrorMessage(signInWithProvider.error)}
+          {/* An unmapped code must not render an empty alert: "the button does
+              nothing" is worse than a generic message. */}
+          {t(`errors.${authErrorCode(signInWithProvider.error) ?? 'UNKNOWN'}`)}
         </p>
       ) : null}
 
       <p className="text-xs text-neutral-500">
-        Нет аккаунта?{' '}
+        {t('noAccount')}{' '}
         <a className="underline" href="/register">
-          Зарегистрироваться
-        </a>
-        . Пароль не короче {MIN_PASSWORD_LENGTH} символов.
+          {t('signUp')}
+        </a>{' '}
+        {t('passwordHint', { count: MIN_PASSWORD_LENGTH })}
       </p>
     </form>
   );

@@ -1,11 +1,12 @@
 import { AuthError, isAuthError, type AuthErrorCode } from '../types/errors';
 
 /**
- * Перевод ответов сервиса в доменные ошибки.
+ * Translates service responses into domain errors.
  *
- * Коды Better Auth — деталь реализации сервиса: UI их знать не должен.
- * Неизвестный код превращается в UNKNOWN, а не игнорируется: молча
- * проглоченная ошибка входа выглядит как «ничего не произошло».
+ * Better Auth codes are a detail of the service implementation: the UI must not
+ * know them. An unknown code becomes UNKNOWN instead of being ignored: a
+ * silently swallowed sign-in error looks like "nothing happened".
+ * Message texts live in messages/*.json — only codes live here.
  */
 
 const CODE_MAP: Record<string, AuthErrorCode> = {
@@ -15,32 +16,29 @@ const CODE_MAP: Record<string, AuthErrorCode> = {
   USER_ALREADY_EXISTS: 'EMAIL_TAKEN',
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: 'EMAIL_TAKEN',
   EMAIL_TAKEN: 'EMAIL_TAKEN',
-  // Наш собственный ответ о занятом email (problem+json, код CONFLICT).
+  // Our own response about a taken email (problem+json, code CONFLICT).
   CONFLICT: 'EMAIL_TAKEN',
   PASSWORD_TOO_SHORT: 'WEAK_PASSWORD',
   PASSWORD_TOO_LONG: 'WEAK_PASSWORD',
   INVALID_EMAIL: 'INVALID_EMAIL',
+  // Current password did not match (password change, account deletion).
+  INVALID_PASSWORD: 'INVALID_PASSWORD',
+  // The account was created through OAuth and has no password to change.
+  CREDENTIAL_ACCOUNT_NOT_FOUND: 'PASSWORD_NOT_SET',
+  // Sensitive operations require a session younger than the freshness window.
+  SESSION_EXPIRED: 'SESSION_EXPIRED',
+  SESSION_NOT_FRESH: 'SESSION_EXPIRED',
 };
 
-const MESSAGES: Record<AuthErrorCode, string> = {
-  INVALID_CREDENTIALS: 'Неверная почта или пароль',
-  EMAIL_NOT_VERIFIED: 'Подтвердите почту по ссылке из письма',
-  EMAIL_TAKEN: 'Аккаунт с такой почтой уже существует',
-  WEAK_PASSWORD: 'Пароль слишком короткий или длинный',
-  INVALID_EMAIL: 'Почта выглядит некорректно',
-  RATE_LIMITED: 'Слишком много попыток. Попробуйте позже',
-  NETWORK_ERROR: 'Сервис недоступен. Проверьте соединение',
-  UNKNOWN: 'Не удалось выполнить вход. Попробуйте снова',
-};
-
-export function messageFor(code: AuthErrorCode): string {
-  return MESSAGES[code];
+/** Error code for the UI to translate: message texts live in messages/*. */
+export function authErrorCode(error: unknown): AuthErrorCode | null {
+  return isAuthError(error) ? error.code : null;
 }
 
 export function authErrorFromStatus(status: number): AuthError {
   const code: AuthErrorCode = status === 429 ? 'RATE_LIMITED' : 'UNKNOWN';
 
-  return new AuthError(code, messageFor(code));
+  return new AuthError(code, code);
 }
 
 export function authErrorFromPayload(payload: {
@@ -55,14 +53,9 @@ export function authErrorFromPayload(payload: {
 
   return code === undefined
     ? authErrorFromStatus(payload.status ?? 500)
-    : new AuthError(code, messageFor(code));
+    : new AuthError(code, code);
 }
 
 export function networkError(cause: unknown): AuthError {
-  return new AuthError('NETWORK_ERROR', messageFor('NETWORK_ERROR'), { cause });
-}
-
-/** Текст ошибки для показа пользователю: доменный код, а не текст сервера. */
-export function authErrorMessage(error: unknown): string | null {
-  return isAuthError(error) ? error.message : null;
+  return new AuthError('NETWORK_ERROR', 'NETWORK_ERROR', { cause });
 }

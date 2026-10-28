@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,19 +9,26 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { MIN_PASSWORD_LENGTH } from '../../utils/credentials';
-import { authErrorMessage } from '../../utils/error-mapper';
+import { authErrorCode } from '../../utils/error-mapper';
+import { oauthErrorKey } from '../../utils/oauth-error';
 import { useAuth } from '../../hooks/use-auth';
 import { OAuthButtons } from '../private/oauth-buttons';
 
 const RegisterSchema = z.object({
-  name: z.string().min(2, 'Имя не короче 2 символов'),
-  email: z.email('Почта выглядит некорректно'),
-  password: z.string().min(MIN_PASSWORD_LENGTH, `Пароль не короче ${MIN_PASSWORD_LENGTH} символов`),
+  name: z.string().min(2, 'short-name'),
+  email: z.email('invalid-email'),
+  password: z.string().min(MIN_PASSWORD_LENGTH, 'short-password'),
 });
 
 type RegisterFields = z.infer<typeof RegisterSchema>;
 
-export function RegisterForm() {
+interface RegisterFormProps {
+  /** Provider error code from `?error=` after a failed OAuth redirect. */
+  providerError?: string | null;
+}
+
+export function RegisterForm({ providerError = null }: RegisterFormProps) {
+  const t = useTranslations('auth');
   const { signUp, signInWithProvider } = useAuth();
   const [sentTo, setSentTo] = useState<string | null>(null);
   const {
@@ -40,21 +48,17 @@ export function RegisterForm() {
         password: values.password,
       });
       setSentTo(values.email.trim().toLowerCase());
-    } catch {
-      // Текст ошибки берётся из мутации.
-    }
+    } catch {}
   });
 
   if (sentTo !== null) {
     return (
       <div role="status" className="space-y-3 text-sm">
-        <p className="font-medium">Почти готово</p>
-        <p className="text-neutral-600">
-          Мы отправили ссылку для подтверждения на {sentTo}. Откройте её, затем войдите.
-        </p>
+        <p className="font-medium">{t('almostDone')}</p>
+        <p className="text-neutral-600">{t('sentTo', { email: sentTo })}</p>
         <p>
           <a className="underline" href="/login">
-            Перейти ко входу
+            {t('goToSignIn')}
           </a>
         </p>
       </div>
@@ -64,7 +68,7 @@ export function RegisterForm() {
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="name">Имя</Label>
+        <Label htmlFor="name">{t('name')}</Label>
         <Input
           id="name"
           type="text"
@@ -74,13 +78,13 @@ export function RegisterForm() {
         />
         {errors.name !== undefined ? (
           <p role="alert" className="text-xs text-red-600">
-            {errors.name.message}
+            {t('errors.nameShort')}
           </p>
         ) : null}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Почта</Label>
+        <Label htmlFor="email">{t('email')}</Label>
         <Input
           id="email"
           type="email"
@@ -90,13 +94,13 @@ export function RegisterForm() {
         />
         {errors.email !== undefined ? (
           <p role="alert" className="text-xs text-red-600">
-            {errors.email.message}
+            {t('errors.emailInvalid')}
           </p>
         ) : null}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Пароль</Label>
+        <Label htmlFor="password">{t('password')}</Label>
         <Input
           id="password"
           type="password"
@@ -106,19 +110,19 @@ export function RegisterForm() {
         />
         {errors.password !== undefined ? (
           <p role="alert" className="text-xs text-red-600">
-            {errors.password.message}
+            {t('errors.passwordShort')}
           </p>
         ) : null}
       </div>
 
       {signUp.error !== null ? (
         <p role="alert" className="text-sm text-red-600">
-          {authErrorMessage(signUp.error)}
+          {t(`errors.${authErrorCode(signUp.error) ?? 'UNKNOWN'}`)}
         </p>
       ) : null}
 
       <Button type="submit" disabled={signUp.isPending} className="w-full">
-        {signUp.isPending ? 'Создаём…' : 'Создать аккаунт'}
+        {signUp.isPending ? t('signUpBusy') : t('createAccount')}
       </Button>
 
       <OAuthButtons
@@ -127,18 +131,24 @@ export function RegisterForm() {
         onSelect={(provider) => signInWithProvider.mutate(provider)}
       />
 
+      {providerError !== null ? (
+        <p role="alert" className="text-sm text-red-600">
+          {t(`errors.${oauthErrorKey(providerError)}`)}
+        </p>
+      ) : null}
+
       {signInWithProvider.error !== null ? (
         <p role="alert" className="text-sm text-red-600">
-          {authErrorMessage(signInWithProvider.error)}
+          {t(`errors.${authErrorCode(signInWithProvider.error) ?? 'UNKNOWN'}`)}
         </p>
       ) : null}
 
       <p className="text-xs text-neutral-500">
-        Уже есть аккаунт?{' '}
+        {t('hasAccount')}{' '}
         <a className="underline" href="/login">
-          Войти
-        </a>
-        . Пароль не короче {MIN_PASSWORD_LENGTH} символов.
+          {t('signIn')}
+        </a>{' '}
+        {t('passwordHint', { count: MIN_PASSWORD_LENGTH })}
       </p>
     </form>
   );

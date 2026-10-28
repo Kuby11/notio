@@ -1,6 +1,6 @@
 import { createAuthClient } from 'better-auth/client';
 import { jwtClient } from 'better-auth/client/plugins';
-import type { AuthGateway, AuthSession, SignUpInput } from '../types/ports';
+import type { AuthGateway, AuthSession, SessionUser, SignUpInput } from '../types/ports';
 import type { Credentials } from '../utils/credentials';
 import type { AuthError } from '../types/errors';
 import {
@@ -13,14 +13,14 @@ import { isAuthError } from '../types/errors';
 import { authErrorFromPayload, authErrorFromStatus, networkError } from '../utils/error-mapper';
 
 /**
- * Адаптер аутентификации поверх клиента Better Auth.
+ * Authentication adapter over the Better Auth client.
  *
- * Наружу смотрит только порт AuthGateway: facade-хуки и компоненты не знают
- * ни про Better Auth, ни про коды его ошибок. Ответы валидируются Zod —
- * сеть не доверенный источник.
+ * Only the AuthGateway port faces outward: facade hooks and components know
+ * neither Better Auth nor its error codes. Responses are validated by Zod —
+ * the network is not a trusted source.
  */
 
-/** Ошибка, которую клиент Better Auth возвращает вместо исключения. */
+/** Error the Better Auth client returns instead of throwing. */
 interface ClientError {
   message?: string | undefined;
   status?: number | undefined;
@@ -39,7 +39,7 @@ function toAuthError(error: ClientError | null): AuthError {
     : authErrorFromStatus(error.status ?? 500);
 }
 
-/** Выполняет вызов клиента и превращает любой исход в данные или AuthError. */
+/** Runs a client call and turns any outcome into data or an AuthError. */
 async function call<T>(
   run: () => Promise<{ data: T | null; error: ClientError | null }>,
 ): Promise<T> {
@@ -59,7 +59,7 @@ async function call<T>(
 }
 
 export interface AuthGatewayOptions {
-  /** Адрес gateway: клиент ходит только туда, напрямую к сервисам не ходит. */
+  /** Gateway address: the client only talks to it, never directly to services. */
   baseUrl: string;
 }
 
@@ -68,7 +68,7 @@ export function createBetterAuthGateway(options: AuthGatewayOptions): AuthGatewa
     baseURL: options.baseUrl,
     basePath: '/api/auth',
     plugins: [jwtClient()],
-    // Сессия живёт в cookie: без credentials он не долетит до gateway.
+    // The session lives in a cookie: without credentials it would never reach the gateway.
     fetchOptions: { credentials: 'include' },
   });
 
@@ -86,13 +86,20 @@ export function createBetterAuthGateway(options: AuthGatewayOptions): AuthGatewa
     },
 
     async signInWithProvider(provider: 'google' | 'github', callbackUrl = '/'): Promise<void> {
+      const origin = window.location.origin;
+      const absolute = (path: string) => `${origin}${path.startsWith('/') ? path : `/${path}`}`;
+
       try {
         const result = await client.signIn.social({
           provider,
-          // Абсолютный адрес фронтенда: иначе Better Auth разрешает
-          // callbackURL относительно своего baseURL (gateway) и после
-          // входа пользователь попадает на корень gateway, а не на приложение.
-          callbackURL: `${window.location.origin}${callbackUrl.startsWith('/') ? callbackUrl : `/${callbackUrl}`}`,
+          // Absolute frontend address: otherwise Better Auth resolves
+          // callbackURL relative to its own baseURL (the gateway) and after
+          // sign-in the user lands on the gateway root instead of the app.
+          callbackURL: absolute(callbackUrl),
+          // A denied consent, an expired state or a provider error must come
+          // back to the page the user started from (with ?error=<code>): the
+          // gateway's own error page has no UI to return to the app.
+          errorCallbackURL: `${origin}${window.location.pathname}`,
         });
 
         if (result.error !== null) {
@@ -111,34 +118,44 @@ export function createBetterAuthGateway(options: AuthGatewayOptions): AuthGatewa
       await call(() => client.signOut());
     },
 
-    async currentSession(): Promise<AuthSession | null> {
-      let result: { data: unknown; error: ClientError | null };
+    async updateUser(input: { name?: string; image?: string | null }): Promise<SessionUser> {
+      // update-user answers with `{ status: true }`, not with the user: read the
+      // persisted state back so the UI shows what the server actually stored.
+      await call(() => client.updateUser(input));
 
-      try {
-        result = await client.getSession();
-      } catch (error) {
-        throw networkError(error);
+      const session = await readSession();
+
+      if (session === null) {
+        throw authErrorFromStatus(401);
       }
 
-      if (result.error !== null) {
-        throw toAuthError(result.error);
-      }
-
-      const parsed = SessionResponseSchema.safeParse(result.data);
-
-      if (!parsed.success || parsed.data === null) {
-        return null;
-      }
-
-      return {
-        user: parsed.data.user,
-        expiresAt: new Date(parsed.data.session.expiresAt).toISOString(),
-      };
+      return session.user;
     },
 
+    async changeEmail(newEmail: string): Promise<void> {
+      await call(() => client.changeEmail({ newEmail, callbackURL: '/' }));
+    },
+
+    async changePassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
+      await call(() =>
+        client.changePassword({
+          currentPassword: input.currentPassword,
+          newPassword: input.newPassword,
+          // Other devices keep their sessions: a password change is not a global sign-out.
+          revokeOtherSessions: false,
+        }),
+      );
+    },
+
+    async deleteAccount(): Promise<void> {
+      await call(() => client.deleteUser({}));
+    },
+
+    currentSession: readSession,
+
     async accessToken(): Promise<string | null> {
-      // Запрос идёт обычным fetch: JWT выдаёт плагин Better Auth, отдельного
-      // клиентского метода у него нет, а ответ всё равно проверяется Zod.
+      // The request goes through plain fetch: the JWT is issued by a Better Auth plugin, there is no
+      // dedicated client method for it, and the response is validated by Zod anyway.
       try {
         const response = await fetch(`${options.baseUrl}/api/auth/token`, {
           method: 'GET',
@@ -153,9 +170,35 @@ export function createBetterAuthGateway(options: AuthGatewayOptions): AuthGatewa
 
         return parsed.success ? parsed.data.token : null;
       } catch {
-        // Обрыв сети равносилен отсутствию сессии: токен просто не выдадут.
+        // A network failure equals no session: the token simply never arrives.
         return null;
       }
     },
   };
+
+  /** Reads the active session; an empty body is a valid "nobody is signed in". */
+  async function readSession(): Promise<AuthSession | null> {
+    let result: { data: unknown; error: ClientError | null };
+
+    try {
+      result = await client.getSession();
+    } catch (error) {
+      throw networkError(error);
+    }
+
+    if (result.error !== null) {
+      throw toAuthError(result.error);
+    }
+
+    const parsed = SessionResponseSchema.safeParse(result.data);
+
+    if (!parsed.success || parsed.data === null) {
+      return null;
+    }
+
+    return {
+      user: parsed.data.user,
+      expiresAt: new Date(parsed.data.session.expiresAt).toISOString(),
+    };
+  }
 }

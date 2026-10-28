@@ -1,24 +1,24 @@
 /**
- * Правила учётных данных — чистый доменный слой (без React, Zod и сети).
- * Время и окружение сюда не попадают: правила детерминированы.
+ * Credential rules — a pure domain layer (no React, no Zod, no network).
+ * Time and environment never enter here: the rules are deterministic.
  *
- * Функции `assert*` — входная проверка для хуков: падают доменной ошибкой,
- * чтобы форма показала точный текст, а сеть не получала заведомый мусор.
+ * The `assert*` functions are input checks for hooks: they fail with a domain
+ * error so the form can show an exact message and the network never receives
+ * obvious garbage.
  */
 import { AuthError } from '../types/errors';
 
-/** Минимальная длина пароля. Совпадает с лимитом auth-service. */
+/** Minimum password length. Matches the auth-service limit. */
 export const MIN_PASSWORD_LENGTH = 12;
 
-/** Максимальная длина пароля: длинные значения замедляют хеширование. */
+/** Maximum password length: very long values slow hashing down. */
 export const MAX_PASSWORD_LENGTH = 128;
 
-/** Минимальная длина имени пользователя. */
 export const MIN_NAME_LENGTH = 2;
 
 /**
- * Практичный минимум для формата почты: символ@хост.название. Валидация формы
- * не заменяет проверку на сервере, но не даёт отправлять заведомый мусор.
+ * A pragmatic minimum for the email format: char@host.tld. Form validation
+ * does not replace the server check, but it stops obvious garbage from being sent.
  */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
@@ -42,8 +42,8 @@ export interface CredentialsProblem {
 }
 
 /**
- * Приводит почту к виду, в котором её хранит сервис.
- * Сравнение регистрозависимое email в базе создало бы дубли аккаунтов.
+ * Brings the email to the shape the service stores it in.
+ * A case-sensitive email comparison in the database would create duplicate accounts.
  */
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -54,8 +54,8 @@ export function isValidEmail(email: string): boolean {
 }
 
 /**
- * Проверяет учётные данные до похода в сеть.
- * Возвращает все проблемы сразу, чтобы форма подсветила все поля, а не по одному.
+ * Checks credentials before going to the network.
+ * Returns every problem at once so the form highlights all fields, not one at a time.
  */
 export function validateCredentials(input: Credentials): CredentialsProblem[] {
   const problems: CredentialsProblem[] = [];
@@ -92,18 +92,18 @@ export function validateCredentials(input: Credentials): CredentialsProblem[] {
 }
 
 /**
- * Нормализует данные так же, как регистрация: иначе пользователь с другим
- * регистром почты вводил бы верный пароль и получал отказ.
+ * Normalises data the same way registration does: otherwise a user whose email
+ * differs only in case would type the right password and get rejected.
  */
 export function normalizeCredentials(input: Credentials): Credentials {
   return { email: normalizeEmail(input.email), password: input.password };
 }
 
 /**
- * Нормализует и проверяет данные входа.
+ * Normalises and checks sign-in data.
  *
- * Пароль короче лимита при входе — это не «слабый пароль», а «неверные
- * данные»: код не подсказывает длину чужого пароля.
+ * A password shorter than the limit at sign-in is not a "weak password" but
+ * "wrong credentials": the code must not hint at the length of someone else's password.
  */
 export function assertSignInCredentials(input: Credentials): Credentials {
   const credentials = normalizeCredentials(input);
@@ -119,7 +119,6 @@ export function assertSignInCredentials(input: Credentials): Credentials {
   return credentials;
 }
 
-/** Нормализует и проверяет данные регистрации до похода в сеть. */
 export function assertSignUpInput(input: SignUpInput): SignUpInput {
   const name = input.name.trim();
 

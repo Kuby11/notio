@@ -2,14 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useContainer } from '../../../core/container';
 import { assertSignInCredentials, assertSignUpInput } from '../utils/credentials';
 import type { Credentials, SignUpInput } from '../utils/credentials';
+import type { AuthSession } from '../types/ports';
 import { authKeys } from '../utils/query-keys';
 
 /**
- * Единственный facade-хук модуля аутентификации.
+ * The single facade hook of the authentication module.
  *
- * Здесь собрана вся оркестрация: запрос сессии, вход, регистрация, OAuth и
- * выход. Компоненты получают готовые операции, доменные правила остаются
- * в `utils`, а сеть — за портом `AuthGateway` из контейнера.
+ * All orchestration lives here: session query, sign-in, registration, OAuth and
+ * sign-out. Components get ready-made operations, domain rules stay in
+ * `utils`, and the network stays behind the `AuthGateway` port from the container.
  */
 export function useAuth() {
   const { auth } = useContainer();
@@ -44,10 +45,43 @@ export function useAuth() {
   });
 
   /**
-   * Выход из аккаунта.
+   * Profile update: the adapter returns the stored user, which becomes the
+   * session cache value. The UI then shows exactly what the server persisted
+   * instead of waiting for a refetch that may never happen.
+   */
+  const updateUser = useMutation({
+    mutationFn: (input: { name?: string; image?: string | null }) => auth.gateway.updateUser(input),
+    onSuccess: (user) => {
+      queryClient.setQueryData<AuthSession | null>(authKeys.session(), (previous) =>
+        previous === null || previous === undefined ? previous : { ...previous, user },
+      );
+    },
+  });
+
+  const changeEmail = useMutation({
+    mutationFn: (newEmail: string) => auth.gateway.changeEmail(newEmail.trim().toLowerCase()),
+  });
+
+  const changePassword = useMutation({
+    mutationFn: (input: { currentPassword: string; newPassword: string }) =>
+      auth.gateway.changePassword(input),
+  });
+
+  /** Account deletion ends the session on the server, so the client state goes with it. */
+  const deleteAccount = useMutation({
+    mutationFn: () => auth.gateway.deleteAccount(),
+    onSuccess: () => {
+      auth.accessToken.clear();
+      queryClient.clear();
+    },
+  });
+
+  /**
+   * Signing out.
    *
-   * Ошибка сети не превращается в «успешный» выход: иначе интерфейс покажет,
-   * что пользователь вышел, хотя cookie осталась и сессия ещё активна.
+   * A network error must not become a "successful" sign-out: otherwise the UI
+   * would show the user as signed out while the cookie remains and the session
+   * is still alive.
    */
   const signOut = useMutation({
     mutationFn: () => auth.gateway.signOut(),
@@ -57,5 +91,15 @@ export function useAuth() {
     },
   });
 
-  return { session, signIn, signInWithProvider, signUp, signOut };
+  return {
+    session,
+    signIn,
+    signInWithProvider,
+    signUp,
+    updateUser,
+    changeEmail,
+    changePassword,
+    deleteAccount,
+    signOut,
+  };
 }

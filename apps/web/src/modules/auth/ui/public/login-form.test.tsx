@@ -7,8 +7,8 @@ import { AuthError } from '../../types/errors';
 import { LoginForm } from './login-form';
 
 /**
- * Компонентные тесты формы: проверяем поведение пользователя, а не детали
- * реализации — сеть и контейнер подменены, всё остальное настоящее.
+ * Component tests of the form: we check user behaviour, not implementation
+ * details — the network and the container are replaced, everything else is real.
  */
 
 const { push } = vi.hoisted(() => ({ push: vi.fn<(path: string) => void>() }));
@@ -28,7 +28,7 @@ describe('LoginForm', () => {
     renderWithProviders(<LoginForm />, gateway);
 
     await user.type(screen.getByLabelText('Почта'), 'не-почта');
-    // Пароль оставляем пустым: форма должна показать обе ошибки сразу.
+    // Leave the password empty: the form must show both errors at once.
     await user.click(screen.getByRole('button', { name: 'Войти' }));
 
     expect(await screen.findByText('Почта выглядит некорректно')).toBeInTheDocument();
@@ -48,7 +48,7 @@ describe('LoginForm', () => {
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/'));
 
-    // Почту нормализуем до отправки: без этого аккаунты дублируются по регистру.
+    // The email is normalised before submit: without it accounts duplicate by case.
     expect(gateway.signIn).toHaveBeenCalledWith({
       email: 'user@notio.dev',
       password: 'correct-horse-battery',
