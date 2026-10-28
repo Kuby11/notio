@@ -75,8 +75,8 @@ describe('createAuthServiceApp', () => {
 
     const response = await createAuthServiceApp().request('/api/auth', {}, env);
 
-    // Точный путь без метода не является эндпоинтом Better Auth: отвечает 404,
-    // но это ответ сервиса, а не problem+json gateway.
+    // An exact path without a method is not a Better Auth endpoint: it answers 404,
+    // but that is the service's answer, not the gateway's problem+json.
     expect(response.status).toBe(404);
     expect(response.headers.get('content-type')).not.toBe('application/problem+json');
   });

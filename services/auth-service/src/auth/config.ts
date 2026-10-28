@@ -9,11 +9,11 @@ import { createKvSecondaryStorage } from './secondary-storage';
 const instances = new WeakMap<Bindings, Auth>();
 
 /**
- * Better Auth получает биндинги из окружения запроса, поэтому экземпляр
- * создаётся на каждый запрос. Кеш по объекту окружения убирает повторную
- * сборку опций внутри одного запроса и ничего не кеширует между запросами.
+ * Better Auth reads bindings from the request environment, so the instance is
+ * created per request. Caching on the environment object removes repeated
+ * option building inside one request and caches nothing between requests.
  *
- * `dependencies` — точка подмены для тестов (перехват писем).
+ * `dependencies` is the substitution point for tests (intercepting emails).
  */
 export function createAuth(env: Bindings, dependencies?: Partial<AuthDependencies>): Auth {
   const cached = instances.get(env);

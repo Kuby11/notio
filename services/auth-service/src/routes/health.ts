@@ -4,7 +4,7 @@ import type { AppEnv } from '../env';
 
 export const SERVICE_NAME = 'auth-service';
 
-/** Liveness сервиса: отвечает сам, не трогая базу и внешние зависимости. */
+/** Liveness of the service: answers itself, without touching the database or external dependencies. */
 export function createHealthRoutes(): Hono<AppEnv> {
   return new Hono<AppEnv>().get('/health', (c) =>
     c.json(

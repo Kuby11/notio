@@ -8,11 +8,12 @@ import { createUserRepository } from '../db/user.repository';
 import type { AppEnv } from '../env';
 
 /**
- * Внутренний маршрут для других сервисов: публичные профили пользователей.
+ * Internal route for other services: public user profiles.
  *
- * Путь намеренно вне `/api/auth/*`: gateway проксирует этот префикс наружу,
- * а `/internal/*` доступен только через Service Binding. Иначе перебор id
- * превращался бы в публичный справочник почт всех пользователей.
+ * The path is deliberately outside `/api/auth/*`: the gateway proxies that
+ * prefix outward, while `/internal/*` is reachable only through a Service
+ * Binding. Otherwise enumerating ids would become a public directory of
+ * every user's email.
  */
 export const INTERNAL_USERS_PATH = '/internal/users';
 

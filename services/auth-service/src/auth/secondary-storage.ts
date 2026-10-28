@@ -2,10 +2,10 @@ import type { SecondaryStorage } from 'better-auth';
 
 const PREFIX = 'auth';
 
-/** Cloudflare KV отклоняет expiration_ttl меньше 60 секунд. */
+/** Cloudflare KV rejects expiration_ttl below 60 seconds. */
 const MIN_TTL_SECONDS = 60;
 
-/** Срок жизни для ключей без явного TTL: достаточно для cookie-кэша и счётчиков. */
+/** Lifetime for keys without an explicit TTL: enough for the cookie cache and counters. */
 const DEFAULT_TTL_SECONDS = 60 * 60;
 
 function storageKey(key: string): string {
@@ -13,22 +13,22 @@ function storageKey(key: string): string {
 }
 
 /**
- * KV требует целый TTL не меньше минуты: короткие значения из cookie-кэша
- * продлеваются до минимальных. Для сессии это безопасно — сама cookie
- * истекает раньше, и сервер всё равно сверяется с D1.
+ * KV requires an integer TTL of at least a minute: short values from the
+ * cookie cache are rounded up to the minimum. This is safe for sessions —
+ * the cookie itself expires earlier, and the server checks D1 anyway.
  */
 function kvTtl(value: number | undefined): number {
   return Math.max(MIN_TTL_SECONDS, Math.ceil(value ?? DEFAULT_TTL_SECONDS));
 }
 
 /**
- * Вторичное хранилище Better Auth на KV: rate limit и cookie-кэш.
+ * Better Auth secondary storage on KV: rate limits and the cookie cache.
  *
- * Важное ограничение: в KV нет атомарного инкремента, поэтому `increment`
- * делает чтение и запись по отдельности. Для счётчиков авторизации это
- * означает, что несколько параллельных запросов одного клиента могут
- * проскочить счётчик на единицу — тот же компромисс, что и в rate limit
- * gateway. Если понадобится строгий лимит, переходим на Durable Object.
+ * Important limitation: KV has no atomic increment, so `increment` does a
+ * separate read and write. For auth counters this means several parallel
+ * requests from one client can slip the counter by one — the same
+ * compromise as the gateway rate limit. Move to a Durable Object when a
+ * strict limit is needed.
  */
 export function createKvSecondaryStorage(namespace: KVNamespace): SecondaryStorage {
   return {

@@ -6,12 +6,12 @@ import { createLoggingMailSender } from './mailer';
 import { buildAuthOptions } from './options';
 
 /**
- * Конфигурация только для `@better-auth/cli generate`: CLI работает в Node,
- * где нет Workers-биндингов и реальной базы. Ему нужен адаптер, чтобы
- * определить диалект и сгенерировать схему — сама база при этом не
- * используется, поэтому передаётся заглушка.
+ * Configuration used only by `@better-auth/cli generate`: the CLI runs in Node,
+ * where there are no Workers bindings and no real database. It needs an adapter
+ * to detect the dialect and generate the schema — the database itself is never
+ * used, so a stub is passed in.
  *
- * Сгенерированная схема — единственный источник миграции notio-auth.
+ * The generated schema is the only source of migrations for notio-auth.
  */
 const cliEnv = {
   ENVIRONMENT: 'development',

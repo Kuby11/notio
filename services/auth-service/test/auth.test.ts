@@ -12,9 +12,9 @@ const env = workerEnv as Bindings;
 let requestCounter = 0;
 
 /**
- * Better Auth ограничивает чувствительные эндпоинты (вход, регистрация)
- * отдельным жёстким лимитом в несколько попыток на IP. Тесты имитируют
- * разных клиентов, иначе счётчики исчерпывали бы лимит внутри одного сценария.
+ * Better Auth limits sensitive endpoints (sign-in, registration) with a
+ * separate hard cap of a few attempts per IP. The tests imitate different
+ * clients, otherwise the counters would exhaust the limit within one scenario.
  */
 function uniqueIp(): string {
   requestCounter += 1;
@@ -22,7 +22,7 @@ function uniqueIp(): string {
   return `198.51.100.${requestCounter % 250}`;
 }
 
-/** Письма перехватываются вместо отправки: тестам нужен доступ к ссылке. */
+/** Emails are intercepted instead of sent: tests need access to the link. */
 function createTestApp(mail: OutboundMail[]): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const mailSender: MailSender = {
@@ -48,8 +48,8 @@ async function call(app: Hono<AppEnv>, path: string, options: CallOptions = {}) 
   const headers: Record<string, string> = {
     'cf-connecting-ip': ip,
     'x-forwarded-for': ip,
-    // Better Auth проверяет Origin на изменяющих запросах (защита от CSRF),
-    // браузер присылает его всегда — тесты должны вести себя так же.
+    // Better Auth checks Origin on mutating requests (CSRF protection);
+    // browsers always send it — tests must behave the same way.
     origin: 'http://localhost:8787',
   };
 
@@ -109,7 +109,6 @@ async function signUp(prefix: string): Promise<SignUpResult> {
   return { app, mail, email, verificationUrl };
 }
 
-/** Подтверждение почты возвращает редирект на страницу успеха. */
 async function verify(app: Hono<AppEnv>, verificationUrl: string): Promise<Response> {
   const url = new URL(verificationUrl);
 
@@ -175,8 +174,8 @@ describe('регистрация и вход', () => {
 
     const second = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, { body });
 
-    // Better Auth ответил бы 200 без второй строки: клиент решил бы, что
-    // аккаунт создан, и потерял бы его. Отвечаем явным конфликтом.
+    // Better Auth would answer 200 without the second row: the client would believe
+    // the account was created and lose it. We answer with an explicit conflict.
     expect(second.status).toBe(409);
     expect(await second.clone().json()).toMatchObject({
       code: 'CONFLICT',
@@ -228,7 +227,7 @@ describe('регистрация и вход', () => {
     expect(signOut.status).toBe(200);
     expect(signOut.headers.getSetCookie().join(';')).toContain('notio.session_token=;');
 
-    // После выхода сессии нет: Better Auth отвечает 200 c null либо 401.
+    // After sign-out there is no session: Better Auth answers 200 with null or 401.
     const afterSignOut = await call(app, `${AUTH_BASE_PATH}/get-session`, { cookie });
     const sessionAfterSignOut = await afterSignOut.json();
     expect(sessionAfterSignOut === null || afterSignOut.status === 401).toBe(true);

@@ -95,6 +95,13 @@ describe('buildAuthOptions', () => {
     ).toBe(false);
   });
 
+  it('включает самообслуживание аккаунта: смену почты и удаление', () => {
+    const options = buildAuthOptions(env, deps());
+
+    expect(options.user?.changeEmail?.enabled).toBe(true);
+    expect(options.user?.deleteUser?.enabled).toBe(true);
+  });
+
   it('пишет логи через переданный логгер', () => {
     const lines: string[] = [];
     const options = buildAuthOptions(env, deps({ log: (message) => lines.push(message) }));
@@ -103,6 +110,40 @@ describe('buildAuthOptions', () => {
     logger?.log?.('error', 'что-то сломалось');
 
     expect(lines[0]).toContain('auth-service');
+  });
+
+  it('связывает парольный аккаунт с настроенными провайдерами по почте', () => {
+    const options = buildAuthOptions(
+      {
+        ...env,
+        GITHUB_CLIENT_ID: 'id',
+        GITHUB_CLIENT_SECRET: 'secret',
+        GOOGLE_CLIENT_ID: 'google-id',
+        GOOGLE_CLIENT_SECRET: 'google-secret',
+      },
+      deps(),
+    );
+
+    // Без явного доверия вход через провайдера по уже занятой почте
+    // отклоняется — пользователь видит ошибку вместо входа.
+    expect(options.account?.accountLinking?.enabled).toBe(true);
+    expect(options.account?.accountLinking?.trustedProviders).toEqual(['github', 'google']);
+  });
+
+  it('не доверяет провайдеру без ключей', () => {
+    const options = buildAuthOptions(
+      { ...env, GITHUB_CLIENT_ID: '', GITHUB_CLIENT_SECRET: '', GOOGLE_CLIENT_ID: '' },
+      deps(),
+    );
+
+    expect(options.account?.accountLinking?.trustedProviders).toEqual([]);
+  });
+
+  it('возвращает ошибки аутентификации на страницу входа приложения', () => {
+    const options = buildAuthOptions(env, deps({ frontendUrl: 'http://localhost:3000/' }));
+
+    // У gateway нет UI: его /api/auth/error — тупик, из которого не вернуться.
+    expect(options.onAPIError?.errorURL).toBe('http://localhost:3000/login');
   });
 });
 

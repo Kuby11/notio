@@ -4,17 +4,18 @@ import type { UserProfile } from '@notio/contracts';
 import * as authSchema from './auth-schema.generated';
 
 /**
- * Прямой доступ к таблице пользователей.
+ * Direct access to the users table.
  *
- * Нужен там, где ответ Better Auth нас не устраивает: он отвечает 200 на
- * повторную регистрацию того же email, хотя строка не создаётся. Проверка
- * занятости почты до вызова Better Auth делает поведение предсказуемым.
+ * Used where Better Auth's answer does not suit us: it replies 200 to a
+ * repeated registration of the same email even though no row is created.
+ * Checking email availability before calling Better Auth makes the behaviour
+ * predictable.
  */
 
 /**
- * В сгенерированном модуле есть `relations` — это не таблица, и передавать его
- * в Drizzle нельзя: типы клиента перестают выводиться. Поэтому собираем
- * схему из таблиц явно.
+ * The generated module also has `relations` — not a table, and passing it to
+ * Drizzle breaks client type inference. So the schema is assembled explicitly
+ * from the tables.
  */
 const tables = {
   user: authSchema.user,
@@ -34,7 +35,7 @@ export function createUserRepository(env: D1Binding) {
   const client = createDb(env, tables);
 
   return {
-    /** Ищет пользователя по почте; адрес сравнивается в нижнем регистре. */
+    /** Finds a user by email; the address is compared case-insensitively. */
     async findByEmail(email: string): Promise<UserAccount | null> {
       const [user] = await client
         .select({
@@ -49,7 +50,7 @@ export function createUserRepository(env: D1Binding) {
       return user ?? null;
     },
 
-    /** Публичные профили по id: нужны другим сервисам для списков участников. */
+    /** Public profiles by id: other services need them for member lists. */
     async findProfilesByIds(ids: string[]): Promise<UserProfile[]> {
       if (ids.length === 0) {
         return [];

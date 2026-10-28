@@ -12,7 +12,7 @@ export default defineConfig({
         bindings: {
           BETTER_AUTH_SECRET: 'test-secret-value-for-auth-service-only',
           BETTER_AUTH_URL: 'http://localhost:8787',
-          // Лимиты в тестах не проверяются: счётчики в KV живут между тестами.
+          // Rate limits are not checked in tests: KV counters survive between tests.
           RATE_LIMIT_MAX_REQUESTS: '10000',
           RATE_LIMIT_WINDOW_SECONDS: '60',
           TEST_MIGRATIONS: await readD1Migrations(migrationsPath),

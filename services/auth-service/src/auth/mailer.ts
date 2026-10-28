@@ -1,8 +1,8 @@
 /**
- * Порт отправки писем.
+ * Port for sending emails.
  *
- * Сервис не знает про SMTP, Email Workers или провайдеров: он отдаёт
- * получателю и ссылку. Транспорт подменяется в composition root.
+ * The service knows nothing about SMTP, Email Workers or providers: it hands
+ * the recipient a link. The transport is swapped in the composition root.
  */
 export interface MailSender {
   send(message: OutboundMail): Promise<void>;
@@ -11,15 +11,14 @@ export interface MailSender {
 export interface OutboundMail {
   to: string;
   subject: string;
-  /** Ссылка действия: подтверждение почты, сброс пароля, вход по ссылке. */
+  /** Action link: email confirmation, password reset, magic link. */
   actionUrl: string;
-  /** Тип действия для текста письма и для логов. */
   kind: 'VERIFY_EMAIL' | 'RESET_PASSWORD';
 }
 
 /**
- * Dev-реализация: письмо не отправляется, а его ссылка пишется в лог.
- * Так разработчик может пройти флоу верификации без внешнего провайдера.
+ * Dev implementation: the email is not sent, its link is written to the log.
+ * That lets a developer walk the verification flow without an external provider.
  */
 export function createLoggingMailSender(log: (message: string) => void): MailSender {
   return {
@@ -39,8 +38,8 @@ export function createLoggingMailSender(log: (message: string) => void): MailSen
 }
 
 /**
- * Production-заглушка: честно падает, вместо того чтобы «успешно» отправить
- * письмо, которое никто не получит, и оставить пользователя без подтверждения.
+ * Production stub: fails honestly instead of "successfully" sending a letter
+ * nobody will receive and leaving the user unconfirmed.
  */
 export function createUnconfiguredMailSender(): MailSender {
   return {

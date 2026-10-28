@@ -24,7 +24,7 @@ export function createAuthServiceApp(): Hono<AppEnv> {
   app.onError((error, c) => {
     const requestId = c.req.header(INTERNAL_HEADERS.REQUEST_ID);
 
-    // Детали ошибки — в лог, клиенту — обезличенный problem details.
+    // Error details go to the log; the client gets anonymised problem details.
     console.error(
       JSON.stringify({
         level: 'error',
