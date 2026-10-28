@@ -6,10 +6,10 @@ import { BlockRepository } from '../repositories/block.repository';
 import { PageVersionRepository } from '../repositories/page-version.repository';
 
 /**
- * Версионирование страниц: полный снапшот блоков при сохранении.
+ * Page versioning: a full block snapshot on save.
  *
- * Диффы не используем — восстановление из полного снапшота проще
- * и надёжнее, чем реконструкция из патчей.
+ * We do not use diffs — restoring from a full snapshot is simpler and more
+ * reliable than reconstructing from patches.
  */
 export class PageVersionService {
   constructor(
@@ -18,7 +18,7 @@ export class PageVersionService {
     private readonly clock: Clock,
   ) {}
 
-  /** Создаёт снапшот текущего состояния блоков страницы. */
+  /** Creates a snapshot of the page's current block state. */
   async createSnapshot(pageId: string, actorId: string): Promise<PageVersion> {
     const blocks = await this.blocks.listByPage(pageId);
 
@@ -44,7 +44,6 @@ export class PageVersionService {
   }
 }
 
-/** Собирает сервис со всеми зависимостями. */
 export function createPageVersionService(
   env: Bindings,
   clock: Clock = () => new Date(),

@@ -1,15 +1,15 @@
 /**
- * Библиотека fractional-indexing не публикует типы.
- * Объявляем только используемый API: ключ строго между двумя соседями.
+ * The fractional-indexing library ships no types.
+ * We declare only the API we use: a key strictly between two neighbours.
  */
 declare module 'fractional-indexing' {
   /**
-   * Возвращает позицию строго между `before` и `after`.
-   * `null` означает границу списка: начало или конец.
+   * Returns a position strictly between `before` and `after`.
+   * `null` means a list boundary: start or end.
    */
   export function generateKeyBetween(before: string | null, after: string | null): string;
 
-  /** Возвращает `count` позиций строго между `before` и `after`. */
+  /** Returns `count` positions strictly between `before` and `after`. */
   export function generateNKeysBetween(
     before: string | null,
     after: string | null,

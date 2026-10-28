@@ -5,8 +5,8 @@ import type { AppEnv } from '../env';
 export const SERVICE_NAME = 'pages-service';
 
 /**
- * Собственный health-эндпоинт сервиса. Вызывается gateway'ем через Service Binding
- * и используется в локальной разработке для проверки сервиса отдельно.
+ * The service's own health endpoint. Called by the gateway through a Service Binding
+ * and used during local development to check the service on its own.
  */
 export function createHealthRoutes(): Hono<AppEnv> {
   return new Hono<AppEnv>().get('/health', (c) =>

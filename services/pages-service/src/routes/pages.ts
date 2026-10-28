@@ -7,10 +7,12 @@ import {
   INTERNAL_HEADERS,
   MoveBlockInputSchema,
   MovePageInputSchema,
+  PageAllQuerySchema,
   PageFavoritesQuerySchema,
   PageListQuerySchema,
   PageListResultSchema,
   PageSchema,
+  PageSearchQuerySchema,
   PageTrashQuerySchema,
   PageVersionSchema,
   toProblemErrors,
@@ -26,14 +28,14 @@ import { createBlockService, type BlockService } from '../services/block.service
 import { createPageVersionService } from '../services/page-version.service';
 
 /**
- * Сценарий создаётся на каждый запрос: в Workers биндинги приходят в `env`,
- * поэтому сервис нельзя построить один раз при старте приложения.
- * Фабрика позволяет подменить часы в тестах.
+ * The scenario is created per request: in Workers bindings arrive in `env`,
+ * so the service cannot be built once at application start.
+ * The factory lets tests substitute the clock.
  */
 export type PageServiceFactory = (env: Bindings) => PageService;
 export type BlockServiceFactory = (env: Bindings) => BlockService;
 
-/** Разбирает вход по схеме; ошибки Zod превращает в список полей problem details. */
+/** Parses input against the schema; Zod errors become a problem details field list. */
 function parseOrThrow<T>(schema: z.ZodType<T>, data: unknown): T {
   const result = schema.safeParse(data);
 
@@ -55,8 +57,8 @@ async function readJsonBody(request: Request): Promise<unknown> {
 }
 
 /**
- * Маршруты страниц. Здесь и только здесь живёт HTTP: валидация входа,
- * вызов сценария и сборка ответа по контракту из packages/contracts.
+ * Page routes. HTTP lives here and only here: input validation, calling the
+ * scenario and building the response to the contract in packages/contracts.
  */
 export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv> {
   const routes = new Hono<AppEnv>();
@@ -77,8 +79,8 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
     return c.json(PageListResultSchema.parse(result), 200);
   });
 
-  // Статические маршруты объявлены до `/pages/:id`: иначе Hono попробует
-  // разобрать «favorites» или «trash» как UUID и вернёт 400 вместо списка.
+  // Static routes are declared before `/pages/:id`: otherwise Hono would try to
+  // parse "favorites" or "trash" as a UUID and return 400 instead of a list.
   routes.get('/pages/favorites', async (c) => {
     const query = parseOrThrow(PageFavoritesQuerySchema, c.req.query());
     const result = await createService(c.env).listFavorites(query);
@@ -89,6 +91,24 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
   routes.get('/pages/trash', async (c) => {
     const query = parseOrThrow(PageTrashQuerySchema, c.req.query());
     const result = await createService(c.env).listTrashed(query);
+
+    return c.json(PageListResultSchema.parse(result), 200);
+  });
+
+  // Like favorites and trash, the flat list is declared before `/pages/:id`:
+  // "all" is not a UUID, and Hono must not try to parse it as one.
+  routes.get('/pages/all', async (c) => {
+    const query = parseOrThrow(PageAllQuerySchema, c.req.query());
+    const result = await createService(c.env).listAll(query);
+
+    return c.json(PageListResultSchema.parse(result), 200);
+  });
+
+  // Like favorites and trash, search is declared before `/pages/:id`: "search"
+  // is not a UUID, and Hono must not try to parse it as one.
+  routes.get('/pages/search', async (c) => {
+    const query = parseOrThrow(PageSearchQuerySchema, c.req.query());
+    const result = await createService(c.env).searchPages(query);
 
     return c.json(PageListResultSchema.parse(result), 200);
   });
@@ -110,13 +130,22 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
     return c.json(PageSchema.parse(page), 200);
   });
 
+  routes.post('/pages/:id/duplicate', async (c) => {
+    const id = parseOrThrow(IdSchema, c.req.param('id'));
+    const actorId = requireActorId(c.req.header(INTERNAL_HEADERS.ACTOR_ID));
+
+    const page = await createService(c.env).duplicatePage(id, actorId);
+
+    return c.json(PageSchema.parse(page), 201);
+  });
+
   routes.post('/pages/:id/move', async (c) => {
     const id = parseOrThrow(IdSchema, c.req.param('id'));
     const workspaceId = parseOrThrow(IdSchema, c.req.query('workspaceId'));
     const input = parseOrThrow(MovePageInputSchema, await readJsonBody(c.req.raw));
 
-    // Идентичность проверяется, чтобы запись не уходила от анонима,
-    // хотя сама страница не хранит её в новой позиции.
+    // Identity is checked so a write never happens as an anonymous user,
+    // even though the page row does not store it in the new position.
     requireActorId(c.req.header(INTERNAL_HEADERS.ACTOR_ID));
 
     const page = await createService(c.env).movePage(id, workspaceId, input);
@@ -124,7 +153,6 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
     return c.json(PageSchema.parse(page), 200);
   });
 
-  // Блоки страницы.
   routes.get('/pages/:pageId/blocks', async (c) => {
     const pageId = parseOrThrow(IdSchema, c.req.param('pageId'));
     const items = await createBlockService(c.env).getPageBlocks(pageId);
@@ -166,7 +194,6 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
     return c.json(BlockSchema.parse(block), 200);
   });
 
-  // Версионирование страниц.
   routes.post('/pages/:pageId/versions', async (c) => {
     const pageId = parseOrThrow(IdSchema, c.req.param('pageId'));
     const actorId = requireActorId(c.req.header(INTERNAL_HEADERS.ACTOR_ID));

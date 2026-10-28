@@ -11,7 +11,7 @@ import { blocks, schema, type BlockRow } from '../db/schema';
 
 type Database = Db<typeof schema>;
 
-/** Репозиторий блоков: единственное место, которое знает про Drizzle и SQL. */
+/** Block repository: the only place that knows about Drizzle and SQL. */
 export class BlockRepository {
   private readonly db: Database;
 
@@ -86,7 +86,7 @@ export class BlockRepository {
     await this.db.delete(blocks).where(eq(blocks.id, id));
   }
 
-  /** Границы для новой позиции: последний блок + null (вставка в конец). */
+  /** Bounds for the new position: last block + null (insert at the end). */
   async lastBlock(pageId: string): Promise<Block | null> {
     const [row] = await this.db
       .select()

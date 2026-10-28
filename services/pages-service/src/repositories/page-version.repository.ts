@@ -6,7 +6,7 @@ import { schema, pageVersions } from '../db/schema';
 
 type Database = Db<typeof schema>;
 
-/** Репозиторий версий страниц: полные снапшоты, а не диффы. */
+/** Page version repository: full snapshots, not diffs. */
 export class PageVersionRepository {
   private readonly db: Database;
 
@@ -63,7 +63,7 @@ export class PageVersionRepository {
       : null;
   }
 
-  /** Удаляет старые версии, оставляя только последние `keep`. */
+  /** Drops old versions, keeping only the latest `keep`. */
   async prune(pageId: string, keep: number): Promise<void> {
     const rows = await this.db
       .select({ id: pageVersions.id })

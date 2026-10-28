@@ -30,6 +30,14 @@ async function createPage(
   return (await response.json()) as { id: string };
 }
 
+async function patchPage(pageId: string, workspaceId: string, body: unknown): Promise<Response> {
+  return send(`/pages/${pageId}?workspaceId=${workspaceId}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
 describe('блоки страницы', () => {
   it('создаёт блок и возвращает его по контракту', async () => {
     const workspaceId = crypto.randomUUID();
@@ -294,14 +302,12 @@ describe('перемещение страниц', () => {
     const parent = await createPage(workspaceId, 'Родитель');
     const child = await createPage(workspaceId, 'Ребёнок');
 
-    // Сначала перемещаем child внутрь parent.
     await send(`/pages/${child.id}/move?workspaceId=${workspaceId}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: ACTOR },
       body: JSON.stringify({ parentId: parent.id }),
     });
 
-    // Теперь пытаемся переместить parent внутрь child — цикл.
     const response = await send(`/pages/${parent.id}/move?workspaceId=${workspaceId}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: ACTOR },
@@ -362,6 +368,75 @@ describe('версионирование страниц', () => {
     );
 
     expect(response.status).toBe(404);
+  });
+});
+
+describe('блокировка страницы и время изменения', () => {
+  it('переключает isLocked по контракту', async () => {
+    const workspaceId = crypto.randomUUID();
+    const page = await createPage(workspaceId);
+
+    const locked = await patchPage(page.id, workspaceId, { isLocked: true });
+
+    expect(locked.status).toBe(200);
+    expect(await locked.json()).toMatchObject({ isLocked: true });
+
+    const unlocked = await patchPage(page.id, workspaceId, { isLocked: false });
+
+    expect(await unlocked.json()).toMatchObject({ isLocked: false });
+  });
+
+  it('отклоняет правку блоков заблокированной страницы', async () => {
+    const workspaceId = crypto.randomUUID();
+    const page = await createPage(workspaceId);
+
+    await patchPage(page.id, workspaceId, { isLocked: true });
+
+    const response = await send('/blocks', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: ACTOR },
+      body: JSON.stringify({ pageId: page.id, content: { type: 'paragraph', content: 'x' } }),
+    });
+
+    expect(response.status).toBe(409);
+  });
+
+  it('разрешает чтение блоков заблокированной страницы', async () => {
+    const workspaceId = crypto.randomUUID();
+    const page = await createPage(workspaceId);
+
+    await patchPage(page.id, workspaceId, { isLocked: true });
+
+    const response = await send(`/pages/${page.id}/blocks`, {});
+
+    expect(response.status).toBe(200);
+  });
+
+  it('правка блоков обновляет updatedAt страницы', async () => {
+    const workspaceId = crypto.randomUUID();
+    const page = await createPage(workspaceId);
+    const before = (
+      (await (await send(`/pages/${page.id}?workspaceId=${workspaceId}`, {})).json()) as {
+        updatedAt: string;
+      }
+    ).updatedAt;
+
+    // ISO time with millisecond precision: give the clock a chance to move forward.
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    await send('/blocks', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: ACTOR },
+      body: JSON.stringify({ pageId: page.id, content: { type: 'paragraph', content: 'x' } }),
+    });
+
+    const after = (
+      (await (await send(`/pages/${page.id}?workspaceId=${workspaceId}`, {})).json()) as {
+        updatedAt: string;
+      }
+    ).updatedAt;
+
+    expect(after > before).toBe(true);
   });
 });
 

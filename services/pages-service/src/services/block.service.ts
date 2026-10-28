@@ -6,7 +6,7 @@ import { PageRepository } from '../repositories/page.repository';
 import type { Block, CreateBlockInput, UpdateBlockInput } from '@notio/contracts';
 import { newId } from '@notio/contracts';
 
-/** Источник времени внедряется, чтобы тесты не зависели от системных часов. */
+/** The time source is injected so tests do not depend on the system clock. */
 export type Clock = () => Date;
 
 export interface BlockListResult {
@@ -15,11 +15,11 @@ export interface BlockListResult {
 }
 
 /**
- * Сценарии работы с блоками.
+ * Scenarios for working with blocks.
  *
- * Слой не знает про HTTP: ни Request, ни Response, ни кодов статусов —
- * только доменные типы и типизированные ошибки. Права проверяются
- * на уровне страницы (страница должна существовать и не быть в корзине).
+ * This layer knows nothing about HTTP: no Request, no Response, no status
+ * codes — only domain types and typed errors. Permissions are checked at the
+ * page level (the page must exist and not be in the trash).
  */
 export class BlockService {
   constructor(
@@ -32,7 +32,7 @@ export class BlockService {
     return this.clock().toISOString();
   }
 
-  /** Страница должна существовать и не быть в корзине. */
+  /** The page must exist and not be in the trash (read is allowed). */
   private async assertPageUsable(pageId: string): Promise<void> {
     const page = await this.pages.findById(pageId);
 
@@ -45,13 +45,29 @@ export class BlockService {
     }
   }
 
+  /** For writes the page must additionally be unlocked. */
+  private async assertPageWritable(pageId: string): Promise<void> {
+    const page = await this.pages.findById(pageId);
+
+    if (!page) {
+      throw new NotFoundError('Страница не найдена');
+    }
+
+    if (page.isTrashed) {
+      throw new ConflictError('Нельзя редактировать страницу в корзине');
+    }
+
+    if (page.isLocked) {
+      throw new ConflictError('Страница заблокирована для редактирования');
+    }
+  }
+
   async createBlock(input: CreateBlockInput, _actorId: string): Promise<Block> {
-    await this.assertPageUsable(input.pageId);
+    await this.assertPageWritable(input.pageId);
 
     const last = await this.blocks.lastBlock(input.pageId);
     const now = this.now();
-
-    return this.blocks.create({
+    const created = await this.blocks.create({
       id: newId(),
       pageId: input.pageId,
       type: input.content.type,
@@ -60,6 +76,10 @@ export class BlockService {
       createdAt: now,
       updatedAt: now,
     });
+
+    await this.touchPage(input.pageId, now);
+
+    return created;
   }
 
   async getPageBlocks(pageId: string): Promise<Block[]> {
@@ -75,11 +95,16 @@ export class BlockService {
       throw new NotFoundError('Блок не найден');
     }
 
-    const updated = await this.blocks.updateById(id, patch, this.now());
+    await this.assertPageWritable(block.pageId);
+
+    const now = this.now();
+    const updated = await this.blocks.updateById(id, patch, now);
 
     if (!updated) {
       throw new NotFoundError('Блок не найден');
     }
+
+    await this.touchPage(block.pageId, now);
 
     return updated;
   }
@@ -91,7 +116,10 @@ export class BlockService {
       throw new NotFoundError('Блок не найден');
     }
 
+    await this.assertPageWritable(block.pageId);
+
     await this.blocks.deleteById(id);
+    await this.touchPage(block.pageId, this.now());
   }
 
   async moveBlock(id: string, afterBlockId?: string): Promise<Block> {
@@ -101,7 +129,7 @@ export class BlockService {
       throw new NotFoundError('Блок не найден');
     }
 
-    await this.assertPageUsable(block.pageId);
+    await this.assertPageWritable(block.pageId);
 
     let before: string | null = null;
     let after: string | null = null;
@@ -112,7 +140,6 @@ export class BlockService {
       if (anchor && anchor.pageId === block.pageId) {
         before = anchor.position;
 
-        // Находим следующий блок после anchor.
         const siblings = await this.blocks.listByPage(block.pageId);
         const anchorIndex = siblings.findIndex((sibling) => sibling.id === afterBlockId);
 
@@ -121,7 +148,7 @@ export class BlockService {
         }
       }
     } else {
-      // Перемещение в конец: before = последний блок.
+      // Move to the end: before = the last block.
       const last = await this.blocks.lastBlock(block.pageId);
 
       if (last && last.id !== id) {
@@ -135,11 +162,17 @@ export class BlockService {
       throw new NotFoundError('Блок не найден');
     }
 
+    await this.touchPage(block.pageId, updated.updatedAt);
+
     return updated;
+  }
+
+  /** Editing content also touches the page itself: record the modification time. */
+  private async touchPage(pageId: string, updatedAt: string): Promise<void> {
+    await this.pages.touch(pageId, updatedAt);
   }
 }
 
-/** Собирает сервис со всеми зависимостями. */
 export function createBlockService(env: Bindings, clock: Clock = () => new Date()): BlockService {
   return new BlockService(new BlockRepository(env), new PageRepository(env), clock);
 }

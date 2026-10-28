@@ -1,11 +1,10 @@
 import type { ErrorCode, ProblemError } from '@notio/contracts';
 
 /**
- * Доменные ошибки сервиса.
+ * Domain errors of the service.
  *
- * Бизнес-логика ничего не знает про HTTP: она выбрасывает типизированную
- * ошибку, а слой маршрутов превращает её в RFC 7807. Никаких Response
- * в сервисном слое.
+ * Business logic knows nothing about HTTP: it throws a typed error and the
+ * route layer turns it into RFC 7807. No Response in the service layer.
  */
 export abstract class AppError extends Error {
   abstract readonly status: number;
@@ -24,15 +23,15 @@ export class ValidationError extends AppError {
   readonly code = 'VALIDATION_ERROR' satisfies ErrorCode;
 }
 
-/** Ресурс не найден. Намеренно не различает «нет» и «нет доступа» в сообщении. */
+/** Resource not found. Deliberately does not distinguish "absent" from "no access" in the message. */
 export class NotFoundError extends AppError {
   readonly status = 404;
   readonly code = 'NOT_FOUND' satisfies ErrorCode;
 }
 
 /**
- * Доступ запрещён. Используется и для чужого workspace: по коду ответа
- * клиент не должен уметь отличить «чужой ресурс» от «несуществующего».
+ * Access denied. Also used for a foreign workspace: by the response code the
+ * client must not be able to tell "someone else's resource" from "missing".
  */
 export class ForbiddenError extends AppError {
   readonly status = 403;

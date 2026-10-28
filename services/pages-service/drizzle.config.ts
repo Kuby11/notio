@@ -1,9 +1,9 @@
 import { defineConfig } from 'drizzle-kit';
 
 /**
- * Конфигурация drizzle-kit. Применение миграций локально идёт через
- * `wrangler d1 migrations apply ... --local`, поэтому подключение к базе
- * используется только для `generate`.
+ * drizzle-kit configuration. Migrations are applied locally through
+ * `wrangler d1 migrations apply ... --local`, so the database connection is
+ * used only for `generate`.
  */
 export default defineConfig({
   dialect: 'sqlite',

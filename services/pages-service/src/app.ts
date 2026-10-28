@@ -24,8 +24,8 @@ export function createPagesServiceApp(): Hono<AppEnv> {
   app.onError((error, c) => {
     const requestId = c.req.header(INTERNAL_HEADERS.REQUEST_ID);
 
-    // Доменные ошибки — ожидаемый результат сценария: клиент получает
-    // осмысленный код, а не «500 внутренняя ошибка».
+    // Domain errors are an expected outcome of a scenario: the client gets
+    // a meaningful code, not "500 internal error".
     if (isAppError(error)) {
       return problem({
         status: error.status,
@@ -36,7 +36,7 @@ export function createPagesServiceApp(): Hono<AppEnv> {
       });
     }
 
-    // Структурный лог: внутренние детали ошибки не уходят клиенту, но остаются в логах.
+    // Structured log: internal error details never reach the client but stay in the logs.
     console.error(
       JSON.stringify({
         level: 'error',

@@ -2,10 +2,10 @@ import { env as workerEnv } from 'cloudflare:workers';
 import { applyD1Migrations, type D1Migration } from 'cloudflare:test';
 
 /**
- * Применяет миграции из репозитория к локальной базе до запуска тестов.
+ * Applies repository migrations to the local database before tests run.
  *
- * Тестовое окружение отличается от боевого только лишним биндингом с миграциями,
- * поэтому единственное приведение типов здесь — к обёртке поверх `env`.
+ * The test environment differs from production only by an extra binding with
+ * migrations, so the only type cast here is to the wrapper over `env`.
  */
 interface TestEnv {
   DB: D1Database;

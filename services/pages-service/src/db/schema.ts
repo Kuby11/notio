@@ -3,39 +3,39 @@ import { relations } from 'drizzle-orm';
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /**
- * Схема базы pages-service.
+ * Database schema of pages-service.
  *
- * Сервис владеет этими таблицами единолично (database-per-service): общих
- * таблиц с другими сервисами нет, связи живут только внутри pages-service.
- * Идентификаторы — UUIDv4 в TEXT, время — ISO-8601 в TEXT (детерминированно
- * и читаемо), булевы — INTEGER.
+ * The service owns these tables alone (database-per-service): no tables are
+ * shared with other services, relations live only inside pages-service.
+ * Ids are UUIDv4 in TEXT, time is ISO-8601 in TEXT (deterministic and
+ * readable), booleans are INTEGER.
  */
 export const pages = sqliteTable(
   'pages',
   {
     id: text('id').primaryKey(),
     workspaceId: text('workspace_id').notNull(),
-    /** NULL — корень рабочего пространства. Ссылка на родителя хранится в TEXT. */
+    /** NULL — workspace root. The parent reference is stored in TEXT. */
     parentId: text('parent_id'),
     title: text('title').notNull().default(''),
     icon: text('icon'),
     coverFileId: text('cover_file_id'),
-    /** Fractional indexing: порядок соседей без перезаписи при вставке. */
+    /** Fractional indexing: neighbour order without rewriting on insert. */
     position: text('position').notNull(),
     isFavorite: integer('is_favorite', { mode: 'boolean' }).notNull().default(false),
     isTrashed: integer('is_trashed', { mode: 'boolean' }).notNull().default(false),
+    /** Page lock: content and title are read-only. */
+    isLocked: integer('is_locked', { mode: 'boolean' }).notNull().default(false),
     createdBy: text('created_by').notNull(),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },
   (table) => [
-    // Основной запрос: дети конкретного родителя в порядке отображения.
     index('pages_workspace_parent_position_idx').on(
       table.workspaceId,
       table.parentId,
       table.position,
     ),
-    // Списки «избранное» и «недавно изменённые».
     index('pages_workspace_updated_idx').on(table.workspaceId, table.updatedAt),
   ],
 );
@@ -49,7 +49,7 @@ export const blocks = sqliteTable(
       .references(() => pages.id, { onDelete: 'cascade' }),
     type: text('type').notNull(),
     position: text('position').notNull(),
-    /** JSON-документ блока, валидируется Zod-схемой BlockContentSchema. */
+    /** JSON document of the block, validated by the BlockContentSchema Zod schema. */
     content: text('content', { mode: 'json' }).$type<BlockContent>().notNull(),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),

@@ -6,7 +6,7 @@ import { and, asc, desc, eq, gt, inArray, isNull } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { pages, schema, type NewPageRow, type PageRow } from '../db/schema';
 
-/** Границы, между которыми нужно сгенерировать позицию новой страницы. */
+/** Bounds between which to generate the new page's position. */
 export interface PositionBounds {
   before: string | null;
   after: string | null;
@@ -21,15 +21,30 @@ export interface ListChildrenFilter {
 }
 
 /**
- * D1 ограничивает число bound-параметров в запросе. Режем список id на
- * порции, чтобы проверка hasChildren работала и при `limit=100`.
+ * D1 limits the number of bound parameters in a query. The id list is chunked
+ * so hasChildren checks work even with `limit=100`.
  */
 const CHILD_QUERY_CHUNK_SIZE = 90;
 
+/** How many titles the search answers with: enough to scan, cheap to render. */
+const SEARCH_RESULT_LIMIT = 50;
+
 /**
- * Репозиторий страниц: единственное место, которое знает про Drizzle и SQL.
- * Наружу отдаёт доменные объекты, валидированные Zod-схемой PageSchema —
- * данные из базы тоже не считаются доверенными.
+ * How many recent pages are considered for a match.
+ *
+ * SQLite folds case for ASCII only (LIKE and lower() alike), so a Cyrillic
+ * query like "дорожная" would never match "Дорожная". Folding is done in JS
+ * — `String#toLowerCase` is Unicode-aware — over a bounded set of the most
+ * recently edited pages: correct for every script and cheap at this scale.
+ * A normalized column written on save would be the next step if workspaces
+ * outgrow the bound.
+ */
+const SEARCH_CANDIDATE_LIMIT = 500;
+
+/**
+ * Page repository: the only place that knows about Drizzle and SQL. It exposes
+ * domain objects validated by the PageSchema Zod schema — data from the
+ * database is not trusted either.
  */
 export class PageRepository {
   private readonly db: DrizzleD1Database<typeof schema>;
@@ -49,6 +64,7 @@ export class PageRepository {
       position: row.position,
       isFavorite: row.isFavorite,
       isTrashed: row.isTrashed,
+      isLocked: row.isLocked,
       ...(hasChildren === undefined ? {} : { hasChildren }),
       createdBy: row.createdBy,
       createdAt: row.createdAt,
@@ -56,7 +72,7 @@ export class PageRepository {
     });
   }
 
-  /** Родители из списка, у которых есть хотя бы один ребёнок. */
+  /** Parents from the list that have at least one child. */
   private async parentsWithChildren(
     workspaceId: string,
     parentIds: readonly string[],
@@ -136,11 +152,11 @@ export class PageRepository {
   }
 
   /**
-   * Избранное всего workspace.
+   * Favorites across the whole workspace.
    *
-   * Список плоский и не привязан к родителю: избранная страница может лежать
-   * на любой глубине. Удалённые в корзину страницы не показываем, а порядок
-   * по времени изменения ставит недавно открытые страницы наверх.
+   * The list is flat and not tied to a parent: a favorited page can sit at any
+   * depth. Trashed pages are not shown, and ordering by modification time puts
+   * recently opened pages on top.
    */
   async listFavorites(workspaceId: string): Promise<Page[]> {
     const rows = await this.db
@@ -158,7 +174,31 @@ export class PageRepository {
     return rows.map((row) => this.toPage(row));
   }
 
-  /** Удалённые страницы всего workspace: их можно восстановить из корзины. */
+  /**
+   * Every page of the workspace, flat, in tree order.
+   *
+   * The library view filters and sorts across the whole workspace and rebuilds
+   * the nesting from `parentId` on the client, so the list cannot be assembled
+   * level by level — that would cost one request per branch. `hasChildren` is
+   * computed here too: the table draws the expand chevron from it.
+   */
+  async listAll(workspaceId: string): Promise<Page[]> {
+    const rows = await this.db
+      .select()
+      .from(pages)
+      .where(and(eq(pages.workspaceId, workspaceId), eq(pages.isTrashed, false)))
+      .orderBy(asc(pages.position));
+
+    const parents = await this.parentsWithChildren(
+      workspaceId,
+      rows.map((row) => row.id),
+      false,
+    );
+
+    return rows.map((row) => this.toPage(row, parents.has(row.id)));
+  }
+
+  /** Deleted pages of the whole workspace: they can be restored from the trash. */
   async listTrashed(workspaceId: string): Promise<Page[]> {
     const rows = await this.db
       .select()
@@ -170,11 +210,39 @@ export class PageRepository {
   }
 
   /**
-   * Границы для новой позиции.
+   * Title search across the workspace, most recently edited first.
    *
-   * - без `afterPageId` новая страница становится последней в списке;
-   * - с `afterPageId` встаёт сразу после указанной соседней страницы;
-   * - если сосед не найден в этом же родителе, границы пустые.
+   * Case folding happens in JS (see SEARCH_CANDIDATE_LIMIT): SQLite folds
+   * ASCII only, and a Cyrillic query must match a Cyrillic title regardless
+   * of the case of its first letter. The escaped `%`/`_` are literal here —
+   * `String#includes` has no wildcards.
+   */
+  async search(workspaceId: string, query: string): Promise<Page[]> {
+    const needle = query.trim().toLowerCase();
+
+    if (needle.length === 0) {
+      return [];
+    }
+
+    const rows = await this.db
+      .select()
+      .from(pages)
+      .where(and(eq(pages.workspaceId, workspaceId), eq(pages.isTrashed, false)))
+      .orderBy(desc(pages.updatedAt), desc(pages.id))
+      .limit(SEARCH_CANDIDATE_LIMIT);
+
+    return rows
+      .filter((row) => row.title.toLowerCase().includes(needle))
+      .slice(0, SEARCH_RESULT_LIMIT)
+      .map((row) => this.toPage(row));
+  }
+
+  /**
+   * Bounds for the new position.
+   *
+   * - without `afterPageId` the new page becomes the last in the list;
+   * - with `afterPageId` it lands right after the specified sibling;
+   * - if the sibling is not found under the same parent, the bounds are empty.
    */
   async findPositionBounds(
     workspaceId: string,
@@ -220,7 +288,7 @@ export class PageRepository {
     return rows[0] ?? null;
   }
 
-  /** Последний ребёнок в порядке отображения: новая страница по умолчанию встаёт после него. */
+  /** The last child in display order: a new page is appended after it by default. */
   async lastChild(workspaceId: string, parentId: string | null): Promise<Page | null> {
     const [row] = await this.db
       .select()
@@ -256,13 +324,25 @@ export class PageRepository {
     if (patch.isTrashed !== undefined) {
       changes.isTrashed = patch.isTrashed;
     }
+    if (patch.isLocked !== undefined) {
+      changes.isLocked = patch.isLocked;
+    }
 
     const [updated] = await this.db.update(pages).set(changes).where(eq(pages.id, id)).returning();
 
     return updated ? this.toPage(updated) : null;
   }
 
-  /** Перемещение: меняет родителя и позицию атомарно. */
+  /**
+   * Updates only the page's modification time. Called by the block service
+   * after content edits: changing blocks is also a "document modified",
+   * even though the page row itself needs no patch.
+   */
+  async touch(id: string, updatedAt: string): Promise<void> {
+    await this.db.update(pages).set({ updatedAt }).where(eq(pages.id, id));
+  }
+
+  /** Move: changes parent and position atomically. */
   async moveById(
     id: string,
     parentId: string | null,

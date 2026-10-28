@@ -18,19 +18,21 @@ function json(body: unknown): RequestInit {
 }
 
 /**
- * Окружение берётся из настоящего wrangler-конфига, поэтому тесты заодно
- * проверяют, что биндинги сервиса совпадают с его типом Bindings.
+ * The environment comes from the real wrangler config, so the tests also
+ * verify that the service bindings match its Bindings type.
  */
 interface Api {
   createPage(body: unknown, actor?: string): Promise<Response>;
   listPages(query: string): Promise<Response>;
+  listAll(query: string): Promise<Response>;
   listFavorites(query: string): Promise<Response>;
   listTrash(query: string): Promise<Response>;
+  searchPages(query: string): Promise<Response>;
   getPage(id: string, query?: string): Promise<Response>;
   patchPage(id: string, query: string, body: unknown): Promise<Response>;
 }
 
-/** Отправляет запрос в приложение: Hono отдаёт union, тестам нужен Promise. */
+/** Sends a request to the app: Hono returns a union, tests need a Promise. */
 function send(path: string, init: RequestInit): Promise<Response> {
   return Promise.resolve(app.request(path, init, env));
 }
@@ -44,8 +46,10 @@ function api(): Api {
         body: JSON.stringify(body),
       }),
     listPages: (query) => send(`/pages?${query}`, {}),
+    listAll: (query) => send(`/pages/all?${query}`, {}),
     listFavorites: (query) => send(`/pages/favorites?${query}`, {}),
     listTrash: (query) => send(`/pages/trash?${query}`, {}),
+    searchPages: (query) => send(`/pages/search?${query}`, {}),
     getPage: (id, query = '') => send(`/pages/${id}${query === '' ? '' : `?${query}`}`, {}),
     patchPage: (id, query, body) =>
       send(`/pages/${id}?${query}`, {
@@ -188,7 +192,7 @@ describe('GET /pages', () => {
     expect(body.items.map((item) => item.title)).toEqual(['Первая', 'Вторая', 'Третья']);
     expect(body.nextCursor).toBeNull();
 
-    // Вставка между соседями не переписывает существующие позиции.
+    // Inserting between neighbours rewrites no existing positions.
     await client.createPage({ workspaceId, title: 'Между', afterPageId: first.id });
 
     const after = (await (await client.listPages(`workspaceId=${workspaceId}`)).json()) as {
@@ -212,7 +216,7 @@ describe('GET /pages', () => {
     expect(byTitle.get('Родитель')).toBe(true);
     expect(byTitle.get('Лист')).toBe(false);
 
-    // Ребёнок в корзине не должен делать родителя раскрываемым.
+    // A trashed child must not make the parent expandable.
     await client.patchPage(child.id, `workspaceId=${workspaceId}`, { isTrashed: true });
 
     const visible = (await (await client.listPages(`workspaceId=${workspaceId}`)).json()) as {
@@ -275,6 +279,40 @@ describe('GET /pages', () => {
 
   it('отклоняет limit вне диапазона 1..100', async () => {
     const response = await api().listPages(`workspaceId=${workspaceId}&limit=101`);
+
+    expect(response.status).toBe(400);
+    expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+});
+
+describe('GET /pages/all', () => {
+  it('отдаёт все страницы workspace плоским списком с признаком детей', async () => {
+    const client = api();
+    const root = await createPage({ workspaceId, title: 'Корень' });
+    const child = await createPage({ workspaceId, parentId: root.id, title: 'Вложенная' });
+    const trashed = await createPage({ workspaceId, title: 'Удалённая' });
+    await createPage({ workspaceId: otherWorkspaceId, title: 'Чужая' });
+
+    await client.patchPage(trashed.id, `workspaceId=${workspaceId}`, { isTrashed: true });
+
+    const response = await client.listAll(`workspaceId=${workspaceId}`);
+    const body = (await response.json()) as {
+      items: { id: string; title: string; parentId: string | null; hasChildren?: boolean }[];
+      nextCursor: string | null;
+    };
+
+    expect(response.status).toBe(200);
+    // Both levels in one answer: the library nests them on the client.
+    expect(body.items.map((item) => item.title).toSorted()).toEqual(['Вложенная', 'Корень']);
+    expect(body.items.find((item) => item.id === child.id)?.parentId).toBe(root.id);
+    // The chevron in the table comes from this flag.
+    expect(body.items.find((item) => item.id === root.id)?.hasChildren).toBe(true);
+    expect(body.items.some((item) => item.id === trashed.id)).toBe(false);
+    expect(body.nextCursor).toBeNull();
+  });
+
+  it('отклоняет workspaceId без UUID', async () => {
+    const response = await api().listAll('workspaceId=не-uuid');
 
     expect(response.status).toBe(400);
     expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
@@ -345,6 +383,54 @@ describe('GET /pages/trash', () => {
 
     expect(response.status).toBe(400);
     expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+});
+
+describe('GET /pages/search', () => {
+  it('ищет по названию по всем уровням и прячет корзину и чужие workspace', async () => {
+    const client = api();
+    const root = await createPage({ workspaceId, title: 'Дорожная карта' });
+    await createPage({ workspaceId, parentId: root.id, title: 'Вложенная Дорожная карта' });
+    const trashed = await createPage({ workspaceId, title: 'Дорожная карта в корзине' });
+    await createPage({ workspaceId: otherWorkspaceId, title: 'Дорожная карта' });
+    await createPage({ workspaceId, title: 'Другое' });
+
+    await client.patchPage(trashed.id, `workspaceId=${workspaceId}`, { isTrashed: true });
+
+    const response = await client.searchPages(
+      `workspaceId=${workspaceId}&q=${encodeURIComponent('дорожная')}`,
+    );
+    const body = (await response.json()) as { items: { title: string }[] };
+
+    expect(response.status).toBe(200);
+    expect(body.items.map((item) => item.title).toSorted()).toEqual([
+      'Вложенная Дорожная карта',
+      'Дорожная карта',
+    ]);
+  });
+
+  it('относит % в запросе к обычному тексту, а не к подстановочному знаку', async () => {
+    const client = api();
+    await createPage({ workspaceId, title: '100% хлопок' });
+    await createPage({ workspaceId, title: '100 долларов' });
+
+    const response = await client.searchPages(
+      `workspaceId=${workspaceId}&q=${encodeURIComponent('100%')}`,
+    );
+    const body = (await response.json()) as { items: { title: string }[] };
+
+    expect(response.status).toBe(200);
+    expect(body.items.map((item) => item.title)).toEqual(['100% хлопок']);
+  });
+
+  it('отклоняет пустой запрос и workspaceId без UUID', async () => {
+    const empty = await api().searchPages(`workspaceId=${workspaceId}&q=`);
+    expect(empty.status).toBe(400);
+    expect(await problemOf(empty)).toMatchObject({ code: 'VALIDATION_ERROR' });
+
+    const badWorkspace = await api().searchPages('workspaceId=не-uuid&q=что-то');
+    expect(badWorkspace.status).toBe(400);
+    expect(await problemOf(badWorkspace)).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 });
 

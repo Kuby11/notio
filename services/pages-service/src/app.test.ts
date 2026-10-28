@@ -7,8 +7,8 @@ import type { Bindings } from './env';
 const app = createPagesServiceApp();
 
 /**
- * Окружение берётся из настоящего wrangler-конфига, поэтому тест заодно
- * проверяет, что биндинги сервиса совпадают с его типом Bindings.
+ * The environment comes from the real wrangler config, so the test also
+ * verifies that the service bindings match its Bindings type.
  */
 const env: Bindings = workerEnv;
 

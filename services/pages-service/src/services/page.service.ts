@@ -2,8 +2,10 @@ import type {
   CreatePageInput,
   MovePageInput,
   Page,
+  PageAllQuery,
   PageFavoritesQuery,
   PageListQuery,
+  PageSearchQuery,
   PageTrashQuery,
   UpdatePageInput,
 } from '@notio/contracts';
@@ -11,9 +13,10 @@ import { IdSchema, newId } from '@notio/contracts';
 import { generateKeyBetween } from 'fractional-indexing';
 import type { Bindings } from '../env';
 import { ConflictError, ForbiddenError, NotFoundError } from '../errors';
+import { BlockRepository } from '../repositories/block.repository';
 import { PageRepository } from '../repositories/page.repository';
 
-/** Источник времени внедряется, чтобы тесты не зависели от системных часов. */
+/** The time source is injected so tests do not depend on the system clock. */
 export type Clock = () => Date;
 
 export interface PageListResult {
@@ -22,14 +25,15 @@ export interface PageListResult {
 }
 
 /**
- * Сценарии работы со страницами.
+ * Scenarios for working with pages.
  *
- * Слой не знает про HTTP: ни Request, ни Response, ни кодов статусов —
- * только доменные типы и типизированные ошибки.
+ * This layer knows nothing about HTTP: no Request, no Response, no status
+ * codes — only domain types and typed errors.
  */
 export class PageService {
   constructor(
     private readonly pages: PageRepository,
+    private readonly blocks: BlockRepository,
     private readonly clock: Clock,
   ) {}
 
@@ -63,8 +67,62 @@ export class PageService {
     });
   }
 
+  /**
+   * Page duplicate: a copy of the pages row with the same parent and position
+   * right after the original, plus a copy of the page's blocks. Nested child
+   * pages are not copied (deep duplication is a separate task).
+   */
+  async duplicatePage(id: string, actorId: string): Promise<Page> {
+    const source = await this.pages.findById(id);
+
+    if (!source) {
+      throw new NotFoundError('Страница не найдена');
+    }
+
+    if (source.isTrashed) {
+      throw new ConflictError('Нельзя дублировать страницу в корзине');
+    }
+
+    const bounds = await this.pages.findPositionBounds(source.workspaceId, source.parentId, id);
+    const now = this.now();
+
+    const copy = await this.pages.create({
+      id: newId(),
+      workspaceId: source.workspaceId,
+      parentId: source.parentId,
+      title: source.title,
+      icon: source.icon ?? null,
+      coverFileId: source.coverFileId ?? null,
+      position: generateKeyBetween(bounds.before, bounds.after),
+      isFavorite: false,
+      isTrashed: false,
+      createdBy: actorId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const sourceBlocks = await this.blocks.listByPage(id);
+    let previousPosition: string | null = null;
+
+    for (const block of sourceBlocks) {
+      const position = generateKeyBetween(previousPosition, null);
+      await this.blocks.create({
+        id: newId(),
+        pageId: copy.id,
+        type: block.type,
+        position,
+        content: block.content,
+        createdAt: now,
+        updatedAt: now,
+      });
+      previousPosition = position;
+    }
+
+    return copy;
+  }
+
   async listChildren(query: PageListQuery): Promise<PageListResult> {
-    // Запрашиваем на одну строку больше: лишняя строка становится курсором.
+    // Request one extra row: the extra row becomes the cursor.
     const items = await this.pages.listChildren({
       workspaceId: query.workspaceId,
       parentId: query.parentId,
@@ -80,16 +138,30 @@ export class PageService {
     return { items: page, nextCursor: hasMore && last ? last.position : null };
   }
 
-  /** Избранное не листается: это короткий список ссылок, а не дерево. */
+  /** Favorites are not paginated: a short list of links, not a tree. */
   async listFavorites(query: PageFavoritesQuery): Promise<PageListResult> {
     const items = await this.pages.listFavorites(query.workspaceId);
 
     return { items, nextCursor: null };
   }
 
-  /** Корзина тоже плоская: восстановить страницу можно независимо от её родителя. */
+  /** The trash is flat too: a page can be restored regardless of its parent. */
   async listTrashed(query: PageTrashQuery): Promise<PageListResult> {
     const items = await this.pages.listTrashed(query.workspaceId);
+
+    return { items, nextCursor: null };
+  }
+
+  /** Search is flat like favorites: a title match can sit at any depth. */
+  async searchPages(query: PageSearchQuery): Promise<PageListResult> {
+    const items = await this.pages.search(query.workspaceId, query.q);
+
+    return { items, nextCursor: null };
+  }
+
+  /** The whole workspace in one flat list: the library view filters and nests it. */
+  async listAll(query: PageAllQuery): Promise<PageListResult> {
+    const items = await this.pages.listAll(query.workspaceId);
 
     return { items, nextCursor: null };
   }
@@ -102,8 +174,8 @@ export class PageService {
     }
 
     if (workspaceId !== undefined && page.workspaceId !== workspaceId) {
-      // Чужой workspace отвечает так же, как несуществующая страница:
-      // иначе по коду ответа можно перебором узнать о чужих данных.
+      // A foreign workspace answers exactly like a missing page:
+      // otherwise foreign data could be discovered by brute force through codes.
       throw new NotFoundError('Страница не найдена');
     }
 
@@ -123,11 +195,11 @@ export class PageService {
   }
 
   /**
-   * Перемещение страницы в другого родителя с проверкой цикла.
+   * Moving a page to another parent with a cycle check.
    *
-   * Цикл «страница внутрь собственного потомка» разрушил бы дерево:
-   * страница стала бы недоступной. Проверяем по цепочке предков, а не
-   * только по непосредственному родителю.
+   * A "page into its own descendant" cycle would break the tree: the page
+   * would become unreachable. The chain of ancestors is checked, not only the
+   * immediate parent.
    */
   async movePage(id: string, workspaceId: string, input: MovePageInput): Promise<Page> {
     const page = await this.getPage(id, workspaceId);
@@ -158,7 +230,7 @@ export class PageService {
     return updated;
   }
 
-  /** Проверка, что новый родитель не является самой страницей или её потомком. */
+  /** Checks that the new parent is neither the page itself nor its descendant. */
   private async assertNoCycle(
     workspaceId: string,
     pageId: string,
@@ -177,7 +249,7 @@ export class PageService {
 
     while (current !== null) {
       if (visited.has(current)) {
-        // Цикл уже есть в данных — не усугубляем его.
+        // The cycle already exists in the data — do not make it worse.
         throw new ConflictError('Обнаружен цикл в дереве страниц');
       }
 
@@ -197,7 +269,7 @@ export class PageService {
     }
   }
 
-  /** Родитель должен существовать, принадлежать тому же workspace и не быть в корзине. */
+  /** The parent must exist, belong to the same workspace and not be in the trash. */
   private async assertParentIsUsable(workspaceId: string, parentId: string | null): Promise<void> {
     if (parentId === null) {
       return;
@@ -219,16 +291,15 @@ export class PageService {
   }
 }
 
-/** Собирает сервис со всеми зависимостями: единственное место создания связей. */
 export function createPageService(env: Bindings, clock: Clock = () => new Date()): PageService {
-  return new PageService(new PageRepository(env), clock);
+  return new PageService(new PageRepository(env), new BlockRepository(env), clock);
 }
 
-/** Идентификатор автора приходит из gateway; без него сервис страницу не создаёт. */
+/** The author id comes from the gateway; without it the service does not create the page. */
 export function requireActorId(actorId: string | undefined | null): string {
   if (!actorId) {
-    // На Этапе 1 подпись идентичности появится вместе с auth-service (Этап 2).
-    // Пока это осознанное «fail closed»: нет контекста — нет записи.
+    // Identity signing arrives together with auth-service.
+    // For now this is a deliberate "fail closed": no context — no write.
     throw new ForbiddenError('Не удалось определить пользователя по контексту запроса');
   }
 
