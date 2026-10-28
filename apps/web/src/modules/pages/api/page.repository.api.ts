@@ -5,11 +5,11 @@ import { HttpError, type TokenProvider } from '../../../shared/types';
 import { env } from '../../../shared/configs/env';
 
 /**
- * Репозиторий страниц поверх gateway.
+ * Page repository over the gateway.
  *
- * Запросы идут только через gateway с JWT в заголовке Authorization.
- * Токен выдаёт TokenProvider из shared непосредственно перед запросом и
- * не сохраняется ни в localStorage, ни в Zustand.
+ * Requests go only through the gateway with a JWT in the Authorization header.
+ * The token is provided by TokenProvider from shared right before the request
+ * and is not stored in localStorage or Zustand.
  */
 export function createPageRepositoryApi(accessToken: TokenProvider): PageRepository {
   const baseUrl = env.NEXT_PUBLIC_GATEWAY_URL;
@@ -18,7 +18,7 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
     const token = await accessToken.execute();
 
     if (token === null) {
-      throw new HttpError(401, 'Требуется авторизация');
+      throw new HttpError(401, 'Authorization required');
     }
 
     return { authorization: `Bearer ${token}` };
@@ -36,10 +36,7 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       const response = await fetch(`${baseUrl}/api/pages?${params.toString()}`, { headers });
 
       if (!response.ok) {
-        throw new HttpError(
-          response.status,
-          `Не удалось загрузить страницы: HTTP ${response.status}`,
-        );
+        throw new HttpError(response.status, `Failed to load pages: HTTP ${response.status}`);
       }
 
       return toPageList(await response.json()).items;
@@ -53,10 +50,7 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new HttpError(
-          response.status,
-          `Не удалось загрузить избранное: HTTP ${response.status}`,
-        );
+        throw new HttpError(response.status, `Failed to load favorites: HTTP ${response.status}`);
       }
 
       return toPageList(await response.json()).items;
@@ -70,10 +64,33 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new HttpError(
-          response.status,
-          `Не удалось загрузить корзину: HTTP ${response.status}`,
-        );
+        throw new HttpError(response.status, `Failed to load trash: HTTP ${response.status}`);
+      }
+
+      return toPageList(await response.json()).items;
+    },
+
+    async listAll(workspaceId) {
+      const headers = await authHeaders();
+      const params = new URLSearchParams({ workspaceId });
+      const response = await fetch(`${baseUrl}/api/pages/all?${params.toString()}`, { headers });
+
+      if (!response.ok) {
+        throw new HttpError(response.status, `Failed to load pages: HTTP ${response.status}`);
+      }
+
+      return toPageList(await response.json()).items;
+    },
+
+    async search(workspaceId, query) {
+      const headers = await authHeaders();
+      const params = new URLSearchParams({ workspaceId, q: query });
+      const response = await fetch(`${baseUrl}/api/pages/search?${params.toString()}`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new HttpError(response.status, `Failed to search pages: HTTP ${response.status}`);
       }
 
       return toPageList(await response.json()).items;
@@ -88,10 +105,7 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new HttpError(
-          response.status,
-          `Не удалось создать страницу: HTTP ${response.status}`,
-        );
+        throw new HttpError(response.status, `Failed to create page: HTTP ${response.status}`);
       }
 
       return toPage(await response.json());
@@ -104,10 +118,7 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new HttpError(
-          response.status,
-          `Не удалось загрузить страницу: HTTP ${response.status}`,
-        );
+        throw new HttpError(response.status, `Failed to load page: HTTP ${response.status}`);
       }
 
       return toPage(await response.json());
@@ -122,10 +133,24 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new HttpError(
-          response.status,
-          `Не удалось обновить страницу: HTTP ${response.status}`,
-        );
+        throw new HttpError(response.status, `Failed to update page: HTTP ${response.status}`);
+      }
+
+      return toPage(await response.json());
+    },
+
+    async duplicate(id, workspaceId) {
+      const headers = await authHeaders();
+      const response = await fetch(
+        `${baseUrl}/api/pages/${id}/duplicate?workspaceId=${workspaceId}`,
+        {
+          method: 'POST',
+          headers: { ...headers },
+        },
+      );
+
+      if (!response.ok) {
+        throw new HttpError(response.status, `Failed to duplicate page: HTTP ${response.status}`);
       }
 
       return toPage(await response.json());
@@ -140,10 +165,7 @@ export function createPageRepositoryApi(accessToken: TokenProvider): PageReposit
       });
 
       if (!response.ok) {
-        throw new HttpError(
-          response.status,
-          `Не удалось переместить страницу: HTTP ${response.status}`,
-        );
+        throw new HttpError(response.status, `Failed to move page: HTTP ${response.status}`);
       }
 
       return toPage(await response.json());

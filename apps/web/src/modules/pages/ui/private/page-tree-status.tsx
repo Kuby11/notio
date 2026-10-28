@@ -4,8 +4,8 @@ interface PageTreeStatusProps {
 }
 
 /**
- * Приватный статус дерева страниц: загрузка, ошибка, пустота.
- * Используется только внутри модуля pages.
+ * Private status of the page tree: loading, error, empty.
+ * Used only within the pages module.
  */
 export function PageTreeStatus({ children, tone = 'muted' }: PageTreeStatusProps) {
   const className = tone === 'error' ? 'text-red-600' : 'text-neutral-400';

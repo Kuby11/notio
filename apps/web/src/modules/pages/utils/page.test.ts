@@ -63,7 +63,7 @@ const sample = [
 ];
 
 describe('sortPages', () => {
-  it('сортирует по position лексикографически', () => {
+  it('sorts by position lexicographically', () => {
     const roots = sample.filter((page) => page.parentId === null);
 
     expect(sortPages(roots).map((page) => page.id)).toEqual(['root-a', 'root-b']);
@@ -71,20 +71,20 @@ describe('sortPages', () => {
 });
 
 describe('buildTree', () => {
-  it('строит вложенное дерево из плоского списка', () => {
+  it('builds nested tree from flat list', () => {
     const tree = buildTree(sample);
 
     expect(tree.map((node) => node.id)).toEqual(['root-a', 'root-b']);
     expect(tree[0]?.children.map((child) => child.id)).toEqual(['child-a1', 'child-a2']);
   });
 
-  it('возвращает пустой массив для пустого списка', () => {
+  it('returns empty array for empty list', () => {
     expect(buildTree([])).toEqual([]);
   });
 });
 
 describe('findNode', () => {
-  it('находит узел на любом уровне', () => {
+  it('finds node at any level', () => {
     const tree = buildTree(sample);
 
     expect(findNode(tree, 'child-a2')?.title).toBe('A2');
@@ -93,26 +93,26 @@ describe('findNode', () => {
 });
 
 describe('canMove', () => {
-  it('разрешает перемещение в корень и к чужому родителю', () => {
+  it('allows move to root and to another parent', () => {
     const tree = buildTree(sample);
 
     expect(canMove(tree, 'root-b', null)).toBe(true);
     expect(canMove(tree, 'child-a1', 'root-b')).toBe(true);
   });
 
-  it('запрещает перемещение внутрь самого себя', () => {
+  it('forbids moving into itself', () => {
     const tree = buildTree(sample);
 
     expect(canMove(tree, 'root-a', 'root-a')).toBe(false);
   });
 
-  it('запрещает перемещение внутрь собственного потомка', () => {
+  it('forbids moving into its own descendant', () => {
     const tree = buildTree(sample);
 
     expect(canMove(tree, 'root-a', 'child-a1')).toBe(false);
   });
 
-  it('разрешает перемещение к неизвестному родителю (сервер решит)', () => {
+  it('allows moving to unknown parent (server decides)', () => {
     const tree = buildTree(sample);
 
     expect(canMove(tree, 'root-a', 'does-not-exist')).toBe(true);
@@ -120,7 +120,7 @@ describe('canMove', () => {
 });
 
 describe('moveInTree', () => {
-  it('перемещает узел без мутации исходного дерева', () => {
+  it('moves node without mutating original tree', () => {
     const tree = buildTree(sample);
     const moved = moveInTree(tree, 'child-a1', 'root-b', 'a0');
 
@@ -128,7 +128,7 @@ describe('moveInTree', () => {
     expect(findNode(tree, 'child-a1')?.parentId).toBe('root-a');
   });
 
-  it('не меняет дерево, если перемещение запрещено', () => {
+  it('does not change tree if move forbidden', () => {
     const tree = buildTree(sample);
     const moved = moveInTree(tree, 'root-a', 'child-a1', 'a0');
 
@@ -137,31 +137,31 @@ describe('moveInTree', () => {
 });
 
 describe('normalizePageTitle', () => {
-  it('обрезает пробелы', () => {
-    expect(normalizePageTitle('  Новая  ')).toBe('Новая');
+  it('trims whitespace', () => {
+    expect(normalizePageTitle('  New  ')).toBe('New');
   });
 
-  it('подставляет заголовок по умолчанию для пустой строки', () => {
-    expect(normalizePageTitle('   ')).toBe('Без названия');
+  it('substitutes default title for empty string', () => {
+    expect(normalizePageTitle('   ')).toBe('Untitled');
   });
 });
 
 describe('assertCanMove', () => {
-  it('пропускает допустимое перемещение', () => {
+  it('allows valid move', () => {
     const tree = buildTree(sample);
 
     expect(() => assertCanMove(tree, 'child-a1', 'root-b')).not.toThrow();
   });
 
-  it('бросает доменную ошибку для перемещения внутрь потомка', () => {
+  it('throws domain error for move into descendant', () => {
     const tree = buildTree(sample);
 
-    expect(() => assertCanMove(tree, 'root-a', 'child-a1')).toThrow(/потомка/);
+    expect(() => assertCanMove(tree, 'root-a', 'child-a1')).toThrow(/descendant/);
   });
 });
 
 describe('flattenTree', () => {
-  it('разворачивает дерево в плоский список без children', () => {
+  it('flattens tree to a flat list without children', () => {
     const flat = flattenTree(buildTree(sample));
 
     expect(flat.map((page) => page.id)).toEqual(['root-a', 'child-a1', 'child-a2', 'root-b']);
@@ -170,13 +170,13 @@ describe('flattenTree', () => {
 });
 
 describe('isPageId', () => {
-  it('принимает UUID v4 и отклоняет мусор', () => {
+  it('accepts UUID v4 and rejects garbage', () => {
     expect(isPageId('9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f')).toBe(true);
     expect(isPageId('page-1')).toBe(false);
     expect(isPageId('')).toBe(false);
   });
 
-  it('отклоняет UUID другой версии: id страниц всегда v4', () => {
+  it('rejects other UUID versions: page ids are always v4', () => {
     expect(isPageId('9f1c0e2a-3b4d-1c5e-8f90-1a2b3c4d5e6f')).toBe(false);
   });
 });

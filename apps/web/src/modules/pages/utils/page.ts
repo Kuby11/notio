@@ -1,30 +1,34 @@
 /**
- * Доменные правила страниц.
+ * Domain rules for pages.
  *
- * Чистый TypeScript без React, Zod и сети. Порядок и циклы проверяются здесь,
- * а не в компонентах: иначе один и тот же инвариант жил бы в трёх местах.
+ * Pure TypeScript without React, Zod, or network. Ordering and cycles are checked here
+ * rather than in components: otherwise the same invariant would live in three places.
  */
 import type { Page } from '@notio/contracts';
 import { IdSchema } from '@notio/contracts';
 
 export type PageNode = Page & { children: PageNode[] };
 
-/** Заголовок страницы по умолчанию: пустая строка в интерфейсе не читается. */
-export const DEFAULT_PAGE_TITLE = 'Без названия';
+/** Default page title: an empty string in the interface is not readable. */
+export const DEFAULT_PAGE_TITLE = 'Untitled';
 
-/** Обрезает пробелы и подставляет заголовок по умолчанию вместо пустого. */
-export function normalizePageTitle(title: string): string {
+/**
+ * Trims whitespace and substitutes the default title for empty strings.
+ * The UI passes a localized fallback: the title is saved to the document,
+ * so "Untitled" must not appear in the English interface.
+ */
+export function normalizePageTitle(title: string, fallback: string = DEFAULT_PAGE_TITLE): string {
   const trimmed = title.trim();
 
-  return trimmed.length === 0 ? DEFAULT_PAGE_TITLE : trimmed;
+  return trimmed.length === 0 ? fallback : trimmed;
 }
 
-/** Сортирует страницы по position (fractional indexing, лексикографически). */
+/** Sorts pages by position (fractional indexing, lexicographically). */
 export function sortPages(pages: readonly Page[]): Page[] {
   return [...pages].toSorted((left, right) => left.position.localeCompare(right.position));
 }
 
-/** Строит дерево из плоского списка: корень — parentId === null. */
+/** Builds a tree from a flat list: root has parentId === null. */
 export function buildTree(pages: readonly Page[]): PageNode[] {
   const byParent = new Map<string | null, Page[]>();
 
@@ -44,7 +48,7 @@ export function buildTree(pages: readonly Page[]): PageNode[] {
   return build(null);
 }
 
-/** Ищет узел по id в дереве. */
+/** Finds a node by id in the tree. */
 export function findNode(nodes: readonly PageNode[], id: string): PageNode | null {
   for (const node of nodes) {
     if (node.id === id) {
@@ -62,8 +66,8 @@ export function findNode(nodes: readonly PageNode[], id: string): PageNode | nul
 }
 
 /**
- * Проверка цикла: нельзя переместить страницу внутрь самой себя или
- * внутрь собственного потомка. Возвращает true, если перемещение возможно.
+ * Cycle check: cannot move a page inside itself or inside its own descendant.
+ * Returns true if the move is possible.
  */
 export function canMove(
   tree: readonly PageNode[],
@@ -88,11 +92,11 @@ export function canMove(
 }
 
 /**
- * Проверка перемещения с доменной ошибкой.
+ * Move validation with domain error.
  *
- * Цикл проверяется на клиенте до запроса: иначе пользователь ждал бы сетевой
- * ответ, чтобы узнать, что действие запрещено. Сервер всё равно проверяет
- * повторно — клиент не источник истины.
+ * The cycle is checked on the client before the request: otherwise the user would wait for a network
+ * response to find out the action is forbidden. The server still checks
+ * again — the client is not the source of truth.
  */
 export function assertCanMove(
   tree: readonly PageNode[],
@@ -100,11 +104,11 @@ export function assertCanMove(
   newParentId: string | null,
 ): void {
   if (!canMove(tree, pageId, newParentId)) {
-    throw new Error('Нельзя переместить страницу внутрь собственного потомка');
+    throw new Error('Cannot move a page inside its own descendant');
   }
 }
 
-/** Оптимистичное перемещение: возвращает новое дерево без мутации исходного. */
+/** Optimistic move: returns a new tree without mutating the original. */
 export function moveInTree(
   tree: readonly PageNode[],
   pageId: string,
@@ -152,7 +156,7 @@ function insertNode(
   });
 }
 
-/** Плоский список узлов дерева: удобно для поиска и фильтрации. */
+/** Flat list of tree nodes: convenient for search and filtering. */
 export function flattenTree(nodes: readonly PageNode[]): Page[] {
   const result: Page[] = [];
 
@@ -168,7 +172,7 @@ export function flattenTree(nodes: readonly PageNode[]): Page[] {
   return result;
 }
 
-/** Проверка, что id корректный UUID: общее правило для всего дерева. */
+/** Check that id is a valid UUID: common rule for the whole tree. */
 export function isPageId(value: string): boolean {
   return IdSchema.safeParse(value).success;
 }

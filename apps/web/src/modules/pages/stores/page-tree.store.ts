@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 
 /**
- * UI-состояние дерева страниц: какие узлы развёрнуты.
+ * UI state for the page tree: which nodes are expanded.
  *
- * Серверные данные здесь не хранятся — только состояние интерфейса.
- * Zustand для UI, TanStack Query для данных: граница не нарушается.
+ * Server data is not stored here — only UI state.
+ * Zustand for UI, TanStack Query for data: the boundary is respected.
  */
 interface PageTreeState {
   expanded: Record<string, boolean>;
