@@ -1,10 +1,10 @@
 import type { Block } from '@notio/contracts';
 
 /**
- * Порт репозитория блоков.
+ * Block repository port.
  *
- * Реализация — адаптер поверх gateway; facade-хуки знают только этот
- * интерфейс, поэтому в тестах подставляется in-memory версия без сети.
+ * The implementation is an adapter over the gateway; facade hooks know only
+ * this interface, so tests substitute an in-memory version without network.
  */
 export interface BlockRepository {
   listByPage(pageId: string): Promise<Block[]>;
@@ -14,7 +14,7 @@ export interface BlockRepository {
   move(id: string, afterBlockId?: string): Promise<Block>;
 }
 
-/** Входная форма создания блока: минимум полей для UI. */
+/** Input shape for block creation: the minimum of fields for the UI. */
 export type CreateBlockFormInput = {
   pageId: string;
   content: Block['content'];

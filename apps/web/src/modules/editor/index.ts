@@ -3,7 +3,7 @@ import type { TokenProvider } from '../../shared/types';
 import type { BlockRepository } from './types/ports';
 
 export { Editor } from './ui/public/editor';
-export { useEditor } from './hooks/use-editor';
+export { useBlockCreator, useEditor } from './hooks/use-editor';
 export { editorKeys } from './utils/query-keys';
 export {
   DEFAULT_BLOCK_DEFINITIONS,
@@ -26,16 +26,17 @@ export type {
   EditorDocument,
   EditorNode,
 } from './utils/block';
-export { SLASH_COMMANDS, detectSlashTrigger, filterSlashCommands } from './utils/slash';
-export type { SlashCommand, SlashRange, SlashTrigger } from './utils/slash';
+export { parseMarkdownToBlocks, importTitleFrom } from './utils/markdown-import';
+export { SLASH_COMMANDS, filterSlashCommands } from './utils/slash';
+export type { SlashCommand, SlashRange } from './utils/slash';
 export type { BlockRepository } from './types/ports';
 
 /**
- * Публичный API модуля редактора.
+ * Public API of the editor module.
  *
- * Приложение получает фабрику, facade-хуки и компонент редактора.
- * Репозиторий блоков отдаётся только как порт: адаптер и DTO остаются
- * внутри модуля.
+ * The application receives the factory, the facade hooks and the editor
+ * component. The block repository is exposed only as a port: the adapter and
+ * the DTOs stay inside the module.
  */
 
 export type EditorModule = BlockRepository;

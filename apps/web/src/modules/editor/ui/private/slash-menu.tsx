@@ -1,29 +1,46 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { filterSlashCommands, type SlashCommand } from '../../utils/slash';
 
-export interface SlashMenuPosition {
-  top: number;
-  left: number;
+export interface SlashMenuHandle {
+  onKeyDown: (event: KeyboardEvent) => boolean;
 }
 
 interface SlashMenuProps {
   query: string;
-  position: SlashMenuPosition | null;
   onSelect: (command: SlashCommand) => void;
-  onClose: () => void;
+  onClose?: () => void;
+  /**
+   * Suggestion intercepts keys itself and closes the menu on an outside click.
+   * For the plus menu we install the same handlers on window.
+   */
+  keyboard?: boolean;
 }
 
 /**
- * Popover slash-меню.
+ * Popover slash menu.
  *
- * Текст запроса остаётся в документе (как в Notion), поэтому отдельного
- * input здесь нет: после `/` пользователь продолжает печатать в блоке.
- * Стрелки, Enter и Escape перехватываются в capture-фазе, чтобы ProseMirror
- * не переместил курсор под открытым меню.
+ * The query text stays in the document (as in Notion), so there is no separate
+ * input here: after `/` the user keeps typing inside the block. The component
+ * does not know who opened it: the official Suggestion calls `onKeyDown`,
+ * while the plus menu uses the built-in window handlers.
  */
-export function SlashMenu({ query, position, onSelect, onClose }: SlashMenuProps) {
+export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(function SlashMenu(
+  { query, onSelect, onClose, keyboard = true },
+  ref,
+) {
+  const t = useTranslations('editor.slash');
+  const tCommon = useTranslations('common');
   const commands = useMemo(() => filterSlashCommands(query), [query]);
   const [activeIndex, setActiveIndex] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -43,21 +60,20 @@ export function SlashMenu({ query, position, onSelect, onClose }: SlashMenuProps
     }
   }, [currentIndex]);
 
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        onClose();
-        return;
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent): boolean => {
+      if (event.isComposing) {
+        return false;
+      }
+
+      if (event.key === 'Escape' || event.key === 'Esc') {
+        onClose?.();
+        return true;
       }
 
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        event.preventDefault();
-        event.stopPropagation();
-
         if (commands.length === 0) {
-          return;
+          return true;
         }
 
         setActiveIndex((index) => {
@@ -65,32 +81,57 @@ export function SlashMenu({ query, position, onSelect, onClose }: SlashMenuProps
 
           return (next + commands.length) % commands.length;
         });
-        return;
+        return true;
       }
 
       if (event.key === 'Enter') {
-        event.preventDefault();
-        event.stopPropagation();
-
         if (activeCommand) {
           onSelect(activeCommand);
         }
+        return true;
+      }
+
+      return false;
+    },
+    [activeCommand, commands.length, onClose, onSelect],
+  );
+
+  // ReactRenderer may keep the ref from the first render. We keep the current
+  // handler in a ref so Enter/arrows see the current query and command.
+  const handleKeyDownRef = useRef(handleKeyDown);
+  handleKeyDownRef.current = handleKeyDown;
+
+  useImperativeHandle(ref, () => ({ onKeyDown: (event) => handleKeyDownRef.current(event) }), []);
+
+  useEffect(() => {
+    if (!keyboard) {
+      return;
+    }
+
+    function handleWindowKeyDown(event: KeyboardEvent) {
+      if (handleKeyDown(event)) {
+        event.preventDefault();
+        event.stopPropagation();
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('keydown', handleWindowKeyDown, true);
 
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [activeCommand, commands.length, onClose, onSelect]);
+    return () => window.removeEventListener('keydown', handleWindowKeyDown, true);
+  }, [handleKeyDown, keyboard]);
 
   useEffect(() => {
+    if (!keyboard || !onClose) {
+      return;
+    }
+
     function handlePointerDown(event: PointerEvent) {
       if (
         menuRef.current &&
         event.target instanceof Node &&
         !menuRef.current.contains(event.target)
       ) {
-        onClose();
+        onClose?.();
       }
     }
 
@@ -103,7 +144,7 @@ export function SlashMenu({ query, position, onSelect, onClose }: SlashMenuProps
         return;
       }
 
-      onClose();
+      onClose?.();
     }
 
     document.addEventListener('pointerdown', handlePointerDown, true);
@@ -113,27 +154,24 @@ export function SlashMenu({ query, position, onSelect, onClose }: SlashMenuProps
       document.removeEventListener('pointerdown', handlePointerDown, true);
       window.removeEventListener('scroll', handleScroll, true);
     };
-  }, [onClose]);
-
-  if (!position) {
-    return null;
-  }
+  }, [keyboard, onClose]);
 
   return (
     <div
       ref={menuRef}
       role="listbox"
-      aria-label="Вставить блок"
-      className="bg-popover text-popover-foreground fixed z-50 w-80 overflow-hidden rounded-lg border shadow-lg"
-      style={{ top: position.top, left: position.left }}
+      aria-label={t('menuLabel')}
+      className="bg-popover text-popover-foreground max-h-80 w-72 overflow-y-auto rounded-lg border shadow-md"
     >
       <div className="text-muted-foreground border-b px-3 py-2 text-[11px] font-medium tracking-wide uppercase">
-        Базовые блоки
+        {t('basics')}
       </div>
 
       <div className="max-h-[340px] overflow-y-auto p-1">
         {commands.length === 0 ? (
-          <p className="text-muted-foreground px-3 py-6 text-center text-sm">Ничего не найдено</p>
+          <p className="text-muted-foreground px-3 py-6 text-center text-sm">
+            {tCommon('notFound')}
+          </p>
         ) : (
           commands.map((command, index) => {
             const active = index === currentIndex;
@@ -150,16 +188,16 @@ export function SlashMenu({ query, position, onSelect, onClose }: SlashMenuProps
                     return;
                   }
 
-                  // Выбираем команду уже на pointerdown: меню может
-                  // размонтироваться до события click, и тогда выбор терялся.
+                  // We pick the command already on pointerdown: the menu may
+                  // unmount before the click event, and the choice would be lost.
                   event.preventDefault();
                   pointerSelected.current = true;
                   onSelect(command);
                 }}
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => {
-                  // Для мыши команда уже применена в pointerdown.
-                  // Click с клавиатуры/assistive tech приходит без pointerdown.
+                  // For the mouse the command was already applied on pointerdown.
+                  // A click from the keyboard/assistive tech arrives without pointerdown.
                   if (pointerSelected.current) {
                     pointerSelected.current = false;
                     return;
@@ -174,7 +212,7 @@ export function SlashMenu({ query, position, onSelect, onClose }: SlashMenuProps
                 <span className="bg-muted text-muted-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded border font-mono text-xs">
                   {command.icon}
                 </span>
-                <span className="min-w-0 flex-1 truncate">{command.label}</span>
+                <span className="min-w-0 flex-1 truncate">{t(`commands.${command.label}`)}</span>
                 {command.markdown ? (
                   <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-[11px]">
                     <kbd className="bg-background rounded border px-1.5 py-0.5 font-mono text-[10px]">
@@ -192,10 +230,10 @@ export function SlashMenu({ query, position, onSelect, onClose }: SlashMenuProps
       </div>
 
       <div className="text-muted-foreground flex items-center gap-3 border-t px-3 py-2 text-[11px]">
-        <span>↑↓ выбрать</span>
-        <span>↵ вставить</span>
-        <span>Esc закрыть</span>
+        <span>↑↓ {t('select')}</span>
+        <span>↵ {t('insert')}</span>
+        <span>{t('esc')}</span>
       </div>
     </div>
   );
-}
+});

@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
+import { renderWithIntl, TEST_MESSAGES } from '../../../../../test/auth-fixture';
 import { describe, expect, it, vi } from 'vitest';
 import type { SlashCommand } from '../../utils/slash';
 import { SlashMenu } from './slash-menu';
-
-const POSITION = { top: 10, left: 20 };
 
 function selectMock() {
   return vi.fn<(command: SlashCommand) => void>();
@@ -16,13 +16,11 @@ function closeMock() {
 
 describe('SlashMenu', () => {
   it('показывает все базовые блоки и их markdown-символы', () => {
-    render(
-      <SlashMenu query="" position={POSITION} onSelect={selectMock()} onClose={closeMock()} />,
-    );
+    renderWithIntl(<SlashMenu query="" onSelect={selectMock()} onClose={closeMock()} />);
 
     const menu = screen.getByRole('listbox', { name: 'Вставить блок' });
 
-    expect(within(menu).getAllByRole('option')).toHaveLength(9);
+    expect(within(menu).getAllByRole('option')).toHaveLength(26);
     expect(within(menu).getByRole('option', { name: /Текст/ })).toBeInTheDocument();
     expect(within(menu).getByRole('option', { name: /Заголовок 4/ })).toBeInTheDocument();
     expect(within(menu).getByText('####')).toBeInTheDocument();
@@ -31,15 +29,30 @@ describe('SlashMenu', () => {
     expect(within(numbered).getByText('1.', { selector: 'kbd' })).toBeInTheDocument();
     expect(within(menu).getByText('[]')).toBeInTheDocument();
     expect(within(menu).getByText('>')).toBeInTheDocument();
+
+    // New blocks: quote, divider, table, sub-page, code.
+    const quote = within(menu).getByRole('option', { name: /Цитата/ });
+    expect(within(quote).getByText('"', { selector: 'kbd' })).toBeInTheDocument();
+    const divider = within(menu).getByRole('option', { name: /Разделитель/ });
+    expect(within(divider).getByText('---', { selector: 'kbd' })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Таблица/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Страница/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Код/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Изображение/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Видео/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Файл/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Эмодзи/ })).toBeInTheDocument();
   });
 
   it('фильтрует команды по запросу', () => {
-    const { rerender } = render(
-      <SlashMenu query="" position={POSITION} onSelect={selectMock()} onClose={closeMock()} />,
+    const { rerender } = renderWithIntl(
+      <SlashMenu query="" onSelect={selectMock()} onClose={closeMock()} />,
     );
 
     rerender(
-      <SlashMenu query="h1" position={POSITION} onSelect={selectMock()} onClose={closeMock()} />,
+      <NextIntlClientProvider locale="ru" messages={TEST_MESSAGES}>
+        <SlashMenu query="h1" onSelect={selectMock()} onClose={closeMock()} />
+      </NextIntlClientProvider>,
     );
 
     const menu = screen.getByRole('listbox', { name: 'Вставить блок' });
@@ -51,7 +64,7 @@ describe('SlashMenu', () => {
 
   it('выбирает команду стрелками и Enter', () => {
     const onSelect = selectMock();
-    render(<SlashMenu query="" position={POSITION} onSelect={onSelect} onClose={closeMock()} />);
+    renderWithIntl(<SlashMenu query="" onSelect={onSelect} onClose={closeMock()} />);
 
     fireEvent.keyDown(document, { key: 'ArrowDown' });
     fireEvent.keyDown(document, { key: 'Enter' });
@@ -62,7 +75,7 @@ describe('SlashMenu', () => {
 
   it('вставляет команду по клику', () => {
     const onSelect = selectMock();
-    render(<SlashMenu query="" position={POSITION} onSelect={onSelect} onClose={closeMock()} />);
+    renderWithIntl(<SlashMenu query="" onSelect={onSelect} onClose={closeMock()} />);
 
     fireEvent.click(screen.getByRole('option', { name: /Toggle-список/ }));
 
@@ -72,7 +85,7 @@ describe('SlashMenu', () => {
 
   it('вставляет команду уже по pointerdown и не дублирует её на click', () => {
     const onSelect = selectMock();
-    render(<SlashMenu query="" position={POSITION} onSelect={onSelect} onClose={closeMock()} />);
+    renderWithIntl(<SlashMenu query="" onSelect={onSelect} onClose={closeMock()} />);
 
     const option = screen.getByRole('option', { name: /Список задач/ });
     fireEvent.pointerDown(option, { button: 0 });
@@ -84,7 +97,7 @@ describe('SlashMenu', () => {
 
   it('закрывается по Escape', () => {
     const onClose = closeMock();
-    render(<SlashMenu query="" position={POSITION} onSelect={selectMock()} onClose={onClose} />);
+    renderWithIntl(<SlashMenu query="" onSelect={selectMock()} onClose={onClose} />);
 
     fireEvent.keyDown(document, { key: 'Escape' });
 

@@ -1,13 +1,14 @@
 import { TextSelection, type Transaction } from '@tiptap/pm/state';
 
 /**
- * Превращает текущий текстовый блок в toggle-контейнер.
+ * Превращает текущий текстовый блок в официальный Tiptap Details.
  *
- * Схема toggle — `paragraph block*`: первый абзац служит заголовком, остальные
- * узлы находятся в раскрывающемся теле. Обычный `setNode` не подходит, потому
+ * Details состоит из `detailsSummary` (заголовок) и `detailsContent` (тело).
+ * Это та же модель, что у toggle в Notion: заголовок остаётся редактируемым,
+ * а дочерние блоки можно сворачивать. Обычный `setNode` не подходит, потому
  * что Tiptap поддерживает его только для textblock-узлов.
  */
-export function replaceTextblockWithToggle(
+export function replaceTextblockWithDetails(
   transaction: Transaction,
   position = transaction.selection.from,
 ): boolean {
@@ -25,36 +26,38 @@ export function replaceTextblockWithToggle(
   const current = $from.node(depth);
   const parent = $from.node(depth - 1);
   const index = $from.index(depth - 1);
-  const toggleType = transaction.doc.type.schema.nodes['toggle'];
+  const detailsType = transaction.doc.type.schema.nodes['details'];
+  const summaryType = transaction.doc.type.schema.nodes['detailsSummary'];
+  const contentType = transaction.doc.type.schema.nodes['detailsContent'];
   const paragraphType = transaction.doc.type.schema.nodes['paragraph'];
 
-  if (!toggleType || !paragraphType) {
+  if (!detailsType || !summaryType || !contentType || !paragraphType) {
     return false;
   }
 
   // Не заменяем родительский список: это удалило бы соседние элементы.
-  if (!parent.canReplaceWith(index, index + 1, toggleType)) {
+  if (!parent.canReplaceWith(index, index + 1, detailsType)) {
     return false;
   }
 
   const blockId = current.attrs['blockId'];
   const headerText = current.textContent;
-  const header = paragraphType.create(
+  const summary = summaryType.create(
     null,
     headerText.length > 0 ? transaction.doc.type.schema.text(headerText) : undefined,
   );
-  const body = paragraphType.create();
-  const toggle = toggleType.create(
+  const body = contentType.create(null, [paragraphType.create()]);
+  const details = detailsType.create(
     {
       ...(typeof blockId === 'string' && blockId.length > 0 ? { blockId } : {}),
       open: true,
     },
-    [header, body],
+    [summary, body],
   );
 
   const start = $from.before(depth);
   const end = $from.after(depth);
-  transaction.replaceWith(start, end, toggle);
+  transaction.replaceWith(start, end, details);
 
   // Курсор — в конец заголовка, чтобы можно было сразу продолжать печатать.
   transaction.setSelection(TextSelection.create(transaction.doc, start + 2 + headerText.length));

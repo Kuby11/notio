@@ -7,7 +7,21 @@ export type SlashCommandKind =
   | 'bulletList'
   | 'orderedList'
   | 'toDo'
-  | 'toggle';
+  | 'toggle'
+  | 'quote'
+  | 'divider'
+  | 'table'
+  | 'page'
+  | 'code'
+  | 'image'
+  | 'video'
+  | 'file'
+  | 'emoji'
+  | 'columns'
+  | 'equation'
+  | 'inlineEquation'
+  | 'linkToPage'
+  | 'breadcrumb';
 
 export interface SlashCommand {
   id: string;
@@ -17,6 +31,8 @@ export interface SlashCommand {
   markdown: string | null;
   kind: SlashCommandKind;
   headingLevel?: 1 | 2 | 3 | 4;
+  /** Для kind 'columns': сколько колонок создать (2–5). */
+  columnsCount?: 2 | 3 | 4 | 5;
   blockType: BlockType;
   /** Синонимы для поиска: английские команды Notion и русские названия. */
   keywords: readonly string[];
@@ -31,7 +47,7 @@ export interface SlashCommand {
 export const SLASH_COMMANDS: readonly SlashCommand[] = [
   {
     id: 'text',
-    label: 'Текст',
+    label: 'text',
     icon: '¶',
     markdown: null,
     kind: 'paragraph',
@@ -40,7 +56,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   },
   {
     id: 'heading1',
-    label: 'Заголовок 1',
+    label: 'heading1',
     icon: 'H1',
     markdown: '#',
     kind: 'heading',
@@ -50,7 +66,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   },
   {
     id: 'heading2',
-    label: 'Заголовок 2',
+    label: 'heading2',
     icon: 'H2',
     markdown: '##',
     kind: 'heading',
@@ -60,7 +76,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   },
   {
     id: 'heading3',
-    label: 'Заголовок 3',
+    label: 'heading3',
     icon: 'H3',
     markdown: '###',
     kind: 'heading',
@@ -70,7 +86,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   },
   {
     id: 'heading4',
-    label: 'Заголовок 4',
+    label: 'heading4',
     icon: 'H4',
     markdown: '####',
     kind: 'heading',
@@ -80,7 +96,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   },
   {
     id: 'toggle',
-    label: 'Toggle-список',
+    label: 'toggle',
     icon: '▸',
     markdown: '>',
     kind: 'toggle',
@@ -89,7 +105,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   },
   {
     id: 'numberedList',
-    label: 'Нумерованный список',
+    label: 'orderedList',
     icon: '1.',
     markdown: '1.',
     kind: 'orderedList',
@@ -98,7 +114,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   },
   {
     id: 'checkList',
-    label: 'Список задач',
+    label: 'toDo',
     icon: '☑',
     markdown: '[]',
     kind: 'toDo',
@@ -107,12 +123,175 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   },
   {
     id: 'bulletedList',
-    label: 'Маркированный список',
+    label: 'bulletList',
     icon: '•',
     markdown: '-',
     kind: 'bulletList',
     blockType: 'bulletedListItem',
     keywords: ['bullet', 'bulleted', 'bulleted list', 'unordered', 'маркированный', '-'],
+  },
+  {
+    id: 'quote',
+    label: 'quote',
+    icon: '❝',
+    markdown: '"',
+    kind: 'quote',
+    blockType: 'quote',
+    keywords: ['quote', 'blockquote', 'cite', 'цитата', 'цитировать', '"'],
+  },
+  {
+    id: 'divider',
+    label: 'divider',
+    icon: '—',
+    markdown: '---',
+    kind: 'divider',
+    blockType: 'divider',
+    keywords: ['divider', 'hr', 'line', 'rule', 'разделитель', 'линия', '---'],
+  },
+  {
+    id: 'table',
+    label: 'table',
+    icon: '▦',
+    markdown: null,
+    kind: 'table',
+    blockType: 'table',
+    keywords: ['table', 'grid', 'таблица', 'сетка', 'столбцы', 'строки'],
+  },
+  {
+    id: 'page',
+    label: 'page',
+    icon: '📄',
+    markdown: null,
+    kind: 'page',
+    blockType: 'page',
+    keywords: ['page', 'subpage', 'sub-page', 'страница', 'подстраница', 'документ'],
+  },
+  {
+    id: 'code',
+    label: 'code',
+    icon: '</>',
+    markdown: '```',
+    kind: 'code',
+    blockType: 'code',
+    keywords: ['code', 'snippet', 'код', 'фрагмент', '```'],
+  },
+  {
+    id: 'image',
+    label: 'image',
+    icon: '🖼',
+    markdown: null,
+    kind: 'image',
+    blockType: 'image',
+    keywords: ['image', 'picture', 'img', 'изображение', 'картинка', 'фото'],
+  },
+  {
+    id: 'video',
+    label: 'video',
+    icon: '▶',
+    markdown: null,
+    kind: 'video',
+    blockType: 'video',
+    keywords: ['video', 'movie', 'видео', 'ролик', 'mp4'],
+  },
+  {
+    id: 'file',
+    label: 'file',
+    icon: '📎',
+    markdown: null,
+    kind: 'file',
+    blockType: 'file',
+    keywords: ['file', 'document', 'pdf', 'файл', 'документ', 'вложение'],
+  },
+  {
+    id: 'emoji',
+    label: 'emoji',
+    icon: '😀',
+    markdown: null,
+    kind: 'emoji',
+    blockType: 'emoji',
+    keywords: ['emoji', 'smile', 'icon', 'эмодзи', 'смайл', 'иконка'],
+  },
+  {
+    id: 'columns-2',
+    label: 'columns-2',
+    icon: '◫',
+    markdown: null,
+    kind: 'columns',
+    columnsCount: 2,
+    blockType: 'columns',
+    keywords: ['columns', 'columns 2', 'колонки', '2 колонки', 'две колонки'],
+  },
+  {
+    id: 'columns-3',
+    label: 'columns-3',
+    icon: '◫',
+    markdown: null,
+    kind: 'columns',
+    columnsCount: 3,
+    blockType: 'columns',
+    keywords: ['columns', 'columns 3', 'колонки', '3 колонки', 'три колонки'],
+  },
+  {
+    id: 'columns-4',
+    label: 'columns-4',
+    icon: '◫',
+    markdown: null,
+    kind: 'columns',
+    columnsCount: 4,
+    blockType: 'columns',
+    keywords: ['columns', 'columns 4', 'колонки', '4 колонки', 'четыре колонки'],
+  },
+  {
+    id: 'columns-5',
+    label: 'columns-5',
+    icon: '◫',
+    markdown: null,
+    kind: 'columns',
+    columnsCount: 5,
+    blockType: 'columns',
+    keywords: ['columns', 'columns 5', 'колонки', '5 колонок', 'пять колонок'],
+  },
+  {
+    id: 'equation',
+    label: 'equation',
+    icon: '∑',
+    markdown: null,
+    kind: 'equation',
+    blockType: 'equation',
+    keywords: ['equation', 'formula', 'math', 'latex', 'tex', 'формула', 'математика', 'уравнение'],
+  },
+  {
+    id: 'inline-equation',
+    label: 'inline-equation',
+    icon: 'ƒ',
+    markdown: null,
+    kind: 'inlineEquation',
+    blockType: 'equation',
+    keywords: [
+      'inline equation',
+      'inline math',
+      'строчная формула',
+      'инлайн формула',
+      'формула в тексте',
+    ],
+  },
+  {
+    id: 'link-to-page',
+    label: 'link-to-page',
+    icon: '🔗',
+    markdown: null,
+    kind: 'linkToPage',
+    blockType: 'linkToPage',
+    keywords: ['link to page', 'page link', 'ссылка на страницу', 'ссылка', 'упоминание страницы'],
+  },
+  {
+    id: 'breadcrumb',
+    label: 'breadcrumb',
+    icon: '⌂',
+    markdown: null,
+    kind: 'breadcrumb',
+    blockType: 'breadcrumb',
+    keywords: ['breadcrumb', 'path', 'крошки', 'хлебные крошки', 'путь страницы'],
   },
 ];
 
@@ -120,14 +299,6 @@ export interface SlashRange {
   /** Позиция слэша в документе. */
   from: number;
   /** Позиция курсора в документе. */
-  to: number;
-}
-
-export interface SlashTrigger {
-  query: string;
-  /** Позиция слэша относительно начала текстового блока. */
-  from: number;
-  /** Позиция курсора относительно начала текстового блока. */
   to: number;
 }
 
@@ -178,28 +349,4 @@ export function filterSlashCommands(query: string): SlashCommand[] {
     )
     .toSorted((left, right) => left.score - right.score || left.index - right.index)
     .map((entry) => entry.command);
-}
-
-/**
- * Ищет активный slash-триггер в тексте перед курсором.
- *
- * Notion открывает меню в начале блока или после пробела, но не внутри
- * слова/URL. Поэтому `/` должен стоять в начале строки или после whitespace,
- * а запрос не может содержать пробелы и второй слэш.
- */
-export function detectSlashTrigger(textBeforeCursor: string): SlashTrigger | null {
-  const match = /(^|\s)\/([^\s/]*)$/u.exec(textBeforeCursor);
-
-  if (!match) {
-    return null;
-  }
-
-  const query = match[2] ?? '';
-  const from = textBeforeCursor.length - query.length - 1;
-
-  return {
-    query,
-    from,
-    to: textBeforeCursor.length,
-  };
 }

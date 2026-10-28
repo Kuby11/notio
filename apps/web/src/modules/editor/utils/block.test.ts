@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BLOCK_TYPES, type Block } from '@notio/contracts';
 import {
+  richToPlain,
   blockToText,
   canMoveBlock,
   contentToText,
@@ -20,7 +21,7 @@ describe('registerBlock / getBlockDefinition', () => {
       label: 'Текст',
       icon: '¶',
       create: () => ({ type: 'paragraph', content: '' }),
-      toText: (content) => (content.type === 'paragraph' ? content.content : ''),
+      toText: (content) => (content.type === 'paragraph' ? richToPlain(content.content) : ''),
     });
 
     expect(getBlockDefinition('paragraph')?.label).toBe('Текст');

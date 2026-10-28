@@ -4,8 +4,8 @@ interface EditorStatusProps {
 }
 
 /**
- * Приватный статус редактора: загрузка документа и ошибка загрузки.
- * Используется только внутри модуля editor.
+ * Private editor status: document loading and load failure.
+ * Used only inside the editor module.
  */
 export function EditorStatus({ children, tone = 'muted' }: EditorStatusProps) {
   const className = tone === 'error' ? 'text-red-600' : 'text-neutral-500';
