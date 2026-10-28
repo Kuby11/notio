@@ -7,20 +7,20 @@ import {
 } from '@notio/contracts';
 import { DEFAULT_JWKS_TTL_SECONDS, createJwksCache, type JwksCache } from './jwks-cache';
 
-/** Путь, по которому gateway получает JWKS у auth-service. */
+/** Path the gateway uses to fetch JWKS from auth-service. */
 export { AUTH_JWKS_PATH, DEFAULT_JWKS_TTL_SECONDS };
 
 /**
- * Внутренний адрес для Service Binding: имя сервиса в хосте, домен значения
- * не имеет — важен путь. URL должен быть абсолютным: `new Request('/health')`
- * в Workers бросает Invalid URL, в отличие от браузера.
+ * Internal address for the Service Binding: the service name goes in the host,
+ * the domain does not matter — only the path does. The URL must be absolute:
+ * `new Request('/health')` throws Invalid URL in Workers, unlike in a browser.
  */
 export const INTERNAL_ORIGIN = 'https://internal';
 
-/** Абсолютный URL JWKS, по которому gateway ходит внутрь, а не в интернет. */
+/** Absolute JWKS URL that the gateway calls internally, not the public internet. */
 export const AUTH_JWKS_URL = `${INTERNAL_ORIGIN}${AUTH_JWKS_PATH}`;
 
-/** Кеш ключей на уровне изолята воркера. */
+/** Key cache at the worker isolate level. */
 const sharedJwksCache: JwksCache = createJwksCache();
 
 export function getSharedJwksCache(): JwksCache {
@@ -55,11 +55,11 @@ export async function fetchJwks(
 }
 
 /**
- * Проверяет JWT по ключам JWKS и достаёт пользователя.
+ * Verifies a JWT against the JWKS keys and returns the user.
  *
- * Любая ошибка проверки (подпись, срок, мусор в токене) приводит к null —
- * решение «пустить или не пустить» принимает вызывающий middleware,
- * чтобы ошибки разных типов можно было различать в логах.
+ * Any verification failure (signature, expiry, garbage in the token) yields
+ * null — the calling middleware decides whether to let the request through,
+ * so different error types stay distinguishable in logs.
  */
 export async function verifyAccessToken(
   token: string,
@@ -86,7 +86,6 @@ export async function verifyAccessToken(
   }
 }
 
-/** Достаёт токен из заголовка Authorization: Bearer <jwt>. */
 export function bearerToken(request: Request): string | null {
   const header = request.headers.get('authorization');
 

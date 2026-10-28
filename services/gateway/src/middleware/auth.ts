@@ -5,8 +5,8 @@ import type { AppEnv } from '../env';
 import { bearerToken, getSharedJwksCache, verifyAccessToken } from './jwt';
 
 /**
- * Маршруты, доступные без аутентификации: индекс API, liveness, readiness,
- * а также вход, регистрация и JWKS. Всё остальное под `/api/*` требует токена.
+ * Routes reachable without authentication: API index, liveness, readiness,
+ * plus sign-in, registration and JWKS. Everything else under `/api/*` needs a token.
  */
 export const PUBLIC_PATHS = ['/', '/health', '/api/health', '/api/auth'] as const;
 
@@ -17,10 +17,22 @@ export function isPublicPath(path: string): boolean {
 }
 
 /**
- * Определяет пользователя по JWT и кладёт его в контекст запроса.
+ * Public media file reads: GET/HEAD on an unpredictable UUID.
  *
- * Токен проверяется локально по JWKS, полученному у auth-service через
- * Service Binding: ни один запрос к API не превращается во внутренний вызов.
+ * <img>, <video> and download links cannot send an Authorization header, so
+ * access rests only on the randomness of the id (a capability URL, like Notion
+ * attachments). Uploads and the rest of /api/* still require a token; the rate
+ * limit applies to the public path too.
+ */
+export function isPublicReadPath(path: string, method: string): boolean {
+  return (method === 'GET' || method === 'HEAD') && /^\/api\/media\/files\/[^/]+$/u.test(path);
+}
+
+/**
+ * Resolves the user from the JWT and puts them in the request context.
+ *
+ * The token is verified locally against JWKS fetched from auth-service through
+ * a Service Binding: no API request turns into an internal call.
  */
 export function authenticationMiddleware(config: GatewayConfig): MiddlewareHandler<AppEnv> {
   const ttl = config.jwksCacheTtlSeconds;
@@ -40,7 +52,7 @@ export function authenticationMiddleware(config: GatewayConfig): MiddlewareHandl
   };
 }
 
-/** Закрывает защищённые маршруты: без валидного токена — 401 problem+json. */
+/** Guards protected routes: without a valid token — 401 problem+json. */
 export function requireAuthentication(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const user = c.get('user');
@@ -55,8 +67,8 @@ export function requireAuthentication(): MiddlewareHandler<AppEnv> {
     return problem({
       status: 401,
       code: 'UNAUTHENTICATED',
-      // Различие формулировок помогает отличить «нет токена» от «недействительный»
-      // при разборе логов; на безопасность оно не влияет.
+      // The wording difference helps tell "no token" from "invalid"
+      // when reading logs; it has no effect on security.
       detail: hasToken
         ? 'Токен недействителен или истёк. Войдите заново.'
         : 'Требуется авторизация: передайте токен в заголовке Authorization: Bearer <token>',

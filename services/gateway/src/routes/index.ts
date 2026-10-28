@@ -3,8 +3,8 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../env';
 
 /**
- * Индекс публичного API. Отвечает на корень, чтобы обращение к адресу
- * gateway давало описание сервиса, а не 404.
+ * Public API index. Answers on the root so that hitting the gateway address
+ * describes the service instead of returning 404.
  */
 export function createIndexRoutes(): Hono<AppEnv> {
   return new Hono<AppEnv>().get('/', (c) =>

@@ -2,7 +2,7 @@ import { INTERNAL_HEADERS } from '@notio/contracts';
 import type { MiddlewareHandler } from 'hono';
 import type { AppEnv } from '../env';
 
-/** Допустимый вид клиентского request-id: буквы, цифры, дефис, подчёркивание. */
+/** Allowed shape of a client request-id: letters, digits, hyphen, underscore. */
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
 export const REQUEST_ID_HEADER = INTERNAL_HEADERS.REQUEST_ID;
@@ -12,14 +12,14 @@ export function isValidRequestId(value: string | undefined | null): value is str
 }
 
 /**
- * Сквозной request-id: принимает корректный входящий, иначе генерирует свой.
+ * End-to-end request-id: accepts a valid incoming one, otherwise generates its own.
  *
- * Валидация обязательна — иначе через заголовок можно было бы подмешать
- * мусор в логи или завалить лог-агрегатор.
+ * Validation is mandatory — otherwise garbage could be injected into the logs
+ * through the header, or a log aggregator flooded.
  *
- * Заголовок ставится **после** обработчика напрямую в `c.res.headers`: часть
- * маршрутов возвращает готовый `Response`, и заголовки, установленные через
- * `c.header()` до `next()`, в такие ответы не попадают.
+ * The header is set **after** the handler directly on `c.res.headers`: some
+ * routes return an already built `Response`, and headers set through
+ * `c.header()` before `next()` never reach those responses.
  */
 export function requestIdMiddleware(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {

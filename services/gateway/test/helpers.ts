@@ -8,17 +8,17 @@ import type { Bindings } from '../src/env';
 export type PagesResponder = (request: Request) => Response | Promise<Response>;
 export type AuthResponder = (request: Request) => Response | Promise<Response>;
 
-/** Тип мока-ответчика Service Binding: тесты проверяют, как сервис вызван. */
+/** Type of the Service Binding mock responder: tests assert how the service was called. */
 export type ResponderMock = Mock<PagesResponder>;
 
-/** Создаёт типизированный мок ответчика: без него тест не видит вызовы сервиса. */
+/** Creates a typed mock responder: without it a test cannot see the service's calls. */
 export function responderMock(responder: PagesResponder): ResponderMock {
   return vi.fn<PagesResponder>(responder);
 }
 
 /**
- * Первый запрос, дошедший до сервиса.
- * Падает, если сервис не вызывали: иначе тест молча проверял бы пустоту.
+ * The first request that reached the service.
+ * Fails when the service was never called: otherwise the test would silently check nothing.
  */
 export function firstRequest(mock: ResponderMock): Request {
   const incoming = mock.mock.calls[0]?.[0];
@@ -30,14 +30,13 @@ export function firstRequest(mock: ResponderMock): Request {
   return incoming;
 }
 
-/** Все запросы к сервису — удобно, когда тест проверяет число вызовов. */
 export function callsOf(mock: ResponderMock): Request[] {
   return mock.mock.calls.map(([incoming]) => incoming);
 }
 
 /**
- * Тесты подписывают токены настоящей парой RSA-ключей: проверка подписи в
- * gateway не заменяется заглушкой, поэтому подделать токен нельзя.
+ * Tests sign tokens with a real RSA key pair: signature verification in the
+ * gateway is not replaced by a stub, so a forged token is impossible.
  */
 const keyPair = await generateKeyPair('RS256', { extractable: true });
 const publicJwk = await exportJWK(keyPair.publicKey);
@@ -68,20 +67,20 @@ export const AUTHORIZATION = (token: string): Record<string, string> => ({
 });
 
 /**
- * База окружения настоящая: KV и переменные приходят из vitest-конфига,
- * поэтому тесты проверяют реальные лимиты и заголовки, а не заглушки.
+ * The environment is real: KV and variables come from the vitest config, so
+ * tests exercise the real limits and headers instead of stubs.
  */
 const baseEnv: Bindings = workerEnv;
 
 /**
- * Заглушка Service Binding: тест сам решает, как отвечает сервис.
- * Приведение типа нужно только потому, что у настоящего биндинга есть ещё
- * методы RPC, которые тестам не нужны.
+ * Service Binding stub: the test decides how the service answers.
+ * The type cast exists only because the real binding also has RPC methods
+ * the tests do not need.
  */
 function createStub(responder: PagesResponder) {
   const binding = Object.assign(async (incoming: Request) => responder(incoming), {
-    // Тело запроса к этому моменту уже передано прокси: пересоздавать Request
-    // нельзя, иначе поток body окажется использованным и вызов упадёт.
+    // The request body has already been passed to the proxy by this point: rebuilding
+    // the Request is impossible, otherwise the body stream would be marked used and the call would throw.
     fetch: async (input: RequestInfo | URL) =>
       responder(input instanceof Request ? input : new Request(input)),
   });
@@ -126,17 +125,14 @@ export function healthyWorkspaceServiceResponse(): Response {
   });
 }
 
-/** Ответ workspace-service по умолчанию: health для readiness. */
 export function defaultWorkspaceResponder(incoming: Request): Response {
   return new URL(incoming.url).pathname === '/health'
     ? healthyWorkspaceServiceResponse()
     : Response.json({ items: [] });
 }
 
-/** Ответ pages-service по умолчанию: успешный ответ внутреннего сервиса. */
 export const pagesOk: PagesResponder = healthyPagesServiceResponse;
 
-/** Ответ auth-service по умолчанию: JWKS для токенов и health для readiness. */
 export function defaultAuthResponder(incoming: Request): Response {
   const { pathname } = new URL(incoming.url);
 
@@ -155,6 +151,7 @@ export interface EnvOverrides {
   pages?: PagesResponder;
   auth?: AuthResponder;
   workspaces?: PagesResponder;
+  media?: PagesResponder;
   bindings?: Partial<Bindings>;
 }
 
@@ -166,6 +163,9 @@ export function createEnv(overrides: EnvOverrides = {}): Bindings {
     WORKSPACE_SERVICE: createStub(
       overrides.workspaces ?? (defaultWorkspaceResponder as PagesResponder),
     ) as Bindings['WORKSPACE_SERVICE'],
+    MEDIA_SERVICE: createStub(
+      overrides.media ?? (defaultWorkspaceResponder as PagesResponder),
+    ) as Bindings['MEDIA_SERVICE'],
     ...overrides.bindings,
   };
 }
@@ -177,7 +177,7 @@ export function request(
   init?: RequestInit,
   env: Bindings = createEnv(),
 ): Promise<Response> {
-  // Hono отдаёт union «Response | Promise<Response>» — тестам нужен Promise.
+  // Hono returns a "Response | Promise<Response>" union — tests need a Promise.
   return Promise.resolve(app.request(path, init, env));
 }
 
@@ -198,8 +198,8 @@ export function jsonRequest(body: unknown, headers: Record<string, string> = {})
 let ipCounter = 0;
 
 /**
- * Новый IP на вызов: счётчики rate limit живут в KV и переживают границы
- * отдельных тестов, поэтому каждый вызов должен выглядеть как новый клиент.
+ * A new IP per call: rate limit counters live in KV and survive across
+ * individual tests, so every call must look like a new client.
  */
 export function clientHeaders(): Record<string, string> {
   ipCounter += 1;
@@ -207,7 +207,7 @@ export function clientHeaders(): Record<string, string> {
   return { 'cf-connecting-ip': `198.51.100.${(ipCounter % 200) + 1}` };
 }
 
-/** Кеш JWKS общий для изолята: между тестами его нужно сбрасывать. */
+/** The JWKS cache is shared per isolate: it must be reset between tests. */
 export function resetJwksCache(): void {
   getSharedJwksCache().clear();
 }

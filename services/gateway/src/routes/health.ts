@@ -4,8 +4,8 @@ import type { AppEnv } from '../env';
 import { selfHealth } from '../services/health-probe';
 
 /**
- * Liveness-endpoint самого gateway: не вызывает внутренние сервисы,
- * чтобы по нему можно было проверять живость публичной точки входа.
+ * Liveness endpoint of the gateway itself: it calls no internal services,
+ * so it can be used to check the health of the public entry point.
  */
 export function createHealthRoutes(): Hono<AppEnv> {
   return new Hono<AppEnv>().get('/health', (c) =>

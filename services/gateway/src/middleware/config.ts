@@ -3,8 +3,8 @@ import { readGatewayConfig, type GatewayConfig } from '../config';
 import type { AppEnv } from '../env';
 
 /**
- * Конфигурация зависит от биндингов, которые в Workers приходят на каждый
- * запрос, поэтому читается в middleware, а не один раз при старте.
+ * The configuration depends on bindings, which Workers supply per request,
+ * so it is read in middleware rather than once at startup.
  */
 export function configMiddleware(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {

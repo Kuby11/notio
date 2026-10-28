@@ -7,15 +7,14 @@ import {
 import type { MiddlewareHandler } from 'hono';
 import type { AppEnv } from '../env';
 
-/** Куда gateway проксирует запросы: публичный префикс → корень в сервисе. */
+/** Where the gateway proxies requests: public prefix -> service root. */
 export interface ProxyTarget {
-  /** Публичный префикс gateway, например /api/pages. */
+  /** Public gateway prefix, e.g. /api/pages. */
   prefix: string;
-  /** Корень маршрутов внутри сервиса, например /pages. */
+  /** Root of the routes inside the service, e.g. /pages. */
   serviceRoot: string;
-  /** Имя биндинга Service Binding. */
-  binding: 'PAGES_SERVICE' | 'AUTH_SERVICE' | 'WORKSPACE_SERVICE';
-  /** Человекочитаемое имя сервиса для логов и заголовка ответа. */
+  binding: 'PAGES_SERVICE' | 'AUTH_SERVICE' | 'WORKSPACE_SERVICE' | 'MEDIA_SERVICE';
+  /** Human-readable service name for logs and the response header. */
   service: string;
 }
 
@@ -23,6 +22,14 @@ export const PROXY_TARGETS = [
   {
     prefix: '/api/pages',
     serviceRoot: '/pages',
+    binding: 'PAGES_SERVICE',
+    service: 'pages-service',
+  },
+  {
+    // Page blocks live in pages-service, but the public prefix is separate:
+    // the frontend needs block operations by id without pageId in the path.
+    prefix: '/api/blocks',
+    serviceRoot: '/blocks',
     binding: 'PAGES_SERVICE',
     service: 'pages-service',
   },
@@ -39,8 +46,14 @@ export const PROXY_TARGETS = [
     service: 'workspace-service',
   },
   {
-    // Приглашения принимают по токену, поэтому у них свой публичный префикс:
-    // структура workspace постороннему пользователю не нужна.
+    prefix: '/api/media',
+    serviceRoot: '/media',
+    binding: 'MEDIA_SERVICE',
+    service: 'media-service',
+  },
+  {
+    // Invitations are accepted by token, so they get their own public prefix:
+    // a stranger does not need the shape of the workspace structure.
     prefix: '/api/invitations',
     serviceRoot: '/invitations',
     binding: 'WORKSPACE_SERVICE',
@@ -48,7 +61,7 @@ export const PROXY_TARGETS = [
   },
 ] as const satisfies readonly ProxyTarget[];
 
-/** Заголовки, которые нельзя пересылать между воркерами. */
+/** Headers that must not be forwarded between workers. */
 const HOP_BY_HOP_HEADERS = new Set([
   'connection',
   'keep-alive',
@@ -62,12 +75,18 @@ const HOP_BY_HOP_HEADERS = new Set([
   'content-length',
 ]);
 
-/** Заголовки ответа, которые имеет смысл отдавать клиенту. */
+/** Response headers worth sending to the client. */
 const FORWARDED_RESPONSE_HEADERS = [
   'content-type',
   'cache-control',
   'retry-after',
   'location',
+  // Media files: the file block needs size and name (HEAD), Range is for video.
+  'content-length',
+  'content-disposition',
+  'etag',
+  'accept-ranges',
+  'content-range',
 ] as const;
 
 function matchesPrefix(path: string, prefix: string): boolean {
@@ -75,11 +94,11 @@ function matchesPrefix(path: string, prefix: string): boolean {
 }
 
 /**
- * Идентичность пользователя для внутренних сервисов.
+ * User identity for the internal services.
  *
- * Берётся только из подписанного токена, проверенного middleware JWT.
- * Заголовок клиента `x-user-id` отбрасывается: иначе любой, кто достучался
- * до gateway, объявил бы себя другим пользователем.
+ * Taken only from the signed token verified by the JWT middleware. The client's
+ * `x-user-id` header is discarded: otherwise anyone reaching the gateway could
+ * declare themselves to be another user.
  */
 export function userIdFromRequest(c: {
   get: (key: 'user') => AppEnv['Variables']['user'];
@@ -88,9 +107,9 @@ export function userIdFromRequest(c: {
 }
 
 /**
- * Проксирует публичный префикс в сервис через Service Binding.
+ * Proxies the public prefix into the service through a Service Binding.
  *
- * Внутренние заголовки gateway перезаписывает, а не пересылает.
+ * Gateway internal headers are overwritten, never forwarded.
  */
 export function proxyToService(target: ProxyTarget): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -150,7 +169,7 @@ export function proxyToService(target: ProxyTarget): MiddlewareHandler<AppEnv> {
         }
       }
 
-      // Cookie сессии возвращается клиенту как есть: иначе вход не сохранится.
+      // The session cookie is returned to the client as is: otherwise sign-in would not stick.
       for (const cookie of upstream.headers.getSetCookie()) {
         responseHeaders.append('set-cookie', cookie);
       }

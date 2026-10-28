@@ -5,8 +5,8 @@ import { SERVICE_NAME } from '../constants';
 import type { AppEnv } from '../env';
 
 /**
- * Логирует каждый запрос: метод, путь, статус, длительность и request-id.
- * Тела запросов и заголовки авторизации в лог не попадают — только метаданные.
+ * Logs every request: method, path, status, duration and request-id.
+ * Request bodies and authorization headers are never logged — metadata only.
  */
 export function requestLoggingMiddleware(config: GatewayConfig): MiddlewareHandler<AppEnv> {
   const logger = createLogger({ service: SERVICE_NAME, level: config.logLevel });

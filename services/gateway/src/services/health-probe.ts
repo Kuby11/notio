@@ -7,7 +7,7 @@ import {
 } from '@notio/contracts';
 import type { Bindings } from '../env';
 
-/** Хост Service Binding: имя сервиса, домен значения не имеет — важен путь. */
+/** Service Binding host: the service name goes in the host, only the path matters. */
 const INTERNAL_ORIGIN = 'https://internal';
 
 export interface ServiceProbe {
@@ -17,8 +17,8 @@ export interface ServiceProbe {
 }
 
 /**
- * Внутренние сервисы, которые gateway опрашивает для readiness.
- * Каждая проверка идёт через Service Binding — публичных адресов у сервисов нет.
+ * Internal services the gateway probes for readiness.
+ * Each check goes through a Service Binding — the services have no public addresses.
  */
 export const HEALTH_TARGETS = [
   { binding: 'PAGES_SERVICE', service: 'pages-service', path: '/health' },
@@ -26,7 +26,7 @@ export const HEALTH_TARGETS = [
   { binding: 'WORKSPACE_SERVICE', service: 'workspace-service', path: '/health' },
 ] as const satisfies readonly ServiceProbe[];
 
-/** Собственное состояние gateway: сервис не зависит от соседей и отвечает всегда. */
+/** Own state of the gateway: it does not depend on neighbours and always answers. */
 export function selfHealth(env: Bindings): ServiceHealth {
   return {
     service: 'gateway',
@@ -37,9 +37,9 @@ export function selfHealth(env: Bindings): ServiceHealth {
 }
 
 /**
- * Пробует внутренний сервис и превращает любой исход в состояние.
- * Ни одна ошибка не пробрасывается наружу: детали уходят в лог-агрегатор,
- * клиент получает обезличенный статус в health-отчёте.
+ * Tries an internal service and turns any outcome into a state.
+ * No error is propagated outward: details go to the log aggregator, the client
+ * gets an anonymised status in the health report.
  */
 export async function probeService(env: Bindings, target: ServiceProbe): Promise<ServiceHealth> {
   const startedAt = Date.now();
@@ -86,7 +86,6 @@ export async function probeService(env: Bindings, target: ServiceProbe): Promise
   }
 }
 
-/** Готовый readiness-отчёт: сам gateway плюс все внутренние сервисы. */
 export async function collectHealth(env: Bindings): Promise<ServiceHealth[]> {
   const probes = await Promise.all(HEALTH_TARGETS.map((target) => probeService(env, target)));
 

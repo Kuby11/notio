@@ -18,9 +18,10 @@ import {
 } from './helpers';
 
 const WORKSPACE_ID = '00000000-0000-4000-8000-000000000001';
+const BLOCK_ID = '00000000-0000-4000-8000-000000000002';
 const USER_ID = '00000000-0000-4000-8000-00000000000a';
 
-/** Ответ сервиса с внутренним заголовком: клиент его видеть не должен. */
+/** Service response with an internal header: the client must not see it. */
 function upstreamResponseWithInternalHeaders(): Response {
   return new Response('{"ok":true}', {
     status: 201,
@@ -36,7 +37,7 @@ beforeEach(() => {
   resetJwksCache();
 });
 
-/** Запрос к защищённому маршруту от авторизованного пользователя. */
+/** Request to a protected route from an authenticated user. */
 async function authedInit(extra: RequestInit = {}): Promise<RequestInit> {
   const token = await issueToken({ sub: USER_ID });
 
@@ -87,6 +88,76 @@ describe('проксирование в pages-service', () => {
     });
   });
 
+  it('отдаёт файл медиа без токена: capability URL для <img>/<video>', async () => {
+    const media = responderMock(pagesOk);
+
+    const response = await request(
+      '/api/media/files/00000000-0000-4000-8000-0000000000aa',
+      { headers: clientHeaders() },
+      createEnv({ media }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(new URL(firstRequest(media).url).pathname).toBe(
+      '/media/files/00000000-0000-4000-8000-0000000000aa',
+    );
+  });
+
+  it('требует токен для загрузки медиа даже при публичном чтении', async () => {
+    const media = responderMock(pagesOk);
+
+    const response = await request(
+      '/api/media/files',
+      { method: 'POST', headers: clientHeaders() },
+      createEnv({ media }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(media).not.toHaveBeenCalled();
+  });
+
+  it('маршрутизирует медиа /api/media в media-service', async () => {
+    const media = responderMock(pagesOk);
+
+    const response = await request(
+      '/api/media/files',
+      await authedInit(jsonRequest({ workspaceId: WORKSPACE_ID })),
+      createEnv({ media }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(new URL(firstRequest(media).url).pathname).toBe('/media/files');
+    expect(firstRequest(media).method).toBe('POST');
+    expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('media-service');
+  });
+
+  it('маршрутизирует блоки /api/blocks в pages-service', async () => {
+    const pages = responderMock(pagesOk);
+
+    const response = await request(
+      '/api/blocks',
+      await authedInit(jsonRequest({ pageId: WORKSPACE_ID, content: { type: 'divider' } })),
+      createEnv({ pages }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(new URL(firstRequest(pages).url).pathname).toBe('/blocks');
+    expect(firstRequest(pages).method).toBe('POST');
+    expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('pages-service');
+  });
+
+  it('переписывает вложенные маршруты блоков', async () => {
+    const pages = responderMock(pagesOk);
+
+    await request(
+      `/api/blocks/${BLOCK_ID}/move`,
+      await authedInit(jsonRequest({})),
+      createEnv({ pages }),
+    );
+
+    expect(new URL(firstRequest(pages).url).pathname).toBe(`/blocks/${BLOCK_ID}/move`);
+  });
+
   it('помечает вызов источником и возвращает маршрутизацию', async () => {
     const pages = responderMock(pagesOk);
 
@@ -118,7 +189,7 @@ describe('проксирование в pages-service', () => {
   it('не передаёт идентификатор, если токен не предъявлен', async () => {
     const pages = responderMock(pagesOk);
 
-    // Запрос без токена не доходит до сервиса: 401 на закрытом маршруте.
+    // A request without a token never reaches the service: 401 on the closed route.
     const response = await request(
       '/api/pages',
       { headers: clientHeaders() },
@@ -274,7 +345,7 @@ describe('проксирование в auth-service', () => {
       createEnv({ auth }),
     );
 
-    // Проверку Origin делает auth-service, gateway не дублирует правила сервиса.
+    // Origin checking is auth-service's job; the gateway does not duplicate the service's rules.
     expect(auth).toHaveBeenCalled();
     expect(response.status).toBe(403);
     expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('auth-service');

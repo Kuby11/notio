@@ -2,10 +2,10 @@ import type { MiddlewareHandler } from 'hono';
 import type { AppEnv } from '../env';
 
 /**
- * Security-заголовки для API-ответов.
+ * Security headers for API responses.
  *
- * Gateway отдаёт только JSON, поэтому CSP максимально строгий: скриптов
- * на этих ответах выполняться не должно.
+ * The gateway only serves JSON, so CSP is as strict as possible: no scripts
+ * should execute on these responses.
  */
 const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
@@ -17,9 +17,9 @@ const SECURITY_HEADERS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Заголовки ставятся после обработчика прямо в `c.res.headers` — иначе они
- * потерялись бы на маршрутах, возвращающих готовый `Response` (например,
- * при проксировании в сервис), и API отдавался бы без защиты.
+ * Headers are applied after the handler directly on `c.res.headers` — otherwise
+ * they would be lost on routes returning an already built `Response` (for
+ * example when proxying to a service), and the API would ship unprotected.
  */
 export function securityHeadersMiddleware(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -29,8 +29,8 @@ export function securityHeadersMiddleware(): MiddlewareHandler<AppEnv> {
       c.res.headers.set(header, value);
     }
 
-    // HSTS ставим только на защищённом соединении: на localhost он бессмыслен
-    // и способен заблокировать локальную разработку.
+    // HSTS is set only on a secure connection: on localhost it is pointless
+    // and can lock local development.
     if (new URL(c.req.url).protocol === 'https:') {
       c.res.headers.set('strict-transport-security', 'max-age=31536000; includeSubDomains');
     }

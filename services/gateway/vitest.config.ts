@@ -26,9 +26,9 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       main: './src/index.ts',
-      // Конфиг gateway намеренно не подключается: его Service Bindings указывают
-      // на отдельные воркеры, которых в тестовом процессе нет. Поведение сервисов
-      // и KV подменяются in-memory реализациями.
+      // The gateway config is deliberately not loaded: its Service Bindings point
+      // at separate workers that do not exist in the test process. Service behaviour
+      // and KV are replaced with in-memory implementations.
       miniflare: {
         compatibilityDate: '2026-10-18',
         compatibilityFlags: ['nodejs_compat'],

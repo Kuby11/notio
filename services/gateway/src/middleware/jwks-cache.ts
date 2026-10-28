@@ -1,6 +1,5 @@
 import type { JsonWebKeySet } from '@notio/contracts';
 
-/** Сколько живёт кеш ключей по умолчанию. */
 export const DEFAULT_JWKS_TTL_SECONDS = 300;
 
 export interface JwksCacheEntry {
@@ -8,8 +7,8 @@ export interface JwksCacheEntry {
   expiresAt: number;
 }
 
-/** Кеш ключей: JWKS меняется редко (ротация раз в месяцы), а проверять подпись
- * каждого токена по сети было бы лишним внутренним вызовом. */
+/** Key cache: JWKS changes rarely (rotation every few months), and verifying
+ * every token signature over the network would be an extra internal call. */
 export interface JwksCache {
   get(): JwksCacheEntry | undefined;
   set(entry: JwksCacheEntry): void;

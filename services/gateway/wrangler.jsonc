@@ -35,5 +35,9 @@
       "binding": "WORKSPACE_SERVICE",
       "service": "workspace-service",
     },
+    {
+      "binding": "MEDIA_SERVICE",
+      "service": "media-service",
+    },
   ],
 }

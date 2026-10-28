@@ -8,10 +8,10 @@ import type { AppEnv } from '../env';
 const KV_FAILURE_LOG = 'rate_limit_kv_unavailable';
 
 /**
- * Идентификатор клиента для лимита.
+ * Client identifier for the limit.
  *
- * Cloudflare отдаёт реальный IP в `cf-connecting-ip`; заголовкам клиента
- * не доверяем — иначе лимит обходится одной сменой заголовка.
+ * Cloudflare puts the real IP in `cf-connecting-ip`; client headers are not
+ * trusted — otherwise the limit is bypassed by changing one header.
  */
 export function clientIdentifier(request: Request): string {
   const connectingIp = request.headers.get('cf-connecting-ip');
@@ -25,7 +25,7 @@ export function clientIdentifier(request: Request): string {
   return realIp ?? 'anonymous';
 }
 
-/** Ключ фиксированного окна: окно вычисляется по времени, а не по TTL. */
+/** Fixed-window key: the window is computed from time, not from TTL. */
 export function rateLimitKey(identifier: string, windowStart: number): string {
   return `rl:${windowStart}:${identifier}`;
 }
@@ -35,13 +35,14 @@ export function currentWindow(windowSeconds: number, nowMs: number): number {
 }
 
 /**
- * Rate limit по KV: фиксированное окно.
+ * Rate limit over KV: fixed window.
  *
- * KV в Workers — итогогово согласованное хранилище, поэтому параллельные
- * запросы одного клиента могут проскочить счётчик на единицу. Для защиты API
- * этого достаточно; если понадобится строгий лимит, заменяется на Durable Object.
+ * KV in Workers is eventually consistent, so parallel requests from one client
+ * can slip the counter by one. That is good enough to protect the API; when a
+ * strict limit is needed, swap in a Durable Object.
  *
- * При недоступности KV лимитер fail-open: недоступность кеша не должна ронять API.
+ * When KV is unavailable the limiter fails open: an unavailable cache must not
+ * take the API down.
  */
 export function rateLimitMiddleware(config: GatewayConfig): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -75,7 +76,7 @@ export function rateLimitMiddleware(config: GatewayConfig): MiddlewareHandler<Ap
 
     try {
       await c.env.RATE_LIMIT.put(key, String(current + 1), {
-        // Двойное окно: ключ сам уберётся, даже если следующее окно пустое.
+        // Double window: the key removes itself even if the next window is empty.
         expirationTtl: windowSeconds * 2,
       });
     } catch (error) {
@@ -84,8 +85,8 @@ export function rateLimitMiddleware(config: GatewayConfig): MiddlewareHandler<Ap
 
     await next();
 
-    // Заголовки ставим после обработчика: часть маршрутов возвращает готовый
-    // Response, и заголовки, заданные через c.header() до next(), там теряются.
+    // Headers are set after the handler: some routes return an already built
+    // Response, and headers set through c.header() before next() are lost there.
     c.res.headers.set('x-ratelimit-limit', String(maxRequests));
     c.res.headers.set('x-ratelimit-remaining', String(Math.max(0, maxRequests - current - 1)));
   };

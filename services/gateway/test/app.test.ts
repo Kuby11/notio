@@ -15,7 +15,7 @@ import {
   type AuthResponder,
 } from './helpers';
 
-/** auth-service не смог отдать JWKS: подписать токен нечем. */
+/** auth-service could not serve JWKS: there is nothing to sign the token with. */
 function failingJwksResponder(): Response {
   return new Response('nope', { status: 500 });
 }

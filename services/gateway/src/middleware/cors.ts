@@ -5,13 +5,13 @@ import type { AppEnv } from '../env';
 const ALLOWED_METHODS = 'GET, POST, PATCH, PUT, DELETE, OPTIONS';
 const ALLOWED_HEADERS = 'content-type, authorization, x-request-id, x-actor-id';
 const EXPOSED_HEADERS =
-  'x-request-id, x-notio-served-by, retry-after, x-ratelimit-limit, x-ratelimit-remaining';
+  'x-request-id, x-notio-served-by, retry-after, x-ratelimit-limit, x-ratelimit-remaining, content-disposition';
 
 /**
- * CORS по allowlist: значение `Access-Control-Allow-Origin` всегда совпадает
- * с конкретным origin из конфига. Подстановка заголовка «как пришло» (Reflect
- * Origin) была бы дырой — вместе с куками она даёт кросс-доменный доступ
- * к сессии любому сайту, который пришлёт свой origin.
+ * CORS by allowlist: `Access-Control-Allow-Origin` always matches a concrete
+ * configured origin. Echoing the incoming header (Reflect Origin) would be a
+ * hole — combined with cookies it hands any site that sends its own origin
+ * cross-domain access to the session.
  */
 export function corsMiddleware(config: GatewayConfig): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -19,7 +19,6 @@ export function corsMiddleware(config: GatewayConfig): MiddlewareHandler<AppEnv>
     const isAllowed = origin !== undefined && config.allowedOrigins.includes(origin);
 
     if (c.req.method === 'OPTIONS') {
-      // Префлайт отвечаем только для разрешённого origin.
       if (!isAllowed) {
         return new Response(null, { status: 403 });
       }
@@ -43,6 +42,9 @@ export function corsMiddleware(config: GatewayConfig): MiddlewareHandler<AppEnv>
     if (isAllowed) {
       c.res.headers.set('access-control-allow-origin', origin);
       c.res.headers.set('access-control-allow-credentials', 'true');
+      // Expose headers are needed on the actual response, not only on the preflight:
+      // without them the client cannot read content-disposition of media files.
+      c.res.headers.set('access-control-expose-headers', EXPOSED_HEADERS);
     }
 
     c.res.headers.append('vary', 'Origin');

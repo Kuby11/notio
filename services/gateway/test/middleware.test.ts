@@ -12,7 +12,7 @@ import {
   resetJwksCache,
 } from './helpers';
 
-/** Уникальный IP на тест: состояние KV переживает границы отдельных тестов. */
+/** A unique IP per test: KV state survives across individual tests. */
 let ipCounter = 0;
 function uniqueIp(): string {
   ipCounter += 1;
@@ -24,7 +24,7 @@ beforeEach(() => {
   resetJwksCache();
 });
 
-/** Заголовки авторизованного запроса к защищённому маршруту. */
+/** Authorization headers of a request to a protected route. */
 async function authHeaders(): Promise<Record<string, string>> {
   return { ...AUTHORIZATION(await issueToken()), ...clientHeaders() };
 }

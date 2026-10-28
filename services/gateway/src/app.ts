@@ -7,7 +7,12 @@ import { rateLimitMiddleware } from './middleware/rate-limit';
 import { requestIdMiddleware } from './middleware/request-id';
 import { requestLoggingMiddleware } from './middleware/request-logging';
 import { securityHeadersMiddleware } from './middleware/security-headers';
-import { authenticationMiddleware, isPublicPath, requireAuthentication } from './middleware/auth';
+import {
+  authenticationMiddleware,
+  isPublicPath,
+  isPublicReadPath,
+  requireAuthentication,
+} from './middleware/auth';
 import { createHealthApiRoutes } from './routes/health-api';
 import { createHealthRoutes } from './routes/health';
 import { createIndexRoutes } from './routes/index';
@@ -20,8 +25,8 @@ export { SERVICE_NAME };
 export function createGatewayApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
-  // Порядок middleware важен: сначала идентичность запроса, потом конфиг,
-  // затем JWT, лимиты и логирование, и только после этого маршрутизация.
+  // Middleware order matters: request identity first, then config,
+  // then JWT, limits and logging, and only after that routing.
   app.use('*', requestIdMiddleware());
   app.use('*', configMiddleware());
   app.use('*', securityHeadersMiddleware());
@@ -30,9 +35,10 @@ export function createGatewayApp(): Hono<AppEnv> {
   app.use('/api/*', (c, next) => rateLimitMiddleware(c.get('config'))(c, next));
   app.use('*', (c, next) => requestLoggingMiddleware(c.get('config'))(c, next));
 
-  // Вход, регистрация и JWKS должны работать без токена.
+  // Sign-in, registration and JWKS must work without a token; media file
+  // reads are a capability URL (see isPublicReadPath).
   app.use('/api/*', (c, next) => {
-    if (isPublicPath(c.req.path)) {
+    if (isPublicPath(c.req.path) || isPublicReadPath(c.req.path, c.req.method)) {
       return next();
     }
 
@@ -60,7 +66,7 @@ export function createGatewayApp(): Hono<AppEnv> {
     const requestId = c.get('requestId');
     const logger = createLogger({ service: SERVICE_NAME, level: c.get('config')?.logLevel });
 
-    // Структурный лог: внутренние детали ошибки не уходят клиенту, но остаются в логах.
+    // Structured log: internal error details never reach the client but stay in the logs.
     logger.error('unhandled_error', { requestId, path: c.req.path, error });
 
     return problem({
@@ -74,5 +80,5 @@ export function createGatewayApp(): Hono<AppEnv> {
   return app;
 }
 
-/** Тип приложения gateway — источник end-to-end типов для Hono RPC клиента во фронтенде. */
+/** Gateway app type — the source of end-to-end types for the Hono RPC client in the frontend. */
 export type GatewayAppType = ReturnType<typeof createGatewayApp>;

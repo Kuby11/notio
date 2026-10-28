@@ -2,7 +2,7 @@ import { isLogLevel, type LogLevel } from '@notio/observability';
 import { z } from 'zod';
 import type { Bindings } from './env';
 
-/** Allowlist origin'ов: никаких «*» и никакого Reflect Origin. */
+/** Allowlist of origins: no "*" and no Reflect Origin. */
 const CsvListSchema = z
   .string()
   .transform((value) =>
@@ -36,10 +36,10 @@ const DEFAULT_JWKS_TTL_SECONDS = 300;
 const JwksTtlSchema = z.coerce.number().int().min(1).max(86_400);
 
 /**
- * Конфигурация gateway из переменных окружения.
+ * Gateway configuration from environment variables.
  *
- * Значения из wrangler.jsonc — единственный источник, секреты сюда не попадают.
- * Некорректная конфигурация ломает обслуживание запроса, а не молча ослабляет защиту.
+ * Values in wrangler.jsonc are the single source; secrets never land here.
+ * Invalid configuration breaks request serving rather than silently weakening protection.
  */
 export function readGatewayConfig(env: Bindings): GatewayConfig {
   const logLevel = isLogLevel(env.LOG_LEVEL) ? env.LOG_LEVEL : 'info';
@@ -58,7 +58,7 @@ export function readGatewayConfig(env: Bindings): GatewayConfig {
   };
 }
 
-/** Некорректный TTL не должен ломать gateway: берём безопасное значение по умолчанию. */
+/** An invalid TTL must not break the gateway: fall back to a safe default. */
 function parseJwksTtl(value: string | undefined): number {
   const parsed = JwksTtlSchema.safeParse(value ?? DEFAULT_JWKS_TTL_SECONDS);
 

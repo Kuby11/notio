@@ -4,8 +4,8 @@ import type { AppEnv } from '../env';
 import { collectHealth } from '../services/health-probe';
 
 /**
- * Readiness-endpoint: опрашивает внутренние сервисы через Service Bindings
- * и отдаёт 503, если хотя бы один из них недоступен.
+ * Readiness endpoint: probes the internal services through Service Bindings
+ * and answers 503 if any of them is down.
  */
 export function createHealthApiRoutes(): Hono<AppEnv> {
   return new Hono<AppEnv>().get('/api/health', async (c) => {
