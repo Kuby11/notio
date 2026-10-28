@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-/** Общая обёртка страниц аутентификации: узкая колонка по центру. */
+/** Shared wrapper for the auth pages: a narrow column centred on the screen. */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12">

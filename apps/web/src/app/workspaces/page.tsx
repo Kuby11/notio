@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useWorkspaces } from '@/modules/workspaces';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -8,12 +9,13 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 
 export default function WorkspacesPage() {
+  const t = useTranslations('workspace');
   const workspaces = useWorkspaces();
   const [name, setName] = useState('');
 
   return (
     <main className="mx-auto max-w-2xl p-8">
-      <h1 className="text-2xl font-semibold">Рабочие пространства</h1>
+      <h1 className="text-2xl font-semibold">{t('listTitle')}</h1>
       <form
         className="mt-6 flex gap-2"
         onSubmit={async (e) => {
@@ -27,11 +29,11 @@ export default function WorkspacesPage() {
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Новое пространство"
+          placeholder={t('namePlaceholder')}
         />
         <Button type="submit" disabled={workspaces.createWorkspace.isPending}>
           <Plus className="mr-1 h-4 w-4" />
-          Создать
+          {t('create')}
         </Button>
       </form>
 
@@ -46,7 +48,9 @@ export default function WorkspacesPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-neutral-500">
-              {w.currentUserRole ? `Роль: ${w.currentUserRole}` : 'Нет доступа'}
+              {w.currentUserRole
+                ? t('role', { role: t(`roles.${w.currentUserRole}`) })
+                : t('noAccess')}
             </CardContent>
           </Card>
         ))}

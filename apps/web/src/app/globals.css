@@ -45,26 +45,15 @@ body {
 }
 
 /*
- * Placeholder для текущего пустого блока. Расширение PlaceholderHint ставит
- * data-placeholder на пустой textblock, но не рисует сам текст — это делает
- * CSS. `height: 0` не даёт подсказке раздвигать строку.
+ * Placeholder пустого блока. Расширение BlockPlaceholder ставит
+ * data-placeholder на текущий пустой textblock (включая вложенные), но не
+ * рисует текст — это делает CSS. `height: 0` не даёт подсказке раздвигать строку.
  */
-.tiptap :is(p, h1, h2, h3, h4, blockquote).is-empty[data-placeholder]::before {
+.tiptap :is(p, h1, h2, h3, h4, blockquote, summary).is-empty[data-placeholder]::before {
   content: attr(data-placeholder);
   color: var(--muted-foreground);
   float: left;
   height: 0;
-  pointer-events: none;
-  font-size: 0.875rem;
-  font-weight: 400;
-  line-height: 1.5;
-  white-space: nowrap;
-}
-
-/* У toggle/to-do подсказка должна стоять после иконки, а не перед ней. */
-.tiptap [data-block-type].is-empty::after {
-  content: attr(data-placeholder);
-  color: var(--muted-foreground);
   pointer-events: none;
   font-size: 0.875rem;
   font-weight: 400;
@@ -84,8 +73,10 @@ body {
   max-width: 52rem;
   min-height: 70vh;
   outline: none;
+  /* padding-left: 6rem;   */
 }
 
+/* Оставляем слева место для drag handle и выравниваем все блоки, включая toggle. */
 .tiptap h1,
 .tiptap h2,
 .tiptap h3,
@@ -137,12 +128,12 @@ body {
   padding-left: 0;
 }
 
-.tiptap .notion-list-item {
+.tiptap .notio-list-item {
   padding-left: 1.5rem;
   position: relative;
 }
 
-.tiptap .notion-list-marker {
+.tiptap .notio-list-marker {
   color: var(--muted-foreground);
   font-size: 0.875rem;
   left: 0;
@@ -154,19 +145,19 @@ body {
 }
 
 .tiptap ol {
-  counter-reset: notion-list;
+  counter-reset: notio-list;
 }
 
 .tiptap ol > li {
-  counter-increment: notion-list;
+  counter-increment: notio-list;
 }
 
-.tiptap ul > li > .notion-list-marker::before {
+.tiptap ul > li > .notio-list-marker::before {
   content: '•';
 }
 
-.tiptap ol > li > .notion-list-marker::before {
-  content: counter(notion-list) '.';
+.tiptap ol > li > .notio-list-marker::before {
+  content: counter(notio-list) '.';
 }
 
 .tiptap li p {
@@ -174,55 +165,120 @@ body {
 }
 
 /*
- * Toggle: первый абзац — заголовок, остальные блоки — тело. В закрытом
- * состоянии тело скрыто, а стрелка поворачивается через класс иконки.
+ * Официальный Details (toggle): кнопка-треугольник и контент приходят из
+ * @tiptap/extension-details, поэтому здесь только внешний вид и отступы.
  */
-.tiptap .notion-toggle {
+.tiptap [data-type='details'] {
   align-items: flex-start;
   display: flex;
-  gap: 0.25rem;
+  gap: 0.125rem;
   margin: 0.125rem 0;
 }
 
-.tiptap .notion-toggle-arrow {
-  align-items: center;
-  border-radius: calc(var(--radius) * 0.6);
+.tiptap [data-type='details'] > button {
+  background: transparent;
+  border: 0;
   color: var(--muted-foreground);
-  display: flex;
-  flex-shrink: 0;
-  height: 1.5rem;
-  justify-content: center;
-  margin-top: 0.05rem;
+  cursor: pointer;
+  flex: 0 0 1.5rem;
+  height: 1.65rem;
+  margin: 0;
+  padding: 0;
   width: 1.5rem;
 }
 
-.tiptap .notion-toggle-arrow:hover {
-  background: var(--accent);
-  color: var(--foreground);
+.tiptap [data-type='details'] > button::before {
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  border-top: 4px solid transparent;
+  content: '';
+  display: inline-block;
+  transition: transform 120ms ease;
 }
 
-.tiptap .notion-toggle-content {
+.tiptap [data-type='details'].is-open > button::before {
+  transform: rotate(90deg);
+}
+
+.tiptap [data-type='details'] > div {
   flex: 1;
   min-width: 0;
 }
 
-.tiptap .notion-toggle-content > :first-child,
-.tiptap .notion-toggle-content > [data-node-view-content-react] > :first-child {
-  margin-top: 0;
+.tiptap [data-type='details'] summary {
+  cursor: text;
+  line-height: 1.65;
+  list-style: none;
 }
 
-.tiptap .notion-toggle-content > :not(:first-child),
-.tiptap .notion-toggle-content > [data-node-view-content-react] > :not(:first-child) {
-  margin-left: 1.5rem;
-}
-
-.tiptap .notion-toggle[data-open='false'] .notion-toggle-content > :not(:first-child),
-.tiptap
-  .notion-toggle[data-open='false']
-  .notion-toggle-content
-  > [data-node-view-content-react]
-  > :not(:first-child) {
+.tiptap [data-type='details'] summary::-webkit-details-marker {
   display: none;
+}
+
+.tiptap [data-type='details'] [data-type='detailsContent'] {
+  padding-left: 1.5rem;
+}
+
+/*
+ * Цель перетаскивания: toggle подсвечивается, когда брошенный блок будет
+ * выровнен внутрь него. Класс ставит DropTargetHighlight в редакторе.
+ */
+.tiptap [data-type='details'].notio-drop-target {
+  background-color: var(--accent);
+  border-radius: 0.375rem;
+}
+
+/* Официальный TaskList: чекбокс слева, текст с зачёркиванием у выполненных. */
+.tiptap ul[data-type='taskList'] {
+  list-style: none;
+  margin: 0.125rem 0;
+  padding-left: 0;
+}
+
+.tiptap ul[data-type='taskList'] li {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tiptap ul[data-type='taskList'] li > label {
+  align-items: center;
+  display: flex;
+  height: 1.65rem;
+}
+
+.tiptap ul[data-type='taskList'] li > label input {
+  accent-color: var(--primary);
+  cursor: pointer;
+  height: 1rem;
+  margin: 0;
+  width: 1rem;
+}
+
+.tiptap ul[data-type='taskList'] li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.tiptap ul[data-type='taskList'] li > div > p {
+  margin: 0;
+}
+
+.tiptap ul[data-type='taskList'] li[data-checked='true'] > div {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+
+.tiptap ul[data-type='taskList'] ul[data-type='taskList'] {
+  padding-left: 1.5rem;
+}
+
+/* Официальный DragHandle: сам элемент позиционирует extension. */
+.notio-block-handle {
+  align-items: center;
+  display: flex;
+  gap: 0.125rem;
+  z-index: 40;
 }
 
 .tiptap blockquote {
@@ -260,6 +316,778 @@ body {
   border: 0;
   border-top: 1px solid var(--border);
   margin: 1rem 0;
+}
+
+/*
+ * Официальная таблица Tiptap: каркас и ячейки приходят из
+ * @tiptap/extension-table, здесь только рамки и отступы в духе Notion.
+ */
+.tiptap table {
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  overflow: hidden;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.tiptap table td,
+.tiptap table th {
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+  min-width: 2rem;
+  padding: 0.375rem 0.5rem;
+  position: relative;
+  vertical-align: top;
+}
+
+.tiptap table th {
+  background-color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+
+.tiptap table td > p,
+.tiptap table th > p {
+  line-height: 1.5;
+  margin: 0;
+}
+
+.tiptap table .selectedCell::after {
+  background: var(--accent);
+  content: '';
+  inset: 0;
+  opacity: 0.4;
+  position: absolute;
+  z-index: 2;
+}
+
+/* Ячейка с курсором: «фокус» таблицы (плагин TableCellFocus). */
+.tiptap table td.notio-active-cell,
+.tiptap table th.notio-active-cell {
+  outline: 1.5px solid var(--ring);
+  outline-offset: -1.5px;
+}
+
+.tiptap table .selectedCell {
+  outline: 1.5px solid var(--ring);
+  outline-offset: -1.5px;
+}
+
+/* Официальный columnResizing: обёртка и ручки перетаскивания колонок. */
+.tiptap .tableWrapper {
+  margin: 0.5rem 0;
+  overflow-x: auto;
+}
+
+.tiptap table .column-resize-handle {
+  background-color: var(--ring);
+  bottom: -2px;
+  pointer-events: none;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 3px;
+  z-index: 20;
+}
+
+.tiptap.resize-cursor {
+  cursor: col-resize;
+}
+
+.tiptap.notio-row-resize,
+.tiptap.notio-row-resize *,
+body.notio-row-resize,
+body.notio-row-resize * {
+  cursor: row-resize !important;
+}
+
+/* Пилюли управления строкой и колонкой (оверлей TableControls). */
+.notio-table-control {
+  align-items: center;
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--popover-foreground);
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  position: fixed;
+  box-shadow: var(--shadow-lg, 0 4px 6px rgb(0 0 0 / 0.1));
+  z-index: 30;
+}
+
+.notio-table-control button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  height: 20px;
+  justify-content: center;
+  padding: 0;
+  width: 20px;
+}
+
+.notio-table-control button:hover {
+  background: var(--accent);
+}
+
+.notio-table-control .notio-table-control-handle {
+  align-items: center;
+  border-radius: 4px;
+  color: var(--muted-foreground);
+  cursor: grab;
+  display: flex;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+
+.notio-table-control .notio-table-control-handle:active {
+  cursor: grabbing;
+}
+
+.notio-table-control .notio-table-control-handle:hover {
+  background: var(--accent);
+}
+
+/* Линия-индикатор вставки при перетаскивании строки/колонки. */
+.notio-table-drop-line {
+  background: var(--ring);
+  border-radius: 2px;
+  position: fixed;
+  z-index: 40;
+}
+
+.notio-table-drop-line-column {
+  width: 3px;
+}
+
+.notio-table-drop-line-row {
+  height: 3px;
+}
+
+/*
+ * Медиа-блоки: карточка загрузки, изображение/видео с подписью,
+ * строка файла и крупный эмодзи.
+ */
+.notio-media-placeholder {
+  align-items: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  padding: 0.75rem;
+}
+
+.notio-media-placeholder-title {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0;
+  width: 100%;
+}
+
+.notio-media-placeholder-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.notio-media-button {
+  align-items: center;
+  background: var(--accent);
+  border: 0;
+  border-radius: calc(var(--radius) * 0.6);
+  color: var(--accent-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.8125rem;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+}
+
+.notio-media-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.notio-media-or {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.notio-media-link-row {
+  align-items: center;
+  display: inline-flex;
+  flex: 1 1 12rem;
+  gap: 0.375rem;
+  min-width: 10rem;
+}
+
+.notio-media-link-input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  flex: 1;
+  font-size: 0.8125rem;
+  min-width: 0;
+  outline: none;
+  padding: 0.25rem 0;
+}
+
+.notio-media-link-input:focus {
+  border-bottom-color: var(--ring);
+}
+
+.tiptap figure.notio-image,
+.tiptap figure.notio-video {
+  margin: 0.5rem 0;
+}
+
+/*
+ * Суженное изображение центрируется, как в Notion. Без явной ширины figure
+ * обнимает естественный размер картинки (но не шире колонки) — ручка
+ * ресайза стоит у края изображения, а не у края колонки.
+ */
+.tiptap figure.notio-image {
+  margin-inline: auto;
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+}
+
+/*
+ * Full-width: изображение выходит за колонку на всю рабочую область.
+ * Ширину и отступ даёт node view в px (измеряет контейнер), здесь кадр
+ * 16:9 и заполнение без искажения пропорций. max-width: none обязателен —
+ * базовый max-width: 100% ограничивает figure колонкой и не даёт блоку
+ * дорасти до краёв рабочей области.
+ */
+.tiptap figure.notio-image.is-full-width {
+  max-width: none;
+}
+
+/*
+ * В full-width края рамки совпадают с краями экрана: ручки, выступающие
+ * наружу, обрезались бы — держим их внутри изображения.
+ */
+.tiptap figure.notio-image.is-full-width .notio-image-resize-handle--right {
+  right: 0;
+}
+
+.tiptap figure.notio-image.is-full-width .notio-image-resize-handle--left {
+  left: 0;
+}
+
+.tiptap figure.notio-image.is-full-width .notio-image-frame {
+  aspect-ratio: 16 / 9;
+  display: block;
+  width: 100%;
+}
+
+.tiptap figure.notio-image.is-full-width img {
+  height: 100%;
+  object-fit: cover;
+}
+
+.tiptap figure.notio-image .notio-image-frame {
+  display: block;
+  position: relative;
+  width: 100%;
+}
+
+.tiptap figure.notio-image img {
+  border-radius: var(--radius);
+  display: block;
+  max-width: 100%;
+}
+
+/*
+ * После ресайза (или в full-width) картинка заполняет заданную ширину
+ * блока целиком — растягивается вместе с рамкой, а не остаётся
+ * натурального размера внутри выросшего блока.
+ */
+.tiptap figure.notio-image.has-width img,
+.tiptap figure.notio-image.is-full-width img {
+  width: 100%;
+}
+
+/*
+ * Инлайновые марки: пресеты цвета текста и фона (единая палитра с
+ * блоками), ссылка и инлайновый код.
+ */
+.tiptap [data-text-color='gray'] {
+  color: #787772;
+}
+.tiptap [data-text-color='brown'] {
+  color: #9f6b53;
+}
+.tiptap [data-text-color='orange'] {
+  color: #d9730d;
+}
+.tiptap [data-text-color='yellow'] {
+  color: #b08800;
+}
+.tiptap [data-text-color='green'] {
+  color: #448361;
+}
+.tiptap [data-text-color='blue'] {
+  color: #337ea9;
+}
+.tiptap [data-text-color='purple'] {
+  color: #9065b0;
+}
+.tiptap [data-text-color='pink'] {
+  color: #c14c8a;
+}
+.tiptap [data-text-color='red'] {
+  color: #d44c47;
+}
+
+.tiptap [data-text-bg='gray'] {
+  background-color: #f1f1ef;
+}
+.tiptap [data-text-bg='brown'] {
+  background-color: #f4eeee;
+}
+.tiptap [data-text-bg='orange'] {
+  background-color: #fbecdd;
+}
+.tiptap [data-text-bg='yellow'] {
+  background-color: #fbf3db;
+}
+.tiptap [data-text-bg='green'] {
+  background-color: #edf3ec;
+}
+.tiptap [data-text-bg='blue'] {
+  background-color: #e7f3f8;
+}
+.tiptap [data-text-bg='purple'] {
+  background-color: #f6f3f9;
+}
+.tiptap [data-text-bg='pink'] {
+  background-color: #faf1f5;
+}
+.tiptap [data-text-bg='red'] {
+  background-color: #fdebec;
+}
+
+.dark .tiptap [data-text-bg='gray'] {
+  background-color: #3b3b39;
+}
+.dark .tiptap [data-text-bg='brown'] {
+  background-color: #473b34;
+}
+.dark .tiptap [data-text-bg='orange'] {
+  background-color: #4d3a24;
+}
+.dark .tiptap [data-text-bg='yellow'] {
+  background-color: #453c1f;
+}
+.dark .tiptap [data-text-bg='green'] {
+  background-color: #293a30;
+}
+.dark .tiptap [data-text-bg='blue'] {
+  background-color: #273746;
+}
+.dark .tiptap [data-text-bg='purple'] {
+  background-color: #373043;
+}
+.dark .tiptap [data-text-bg='pink'] {
+  background-color: #402c35;
+}
+.dark .tiptap [data-text-bg='red'] {
+  background-color: #46292b;
+}
+
+/* Инлайновый код: фон чуть заметнее, чем у код-блока. */
+.tiptap code {
+  background: var(--muted);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.3rem;
+}
+
+/* Ссылка в тексте: подчёркивание и цвет акцента. */
+.tiptap a {
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Нулевой якорь каретки перед изображением (см. media-views.tsx). */
+.tiptap .notio-caret-anchor {
+  display: inline-block;
+  font-size: 0;
+  height: 0;
+  line-height: 0;
+  overflow: hidden;
+  user-select: none;
+  width: 0;
+}
+
+/*
+ * Ручки изменения ширины по бокам изображения, как в Notion: прозрачная
+ * полоса-зона захвата на всю высоту края, внутри — видимая вертикальная
+ * черта по центру. Появляются при наведении на изображение.
+ */
+.tiptap .notio-image-resize-handle {
+  cursor: ew-resize;
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  touch-action: none;
+  width: 14px;
+  z-index: 5;
+}
+
+.tiptap .notio-image-resize-handle--right {
+  right: -7px;
+}
+
+.tiptap .notio-image-resize-handle--left {
+  left: -7px;
+}
+
+.tiptap .notio-image-resize-handle::after {
+  background: var(--ring);
+  border-radius: 9999px;
+  content: '';
+  height: 28px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+}
+
+.tiptap figure.notio-image:hover .notio-image-resize-handle,
+.tiptap .notio-image-resize-handle:focus-visible {
+  display: block;
+}
+
+body.notio-image-resizing,
+body.notio-image-resizing * {
+  cursor: ew-resize !important;
+}
+
+body.notio-image-resizing img {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Тултип с процентом ширины во время перетаскивания. */
+.tiptap .notio-image-size-tooltip {
+  background: rgb(0 0 0 / 0.75);
+  border-radius: 0.25rem;
+  color: #fff;
+  font-size: 0.75rem;
+  left: 50%;
+  padding: 0.125rem 0.5rem;
+  position: absolute;
+  top: -1.75rem;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 6;
+}
+
+/*
+ * Полноэкранный просмотр изображения: контейнер — shadcn Dialog
+ * (DialogContent растянут на вьюпорт и прозрачен, затемнение даёт
+ * Backdrop диалога), здесь только тулбар и сцена.
+ */
+.notio-lightbox-toolbar {
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  color: var(--popover-foreground);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.notio-lightbox-toolbar button,
+.notio-lightbox-toolbar a {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radius) * 0.5);
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  height: 1.75rem;
+  justify-content: center;
+  width: 1.75rem;
+}
+
+.notio-lightbox-toolbar button:hover:not(:disabled),
+.notio-lightbox-toolbar a:hover {
+  background: var(--accent);
+}
+
+.notio-lightbox-toolbar button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.notio-lightbox-zoom {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  min-width: 3rem;
+  text-align: center;
+}
+
+/*
+ * Сцена без overflow: увеличенное изображение не обрезается, а выступает
+ * за границы (transform не создаёт прокручиваемой области).
+ */
+.notio-lightbox-stage {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  min-height: 0;
+}
+
+.notio-lightbox-stage img {
+  max-height: calc(100vh - 6rem);
+  max-width: calc(100vw - 6rem);
+  transition: transform 120ms ease;
+}
+
+.tiptap figure.notio-video video {
+  border-radius: var(--radius);
+  display: block;
+  max-width: 100%;
+}
+
+.notio-media-caption {
+  background: transparent;
+  border: 0;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+  outline: none;
+  width: 100%;
+}
+
+.tiptap .notio-file {
+  align-items: center;
+  border-radius: calc(var(--radius) * 0.6);
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+  padding: 0.375rem 0.5rem;
+}
+
+.tiptap .notio-file:hover {
+  background: var(--accent);
+}
+
+.notio-file-link {
+  align-items: baseline;
+  color: var(--foreground);
+  display: inline-flex;
+  flex: 1;
+  gap: 0.5rem;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.notio-file-link:hover .notio-file-name {
+  text-decoration: underline;
+}
+
+.notio-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tiptap .notio-emoji {
+  display: inline-block;
+  margin: 0.25rem 0;
+  position: relative;
+}
+
+.tiptap .notio-emoji .notio-emoji-value,
+.tiptap .notio-emoji-value {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 3rem;
+  line-height: 1.2;
+  padding: 0.25rem;
+}
+
+.notio-emoji-picker {
+  background: var(--popover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 6px rgb(0 0 0 / 0.1);
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(8, 2rem);
+  padding: 0.375rem;
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: 50;
+}
+
+.notio-emoji-picker button {
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radius) * 0.5);
+  cursor: pointer;
+  font-size: 1.25rem;
+  height: 2rem;
+  width: 2rem;
+}
+
+.notio-emoji-picker button:hover {
+  background: var(--accent);
+}
+
+/* Фон таблицы из пресета заливает таблицу целиком (цвет текста наследуется ячейками
+ * из общих правил [data-color=…] выше). */
+.tiptap table[data-background-color] {
+  border-radius: 0.25rem;
+}
+
+/* Ссылка на дочернюю страницу: атомарный узел subPage. */
+.tiptap a.notio-page-link {
+  align-items: center;
+  color: var(--foreground);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.375rem;
+  margin: 0.125rem 0;
+  max-width: 100%;
+  text-decoration: none;
+}
+
+.tiptap a.notio-page-link:hover .notio-page-title {
+  text-decoration: underline;
+}
+
+.tiptap a.notio-page-link .notio-page-icon {
+  flex-shrink: 0;
+}
+
+.tiptap a.notio-page-link .notio-page-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tiptap a.notio-page-link.ProseMirror-selectednode {
+  background: var(--accent);
+  border-radius: 0.25rem;
+}
+
+/*
+ * Цвета блока: именованные пресеты из контракта (ADR 0017). Цвет текста
+ * наследуется детьми узла, фон заливает блок целиком.
+ */
+.tiptap [data-color='gray'] {
+  color: #787772;
+}
+.tiptap [data-color='brown'] {
+  color: #9f6b53;
+}
+.tiptap [data-color='orange'] {
+  color: #d9730d;
+}
+.tiptap [data-color='yellow'] {
+  color: #b08800;
+}
+.tiptap [data-color='green'] {
+  color: #448361;
+}
+.tiptap [data-color='blue'] {
+  color: #337ea9;
+}
+.tiptap [data-color='purple'] {
+  color: #9065b0;
+}
+.tiptap [data-color='pink'] {
+  color: #c14c8a;
+}
+.tiptap [data-color='red'] {
+  color: #d44c47;
+}
+
+.tiptap [data-background-color='gray'] {
+  background-color: #f1f1ef;
+}
+.tiptap [data-background-color='brown'] {
+  background-color: #f4eeee;
+}
+.tiptap [data-background-color='orange'] {
+  background-color: #fbecdd;
+}
+.tiptap [data-background-color='yellow'] {
+  background-color: #fbf3db;
+}
+.tiptap [data-background-color='green'] {
+  background-color: #edf3ec;
+}
+.tiptap [data-background-color='blue'] {
+  background-color: #e7f3f8;
+}
+.tiptap [data-background-color='purple'] {
+  background-color: #f6f3f9;
+}
+.tiptap [data-background-color='pink'] {
+  background-color: #faf1f5;
+}
+.tiptap [data-background-color='red'] {
+  background-color: #fdebec;
+}
+
+.tiptap [data-background-color] {
+  border-radius: 0.25rem;
+}
+
+.dark .tiptap [data-background-color='gray'] {
+  background-color: #3b3b39;
+}
+.dark .tiptap [data-background-color='brown'] {
+  background-color: #473b34;
+}
+.dark .tiptap [data-background-color='orange'] {
+  background-color: #4d3a24;
+}
+.dark .tiptap [data-background-color='yellow'] {
+  background-color: #453c1f;
+}
+.dark .tiptap [data-background-color='green'] {
+  background-color: #293a30;
+}
+.dark .tiptap [data-background-color='blue'] {
+  background-color: #273746;
+}
+.dark .tiptap [data-background-color='purple'] {
+  background-color: #373043;
+}
+.dark .tiptap [data-background-color='pink'] {
+  background-color: #402c35;
+}
+.dark .tiptap [data-background-color='red'] {
+  background-color: #46292b;
 }
 
 @theme inline {
@@ -349,4 +1177,225 @@ body {
   html {
     @apply font-sans;
   }
+}
+
+/*
+ * Колонки (как в Notion): равные колонки с зазором; контролы добавления и
+ * удаления колонки появляются при наведении. Содержимое колонки — обычные
+ * блоки редактора.
+ */
+.notio-columns {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.25rem 0;
+}
+
+/* React node view каждой колонки обёрнут в .react-renderer — flex-элемент
+   именно он, иначе колонка схлопывается в ширину паддингов. */
+.notio-columns > .react-renderer {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.notio-column {
+  flex: 1 1 0;
+  margin: 0 !important;
+  min-width: 0;
+  padding-left: 2px;
+  padding-right: 2px;
+  position: relative;
+}
+
+.notio-column-content {
+  display: block;
+}
+
+.notio-column-controls {
+  align-items: center;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  display: none;
+  gap: 0.125rem;
+  padding: 0.0625rem;
+  position: absolute;
+  right: 0.25rem;
+  top: -0.625rem;
+  z-index: 5;
+}
+
+.notio-column:hover .notio-column-controls,
+.notio-column.ProseMirror-selectednode .notio-column-controls {
+  display: flex;
+}
+
+.notio-column-controls button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 9999px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  height: 1.25rem;
+  justify-content: center;
+  width: 1.25rem;
+}
+
+.notio-column-controls button:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+.notio-column-controls button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+/*
+ * Блочная формула: display-рендер KaTeX по центру; клик открывает
+ * редактирование (textarea), ошибку разбора показываем сырым текстом.
+ */
+.notio-equation {
+  border-radius: 0.25rem;
+  cursor: pointer;
+  margin: 0.25rem 0;
+  overflow-x: auto;
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+}
+
+.notio-equation:hover {
+  background: rgb(0 0 0 / 0.03);
+}
+
+.dark .notio-equation:hover {
+  background: rgb(255 255 255 / 0.06);
+}
+
+.notio-equation .katex-display {
+  margin: 0;
+}
+
+.notio-equation-raw {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.notio-equation.is-editing {
+  cursor: default;
+}
+
+.notio-equation-input {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--foreground);
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875rem;
+  outline: none;
+  padding: 0.375rem 0.5rem;
+  resize: vertical;
+  width: 100%;
+}
+
+.notio-equation-hint {
+  color: var(--muted-foreground);
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  text-align: right;
+}
+
+/* Строчная формула: атом внутри текста. */
+.notio-inline-math {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.notio-inline-math .katex {
+  font-size: 1.05em;
+}
+
+.notio-inline-math-raw {
+  color: var(--muted-foreground);
+  font-size: 0.85em;
+}
+
+.notio-inline-math.is-editing {
+  align-items: center;
+  background: rgb(0 0 0 / 0.04);
+  border-radius: 0.25rem;
+  display: inline-flex;
+  gap: 0.125rem;
+  padding: 0 0.125rem;
+}
+
+.dark .notio-inline-math.is-editing {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.notio-inline-math-input {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  outline: none;
+  padding: 0 0.375rem;
+  width: 10rem;
+}
+
+.notio-inline-math-remove {
+  background: transparent;
+  border: 0;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 1em;
+  line-height: 1;
+  padding: 0 0.125rem;
+}
+
+.notio-inline-math-remove:hover {
+  color: var(--foreground);
+}
+
+/* Ссылка на страницу без выбора: пунктирная кнопка вместо чипа. */
+.tiptap button.notio-page-link.is-empty {
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 0.25rem;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.875rem;
+  margin: 0.125rem 0;
+  padding: 0.25rem 0.5rem;
+}
+
+.tiptap button.notio-page-link.is-empty:hover {
+  background: rgb(0 0 0 / 0.03);
+  color: var(--foreground);
+}
+
+.dark .tiptap button.notio-page-link.is-empty:hover {
+  background: rgb(255 255 255 / 0.06);
+}
+
+/* Хлебные крошки в документе: компактнее заголовка, muted-разделители. */
+.notio-breadcrumb nav,
+.notio-breadcrumb ol {
+  margin: 0;
+}
+
+.notio-breadcrumb-failed {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.notio-breadcrumb li[data-slot='breadcrumb-item'] {
+  font-size: 0.875rem;
 }

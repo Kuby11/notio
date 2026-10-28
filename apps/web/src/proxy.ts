@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * Проверка сессии до рендера страниц приложения.
+ * Proxy (бывший middleware): проверка сессии до рендера страниц приложения.
+ *
+ * Локаль next-intl здесь не участвует: язык хранится в cookie NEXT_LOCALE и
+ * читается в i18n/request.ts. URL не переписывается на /ru/... — префиксов
+ * локалей в приложении нет.
  *
  * Proxy смотрит только наличие cookie: настоящая проверка подписи и прав
  * выполняется на gateway. Скрытие страницы здесь — UX, а не защита.
@@ -25,7 +29,6 @@ export function proxy(request: NextRequest) {
 
   if (!hasSession) {
     const loginUrl = new URL('/login', request.url);
-    // Откуда пришли: после входа возвращаем пользователя на нужную страницу.
     loginUrl.searchParams.set('next', pathname);
 
     return NextResponse.redirect(loginUrl);
@@ -35,5 +38,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api|.*\\..*).*)'],
 };

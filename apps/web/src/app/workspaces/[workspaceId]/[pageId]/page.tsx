@@ -1,5 +1,7 @@
 import { AppLayout } from '@/core/ui/app-layout';
+import { LastPageTracker } from '@/core/ui/last-page-tracker';
 import { Editor } from '@/modules/editor';
+import { PageHeader } from '@/modules/pages';
 
 export default async function PageView({
   params,
@@ -10,7 +12,9 @@ export default async function PageView({
 
   return (
     <AppLayout workspaceId={workspaceId}>
-      <Editor pageId={pageId} />
+      <LastPageTracker workspaceId={workspaceId} pageId={pageId} />
+      <PageHeader workspaceId={workspaceId} pageId={pageId} />
+      <Editor pageId={pageId} workspaceId={workspaceId} />
     </AppLayout>
   );
 }
