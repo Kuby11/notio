@@ -119,6 +119,37 @@ curl -X POST http://localhost:8787/api/pages \
 отбрасывается, gateway подставляет сервису id пользователя из claims. Без токена —
 `401` в формате `application/problem+json`.
 
+### Вход через Google и GitHub
+
+Провайдер включается, только когда заданы обе части ключа в
+`services/auth-service/.dev.vars` (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`,
+`GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`). Redirect URI строится от
+`BETTER_AUTH_URL`, то есть callback идёт **через gateway, а не через фронтенд**:
+
+```
+Google:  http://localhost:8787/api/auth/callback/google
+GitHub:  http://localhost:8787/api/auth/callback/github
+```
+
+Эти два адреса нужно прописать в консоли провайдера (Google Cloud → OAuth client →
+Authorized redirect URIs; GitHub → OAuth App → Authorization callback URL — там адрес
+один). Частые причины «кнопка не работает»:
+
+- **Адрес зарегистрирован на порту 3000.** Callback обслуживает auth-service за gateway,
+  порт 8787. Приложение Google, которое ещё не прошло верификацию (publishing status
+  `Testing`), пускает только аккаунты из списка Test users — остальным отдаёт
+  `Error 403: access_denied`.
+- **Приложение открыто как `127.0.0.1:3000`.** Cookie сессии и `state` живут на хосте
+  gateway (`localhost`), поэтому открывать приложение нужно по тому же имени:
+  `http://localhost:3000`.
+- **Аккаунт уже существует с паролем.** Связывание по почте включено
+  (`accountLinking.trustedProviders` = настроенные провайдеры), но локальная почта должна
+  быть подтверждена — иначе вход через провайдера отклоняется.
+
+Ошибка провайдера возвращает пользователя на страницу входа с `?error=<код>`
+(`access_denied`, `state_mismatch`, `invalid_code`, …), форма показывает причину, а
+auth-service пишет её в лог (`oauth_callback_error`).
+
 ## API страниц (через gateway)
 
 Страницы доступны только с JWT — см. раздел «Аутентификация и доступ к API» выше.

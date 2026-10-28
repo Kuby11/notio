@@ -26,7 +26,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 | Валидация и схемы         | Zod 4, общие схемы из `packages/contracts`                  |
 | UI-kit                    | shadcn/ui (стиль `base-nova` на Base UI), Tailwind          |
 | Формы                     | react-hook-form + `zodResolver`                             |
-| Редактор                  | Tiptap 3, dnd-kit                                           |
+| Редактор                  | Tiptap 3 (официальные расширения, DragHandle, Suggestion)   |
 | Сеть                      | `fetch` через gateway + Zod-валидация ответов               |
 | Аутентификация            | клиент Better Auth, JWT кешируется в памяти                 |
 | Тесты                     | Vitest 5, Testing Library, jsdom; smoke `scripts/smoke.mjs` |
