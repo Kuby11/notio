@@ -40,7 +40,7 @@ describe('приглашения по ссылке', () => {
     expect(accepted.status).toBe(200);
     expect(member).toMatchObject({ userId: guest, role: 'viewer' });
 
-    // Принявший видит workspace в своём списке.
+    // The acceptor sees the workspace in their own list.
     const list = await jsonOf<{ items: WorkspaceBody[] }>(
       await call('/workspaces', { userId: guest }),
     );
@@ -82,7 +82,7 @@ describe('приглашения по ссылке', () => {
     const workspace = await createWorkspace(owner, 'Проект');
     const invitation = await invite(workspace.id, owner);
 
-    // Срок ссылки истёк: часы сценария сдвинуты за INVITATION_TTL_DAYS.
+    // The link has expired: the scenario clock is moved past INVITATION_TTL_DAYS.
     const afterExpiry = new Date(Date.now() + (INVITATION_TTL_DAYS + 1) * 24 * 60 * 60 * 1000);
     const service = createWorkspaceService(TEST_ENV, () => afterExpiry);
 

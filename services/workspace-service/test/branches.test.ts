@@ -34,8 +34,8 @@ describe('ветви сбоев', () => {
       name: 'Проект',
     });
 
-    // Лимит приглашений из конфига мусорный → берётся значение по умолчанию (20),
-    // приглашение создаётся успешно.
+    // Garbage invitation limit from the config → the default (20) is used,
+    // and the invitation is created successfully.
     const invitation = await service.createInvitation(
       workspace.id,
       '00000000-0000-4000-8000-00000000000a',

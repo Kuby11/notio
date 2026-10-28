@@ -1,7 +1,6 @@
 import { env as workerEnv } from 'cloudflare:workers';
 import { applyD1Migrations, type D1Migration } from 'cloudflare:test';
 
-/** Применяет миграции workspace-service к локальной базе до запуска тестов. */
 interface TestEnv {
   DB: D1Database;
   TEST_MIGRATIONS: D1Migration[];

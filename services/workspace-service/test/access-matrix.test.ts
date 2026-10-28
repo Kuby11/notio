@@ -2,8 +2,8 @@ import { roleCan, WORKSPACE_PERMISSIONS, type WorkspaceRole } from '@notio/contr
 import { describe, expect, it } from 'vitest';
 
 /**
- * Матрица прав описана явно, а не выводится из кода: иначе тест повторял бы
- * реализацию и пропустил бы ошибочную матрицу.
+ * The permission matrix is written out explicitly rather than derived from the
+ * code: otherwise the test would repeat the implementation and miss a wrong matrix.
  */
 const EXPECTED: Record<WorkspaceRole, readonly WorkspacePermissionName[]> = {
   owner: [

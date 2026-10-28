@@ -1,10 +1,10 @@
 import type { ErrorCode, ProblemError } from '@notio/contracts';
 
 /**
- * Доменные ошибки сервиса.
+ * Domain errors of the service.
  *
- * Бизнес-логика ничего не знает про HTTP: она выбрасывает типизированную
- * ошибку, а слой маршрутов превращает её в RFC 7807.
+ * Business logic knows nothing about HTTP: it throws a typed error and the
+ * route layer turns it into RFC 7807.
  */
 export abstract class AppError extends Error {
   abstract readonly status: number;
@@ -24,17 +24,16 @@ export class ValidationError extends AppError {
 }
 
 /**
- * Ресурс не найден или недоступен.
+ * Resource not found or inaccessible.
  *
- * Намеренно не различает эти случаи: иначе по коду ответа можно было бы
- * перебором узнать, какие workspace существуют (IDOR-разведка).
+ * Deliberately does not distinguish these cases: otherwise the response code
+ * would reveal by brute force which workspaces exist (IDOR probing).
  */
 export class NotFoundError extends AppError {
   readonly status = 404;
   readonly code = 'NOT_FOUND' satisfies ErrorCode;
 }
 
-/** Действие запрещено ролью пользователя. */
 export class ForbiddenError extends AppError {
   readonly status = 403;
   readonly code = 'FORBIDDEN' satisfies ErrorCode;
@@ -45,7 +44,6 @@ export class ConflictError extends AppError {
   readonly code = 'CONFLICT' satisfies ErrorCode;
 }
 
-/** Ссылка-приглашение истекла или уже использована. */
 export class InvitationError extends AppError {
   readonly status = 410;
   readonly code = 'CONFLICT' satisfies ErrorCode;

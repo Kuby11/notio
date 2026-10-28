@@ -30,33 +30,31 @@ import {
 import { MemberRepository, type WorkspaceMember } from '../repositories/member.repository';
 import { WorkspaceRepository } from '../repositories/workspace.repository';
 
-/** Источник времени внедряется, чтобы тесты не зависели от системных часов. */
+/** The time source is injected so tests do not depend on the system clock. */
 export type Clock = () => Date;
 
-/** Название личного пространства, если у пользователя ещё нет ни одного. */
+/** Name of the personal workspace when the user has none yet. */
 export const DEFAULT_PERSONAL_WORKSPACE_NAME = 'Личное пространство';
 
-/** Сколько дней живёт ссылка-приглашение. */
 export const INVITATION_TTL_DAYS = 7;
 
-/** Сколько дней живёт архивный workspace, прежде чем его удалит cron. */
+/** How long an archived workspace lives before cron deletes it. */
 export const ARCHIVE_RETENTION_DAYS = 30;
 
-/** Максимум активных приглашений на workspace. */
 export const MAX_ACTIVE_INVITATIONS = 20;
 
-/** Сколько архивных записей удаляет один запуск cron. */
+/** How many archived rows a single cron run deletes. */
 export const PURGE_BATCH_LIMIT = 50;
 
-/** Путь каталога пользователей в auth-service: вне публичного префикса gateway. */
+/** Path of the users directory in auth-service: outside the gateway's public prefix. */
 export const INTERNAL_USERS_URL = 'https://internal/internal/users';
 
 /**
- * Транслитерация названия в slug.
+ * Transliterates a name into a slug.
  *
- * Полноценная библиотека транслитерации здесь не нужна: slug используется
- * для ссылок и читаемости, а кириллица просто отбрасывается. Пустой результат
- * заменяем на 'workspace', чтобы адрес всегда оставался валидным.
+ * A full transliteration library is not needed here: the slug exists for links
+ * and readability, and Cyrillic is simply dropped. An empty result is replaced
+ * with 'workspace' so the address always stays valid.
  */
 const CYRILLIC_MAP: Readonly<Record<string, string>> = {
   а: 'a',
@@ -105,7 +103,7 @@ export function slugify(name: string): string {
   return transliterated || 'workspace';
 }
 
-/** Криптостойкий токен приглашения: 32 байта в hex. */
+/** Cryptographically secure invitation token: 32 bytes in hex. */
 export function createInvitationToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
 
@@ -113,11 +111,11 @@ export function createInvitationToken(): string {
 }
 
 /**
- * Сценарии рабочих пространств.
+ * Workspace scenarios.
  *
- * Слой не знает про HTTP: ни Request, ни Response, ни кодов статусов — только
- * доменные типы и типизированные ошибки. Права проверяются здесь, а не в
- * gateway: подпись токена не говорит, кому принадлежит ресурс.
+ * This layer knows nothing about HTTP: no Request, no Response, no status
+ * codes — only domain types and typed errors. Permissions are checked here,
+ * not in the gateway: a valid token signature says nothing about who owns the resource.
  */
 export class WorkspaceService {
   constructor(
@@ -133,10 +131,10 @@ export class WorkspaceService {
   }
 
   /**
-   * Список workspace пользователя вместе с его ролью в каждом.
+   * The user's workspace list together with their role in each.
    *
-   * Если пространств нет, создаётся личное: пустой экран с кнопкой «создать»
-   * — лишний шаг для человека, который только что зарегистрировался.
+   * If there are no workspaces, a personal one is created: an empty screen with
+   * a "create" button is an extra step for someone who just signed up.
    */
   async listForUser(actorId: string): Promise<WorkspaceListItem[]> {
     const memberships = await this.members.listByUser(actorId);
@@ -168,7 +166,7 @@ export class WorkspaceService {
     }));
   }
 
-  /** Создаёт workspace и делает создателя владельцем. */
+  /** Creates a workspace and makes its creator the owner. */
   async create(actorId: string, input: CreateWorkspaceInput): Promise<Workspace> {
     const now = this.now();
     const workspace = await this.workspaces.create({
@@ -187,13 +185,13 @@ export class WorkspaceService {
     return workspace;
   }
 
-  /** Чтение доступно участнику; архивный виден только владельцу. */
+  /** Read is available to members; an archived workspace is visible only to its owner. */
   async get(workspaceId: string, actorId: string): Promise<Workspace> {
     const role = await this.requirePermission(workspaceId, actorId, 'workspace:read');
     const workspace = await this.requireWorkspace(workspaceId);
 
     if (workspace.archivedAt !== null && role !== 'owner') {
-      // Архив скрыт от участников: иначе они увидят то, что уже не работает.
+      // The archive is hidden from members: otherwise they would see something that no longer works.
       throw new NotFoundError('Рабочее пространство не найдено');
     }
 
@@ -222,8 +220,8 @@ export class WorkspaceService {
   }
 
   /**
-   * Архивирование — мягкое удаление с правом возврата. Запись живёт
-   * ARCHIVE_RETENTION_DAYS, затем её удаляет cron вместе с участниками.
+   * Archiving is a soft delete with the right to restore. The row lives for
+   * ARCHIVE_RETENTION_DAYS, then cron deletes it along with its members.
    */
   async archive(workspaceId: string, actorId: string): Promise<Workspace> {
     await this.requirePermission(workspaceId, actorId, 'workspace:archive');
@@ -261,7 +259,7 @@ export class WorkspaceService {
     return restored;
   }
 
-  /** Участники с профилями: имена и почты приходят из auth-service. */
+  /** Members with profiles: names and emails come from auth-service. */
   async listMembers(workspaceId: string, actorId: string): Promise<Member[]> {
     await this.requirePermission(workspaceId, actorId, 'workspace:read');
 
@@ -279,7 +277,7 @@ export class WorkspaceService {
     }));
   }
 
-  /** Смена роли участника. Последнего owner понизить или удалить нельзя. */
+  /** Changes a member's role. The last owner can be neither demoted nor removed. */
   async changeMemberRole(
     workspaceId: string,
     targetUserId: string,
@@ -318,7 +316,7 @@ export class WorkspaceService {
     return records.map((record) => this.invitationView(record));
   }
 
-  /** Создание ссылки-приглашения: право есть только у владельца. */
+  /** Creates an invitation link: only the owner has the right. */
   async createInvitation(
     workspaceId: string,
     actorId: string,
@@ -354,7 +352,7 @@ export class WorkspaceService {
     return this.invitationView(record);
   }
 
-  /** Принятие приглашения — единственный путь попасть в чужой workspace. */
+  /** Accepting an invitation is the only way into someone else's workspace. */
   async acceptInvitation(token: string, actorId: string): Promise<Member> {
     const record = await this.invitations.findByToken(token);
 
@@ -388,7 +386,7 @@ export class WorkspaceService {
     );
   }
 
-  /** Отзыв приглашения: право есть только у владельца. */
+  /** Revokes an invitation: only the owner has the right. */
   async revokeInvitation(workspaceId: string, token: string, actorId: string): Promise<void> {
     await this.requirePermission(workspaceId, actorId, 'invitation:manage');
     const record = await this.invitations.findByToken(token);
@@ -401,8 +399,8 @@ export class WorkspaceService {
   }
 
   /**
-   * Cron: удаляет архивные workspace, у которых истёк срок ретенции, и
-   * протухшие приглашения. Архив временный по замыслу.
+   * Cron: deletes archived workspaces whose retention has expired, plus
+   * expired invitations. The archive is temporary by design.
    */
   async purgeExpired(): Promise<number> {
     const retentionDays = this.numberSetting('ARCHIVE_RETENTION_DAYS', ARCHIVE_RETENTION_DAYS);
@@ -423,11 +421,11 @@ export class WorkspaceService {
   }
 
   /**
-   * Проверка права по роли.
+   * Role-based permission check.
    *
-   * Нет членства — 404 без деталей: иначе перебором можно было бы узнать,
-   * какие workspace существуют. Роль есть, но права не хватает — 403:
-   * пользователь и так знает, что этот workspace его.
+   * No membership — 404 with no details: otherwise brute force could reveal
+   * which workspaces exist. Role present but insufficient — 403: the user
+   * already knows the workspace is theirs.
    */
   private async requirePermission(
     workspaceId: string,
@@ -467,7 +465,7 @@ export class WorkspaceService {
     return { workspaceId, userId, role, createdAt: '', updatedAt: '' };
   }
 
-  /** Владелец должен остаться хотя бы один, иначе workspace останется без хозяина. */
+  /** At least one owner must remain, otherwise the workspace would have no master. */
   private async assertNotLastOwner(workspaceId: string): Promise<void> {
     if ((await this.members.countOwners(workspaceId)) <= 1) {
       throw new ValidationError(
@@ -503,8 +501,9 @@ export class WorkspaceService {
   }
 
   /**
-   * Профили пользователей живут в auth-service: забрать их оттуда дешевле,
-   * чем дублировать почты и имена в своей базе и разойтись с ними при отзыве.
+   * User profiles live in auth-service: pulling them from there is cheaper than
+   * duplicating emails and names in our own database and drifting from them
+   * when access is revoked.
    */
   private async fetchProfiles(ids: string[]): Promise<UserProfile[]> {
     if (ids.length === 0) {
@@ -522,7 +521,7 @@ export class WorkspaceService {
     return UserProfileListSchema.parse(await response.json()).items;
   }
 
-  /** Уникальный slug: к названию добавляем номер, пока не найдём свободный. */
+  /** Unique slug: append a number to the name until a free one is found. */
   private async uniqueSlug(name: string): Promise<string> {
     const base = slugify(name);
 
@@ -537,7 +536,7 @@ export class WorkspaceService {
     return `${base}-${newId().slice(0, 8)}`;
   }
 
-  /** Настройка из vars; мусор в конфиге не должен ломать сценарий. */
+  /** Setting from vars; garbage in the config must not break the scenario. */
   private numberSetting(name: keyof Bindings, fallback: number): number {
     const parsed = Number.parseInt(String(this.env[name] ?? ''), 10);
 
@@ -545,7 +544,6 @@ export class WorkspaceService {
   }
 }
 
-/** Собирает сервис со всеми зависимостями: единственное место создания связей. */
 export function createWorkspaceService(
   env: Bindings,
   clock: Clock = () => new Date(),
@@ -559,10 +557,10 @@ export function createWorkspaceService(
   );
 }
 
-/** Идентификатор актора приходит от gateway; без него сервис не знает, чей запрос. */
+/** The actor id comes from the gateway; without it the service does not know whose request this is. */
 export function requireActorId(actorId: string | undefined | null): string {
   if (!actorId) {
-    // Fail closed: нет подтверждённой идентичности — нет действия.
+    // Fail closed: no confirmed identity — no action.
     throw new ForbiddenError('Не удалось определить пользователя по контексту запроса');
   }
 

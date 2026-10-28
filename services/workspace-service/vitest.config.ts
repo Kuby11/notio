@@ -7,17 +7,17 @@ const migrationsPath = path.join(import.meta.dirname, 'migrations');
 export default defineConfig({
   plugins: [
     cloudflareTest(async () => ({
-      // Конфиг сервиса даёт настоящие биндинги (в том числе локальную D1),
-      // миграции читаются из репозитория — база в тестах ровно та же,
-      // что и в локальной разработке.
+      // The service config provides real bindings (including local D1),
+      // migrations are read from the repository — the test database is exactly
+      // the same one used in local development.
       wrangler: { configPath: './wrangler.jsonc' },
       miniflare: {
         bindings: {
           TEST_MIGRATIONS: await readD1Migrations(migrationsPath),
         },
         serviceBindings: {
-          // Каталог пользователей живёт в auth-service; в тестах отдаём
-          // заранее известные профили, чтобы сценарии не зависели от соседа.
+          // The users directory lives in auth-service; in tests we serve
+          // pre-known profiles so scenarios do not depend on their neighbour.
           AUTH_SERVICE(request) {
             const ids = (new URL(request.url).searchParams.get('ids') ?? '')
               .split(',')

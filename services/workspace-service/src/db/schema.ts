@@ -1,9 +1,9 @@
 /**
- * Схема workspace-service.
+ * Schema of workspace-service.
  *
- * Своя база на сервис (database-per-service): страницы и участники не делят
- * таблицы с pages-service, поэтому права проверяются по данным, которые
- * принадлежат этому сервису.
+ * Its own database per service (database-per-service): pages and members share
+ * no tables with pages-service, so permissions are checked against data that
+ * belongs to this service.
  */
 import { index, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
@@ -12,11 +12,11 @@ export const workspaces = sqliteTable(
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
-    /** Адресная часть ссылки: латиница, цифры и дефис. */
+    /** Address part of the link: Latin letters, digits and hyphen. */
     slug: text('slug').notNull(),
     icon: text('icon'),
     ownerId: text('owner_id').notNull(),
-    /** Мягкое удаление: запись переживает срок ретенции, затем чистится по cron. */
+    /** Soft delete: the row survives the retention period, then is cleaned up by cron. */
     archivedAt: text('archived_at'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
@@ -34,7 +34,7 @@ export const workspaceMembers = sqliteTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     userId: text('user_id').notNull(),
-    /** owner | editor | viewer — хранится строкой, роли описаны в contracts. */
+    /** owner | editor | viewer — stored as a string, roles are described in contracts. */
     role: text('role').notNull(),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
@@ -52,9 +52,9 @@ export const invitations = sqliteTable(
     workspaceId: text('workspace_id')
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
-    /** Роль, которую получит принявший приглашение; owner через приглашение не выдаётся. */
+    /** The role the invitee receives; owner is never granted by invitation. */
     role: text('role').notNull(),
-    /** Секретная часть ссылки-приглашения. */
+    /** Secret part of the invitation link. */
     token: text('token').notNull(),
     invitedEmail: text('invited_email'),
     createdBy: text('created_by').notNull(),

@@ -4,7 +4,7 @@ import type { AppEnv } from '../env';
 
 export const SERVICE_NAME = 'workspace-service';
 
-/** Liveness сервиса: отвечает сам, не трогая базу и соседей. */
+/** Liveness of the service: answers itself, without touching the database or neighbours. */
 export function createHealthRoutes(): Hono<AppEnv> {
   return new Hono<AppEnv>().get('/health', (c) =>
     c.json(

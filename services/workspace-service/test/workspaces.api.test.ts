@@ -65,8 +65,8 @@ describe('создание и чтение', () => {
     const existingButForbidden = await call(`/workspaces/${workspace.id}`, { userId: stranger });
     const missing = await call(`/workspaces/${newUserId()}`, { userId: stranger });
 
-    // Оба ответа одинаковые: иначе перебором можно было бы узнать,
-    // какие workspace существуют.
+    // Both answers are identical: otherwise enumeration would reveal
+    // which workspaces exist.
     expect(existingButForbidden.status).toBe(404);
     expect(missing.status).toBe(404);
     expect(await existingButForbidden.json()).toMatchObject({ code: 'NOT_FOUND' });
@@ -180,7 +180,7 @@ describe('архив и восстановление', () => {
     const workspace = await createWorkspace(owner, 'Проект');
     await call(`/workspaces/${workspace.id}`, { method: 'DELETE', userId: owner });
 
-    // Часы сервиса сдвинуты за пределы срока ретенции: архив «состарился».
+    // The service clock is moved past the retention period: the archive "aged".
     const laterThanRetention = new Date(
       Date.now() + (ARCHIVE_RETENTION_DAYS + 1) * 24 * 60 * 60 * 1000,
     );

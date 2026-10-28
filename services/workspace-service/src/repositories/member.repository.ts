@@ -6,7 +6,7 @@ import { schema, workspaceMembers } from '../db/schema';
 
 type Database = Db<typeof schema>;
 
-/** Участник в терминах сервиса: роль проверяется схемой, а не «на глаз». */
+/** Member in the service's terms: the role is checked by schema, not by eye. */
 export interface WorkspaceMember {
   workspaceId: string;
   userId: string;
@@ -16,12 +16,12 @@ export interface WorkspaceMember {
 }
 
 /**
- * Репозиторий участников.
+ * Member repository.
  *
- * Роль хранится строкой: набор ролей описан в contracts, и сервис не заводит
- * свой список — иначе матрица прав разъехалась бы с контрактом. Значения,
- * пришедшие из базы, проверяются схемой: мусор в колонке не должен пройти
- * в правила доступа молча.
+ * The role is stored as a string: the role set is described in contracts and
+ * the service keeps no list of its own — otherwise the permission matrix would
+ * drift from the contract. Values coming from the database are checked by the
+ * schema: garbage in a column must not silently reach access rules.
  */
 export class MemberRepository {
   private readonly db: Database;

@@ -25,12 +25,12 @@ import {
 } from '../services/workspace.service';
 
 /**
- * Сценарий создаётся на каждый запрос: в Workers биндинги приходят в `env`,
- * поэтому сервис нельзя построить один раз при старте приложения.
+ * The scenario is created per request: in Workers bindings arrive in `env`,
+ * so the service cannot be built once at application start.
  */
 export type WorkspaceServiceFactory = (env: Bindings) => WorkspaceService;
 
-/** Разбирает вход по схеме; ошибки Zod превращает в список полей problem details. */
+/** Parses input against the schema; Zod errors become a problem details field list. */
 function parseOrThrow<T>(schema: z.ZodType<T>, data: unknown): T {
   const result = schema.safeParse(data);
 
@@ -56,8 +56,8 @@ function actorIdOf(c: { req: { header: (name: string) => string | undefined } })
 }
 
 /**
- * Маршруты рабочих пространств. Здесь и только здесь живёт HTTP: валидация
- * входа, разбор идентичности актора и сборка ответа по контракту.
+ * Workspace routes. HTTP lives here and only here: input validation,
+ * parsing the actor's identity and building the response to the contract.
  */
 export function createWorkspaceRoutes(
   createService: WorkspaceServiceFactory = buildWorkspaceService,

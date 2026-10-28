@@ -7,8 +7,8 @@ import { invitations, schema } from '../db/schema';
 type Database = Db<typeof schema>;
 
 /**
- * Приглашение в терминах сервиса: без inviteUrl, его собирает сценарий.
- * Токен — единственное доказательство права войти, поэтому он хранится здесь.
+ * Invitation in the service's terms: without inviteUrl, which the scenario
+ * builds. The token is the only proof of the right to join, so it is stored here.
  */
 export interface WorkspaceInvitation {
   id: string;
@@ -53,7 +53,7 @@ export class InvitationRepository {
     return row ? this.toInvitation(row) : null;
   }
 
-  /** Приглашения, которые ещё можно принять: не истёкшие и не использованные. */
+  /** Invitations that can still be accepted: neither expired nor used. */
   async listActiveByWorkspace(workspaceId: string, now: string): Promise<WorkspaceInvitation[]> {
     const rows = await this.db
       .select()
@@ -71,7 +71,7 @@ export class InvitationRepository {
     await this.db.delete(invitations).where(eq(invitations.id, id));
   }
 
-  /** Чистит протухшие приглашения: их незачем хранить после срока. */
+  /** Purges expired invitations: no point keeping them past their term. */
   async deleteExpired(now: string): Promise<void> {
     await this.db
       .delete(invitations)

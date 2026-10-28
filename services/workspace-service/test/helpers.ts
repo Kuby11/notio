@@ -8,14 +8,14 @@ import { MemberRepository } from '../src/repositories/member.repository';
 const env = workerEnv as Bindings;
 
 /**
- * Приложение собирается один раз: база общая для всех тестов, поэтому
- * каждый тест работает со своими id пользователей и пространств.
+ * The application is built once: the database is shared by all tests, so
+ * every test works with its own user and workspace ids.
  */
 const app = createWorkspaceServiceApp();
 
 export const TEST_ENV = env;
 
-/** Заголовки запроса от имени пользователя: gateway ставит id из проверенного JWT. */
+/** Request headers as a user: the gateway sets the id from the verified JWT. */
 export function asUser(userId: string): Record<string, string> {
   return { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: userId };
 }
@@ -54,7 +54,6 @@ export interface WorkspaceBody {
   archivedAt: string | null;
 }
 
-/** Создаёт workspace от имени пользователя и возвращает тело ответа. */
 export async function createWorkspace(userId: string, name = 'Рабочее пространство') {
   const response = await call('/workspaces', { body: { name }, userId });
 
@@ -66,9 +65,9 @@ export async function createWorkspace(userId: string, name = 'Рабочее п�
 }
 
 /**
- * Выдаёт пользователю роль в workspace напрямую в базе.
- * Это подготовка состояния для тестов прав, а не проверка приглашений —
- * для них есть отдельный сценарий.
+ * Grants a user a role in a workspace directly in the database.
+ * This is state setup for permission tests, not an invitation check —
+ * that has its own scenario.
  */
 export async function giveRole(
   workspaceId: string,

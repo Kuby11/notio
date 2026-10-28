@@ -22,8 +22,8 @@ describe('createWorkspaceServiceApp', () => {
   });
 
   it('не выдаёт детали сбоя наружу при необработанной ошибке', async () => {
-    // Маршруты не выбрасывают 500 напрямую, поэтому проверяем формат 404
-    // и отсутствие утечки стека — 500-ветка проверяется логированием.
+    // Routes never throw 500 directly, so we check the 404
+    // format and the absence of a stack leak — the 500 branch is covered by logging.
     const response = await createWorkspaceServiceApp().request('/nope', {}, TEST_ENV);
 
     const text = await response.clone().text();

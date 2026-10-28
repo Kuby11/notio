@@ -7,9 +7,9 @@ import { schema, workspaces, type WorkspaceRow } from '../db/schema';
 type Database = Db<typeof schema>;
 
 /**
- * Репозиторий workspace: единственное место, которое знает про Drizzle и SQL.
- * Наружу отдаёт доменные объекты, проверенные Zod-схемой WorkspaceSchema —
- * данные из базы тоже не считаются доверенными.
+ * Workspace repository: the only place that knows about Drizzle and SQL. It
+ * exposes domain objects checked by the WorkspaceSchema Zod schema — data from
+ * the database is not trusted either.
  */
 export class WorkspaceRepository {
   private readonly db: Database;
@@ -87,8 +87,8 @@ export class WorkspaceRepository {
   }
 
   /**
-   * Архивные workspace, у которых истёк срок ретенции.
-   * Архив временный: без такой выборки удалённые пространства копились бы вечно.
+   * Archived workspaces whose retention period has expired.
+   * The archive is temporary: without this query deleted workspaces would pile up forever.
    */
   async findExpiredArchives(cutoff: string, limit: number): Promise<Workspace[]> {
     const rows = await this.db

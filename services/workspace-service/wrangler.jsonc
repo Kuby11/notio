@@ -18,7 +18,7 @@
   },
   "workers_dev": false,
   "triggers": {
-    // Архивный workspace не живёт вечно: раз в сутки чистим истёкшие.
+    // An archived workspace does not live forever: once a day we purge the expired ones.
     "crons": ["17 3 * * *"],
   },
   "services": [

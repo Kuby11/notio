@@ -1,6 +1,6 @@
 import { defineConfig } from 'drizzle-kit';
 
-/** Миграции workspace-service: workspaces, workspace_members, invitations. */
+/** Migrations of workspace-service: workspaces, workspace_members, invitations. */
 export default defineConfig({
   dialect: 'sqlite',
   schema: './src/db/schema.ts',
