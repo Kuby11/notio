@@ -8,18 +8,19 @@ import {
   type AuthModule,
 } from '../modules/auth';
 import { createEditorModule, type EditorModule } from '../modules/editor';
+import { createMediaModule, type MediaModule } from '../modules/media';
 import { createPagesModule, type PagesModule } from '../modules/pages';
 import { createWorkspacesModule, type WorkspacesModule } from '../modules/workspaces';
 import { env } from '../shared/configs/env';
 
 /**
- * Composition root: единственное место, где модули встречаются друг с другом.
+ * Composition root: the only place where the modules meet each other.
  *
- * Контейнер не знает ни про адаптеры, ни про DTO: он вызывает фабрики
- * модулей (`createAuthModule`, `createPagesModule`, ...). Фабрики собирают
- * свои api-адаптеры и отдают наружу только порты, от которых зависят хуки:
- * так правило «api используется только внутри своего модуля» соблюдается
- * на уровне сборки приложения.
+ * The container knows neither the adapters nor the DTOs: it calls the module
+ * factories (`createAuthModule`, `createPagesModule`, ...). Those build their
+ * own api adapters and expose only the ports the hooks depend on: the rule
+ * "api is used only inside its own module" is then enforced at the level of
+ * the application build.
  */
 
 export interface Container {
@@ -27,21 +28,22 @@ export interface Container {
   pages: PagesModule;
   workspaces: WorkspacesModule;
   editor: EditorModule;
+  media: MediaModule;
 }
 
-/** Собирает приложение поверх готового auth-gateway (тесты, storybook). */
+/** Builds the application over a ready-made auth gateway (tests, storybook). */
 export function createContainer(gateway: AuthGateway): Container {
   return createContainerWithAuth(createAuthModuleWithGateway(gateway));
 }
 
-/** Собирает продакшен-контейнер поверх HTTP-gateway. */
+/** Builds the production container over the HTTP gateway. */
 export function createAppContainer(): Container {
   return createContainerWithAuth(createAuthModule({ baseUrl: env.NEXT_PUBLIC_GATEWAY_URL }));
 }
 
 function createContainerWithAuth(auth: AuthModule): Container {
-  // Токен — общий ресурс модулей, но зависимость объявлена как TokenProvider
-  // из shared: модули не знают, что за ней стоит auth-модуль.
+  // The token is a resource shared by the modules, but the dependency is declared as TokenProvider
+  // from shared: the modules do not know that the auth module stands behind it.
   const accessToken = auth.accessToken;
 
   return {
@@ -49,6 +51,7 @@ function createContainerWithAuth(auth: AuthModule): Container {
     pages: createPagesModule({ accessToken }),
     workspaces: createWorkspacesModule({ accessToken }),
     editor: createEditorModule({ accessToken }),
+    media: createMediaModule({ accessToken }),
   };
 }
 
@@ -61,8 +64,8 @@ export function ContainerProvider({
   children: ReactNode;
   container?: Container;
 }) {
-  // Контейнер создаётся один раз на приложение: пересборка на каждый рендер
-  // ломала бы стабильность портов и кеша JWT между рендерами.
+  // The container is created once per application: rebuilding it on every render
+  // would break port stability and the JWT cache between renders.
   const value = useMemo(() => container ?? createAppContainer(), [container]);
 
   return <ContainerContext.Provider value={value}>{children}</ContainerContext.Provider>;

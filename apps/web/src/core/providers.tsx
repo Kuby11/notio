@@ -1,13 +1,15 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { shouldRetryQuery } from '../shared/configs/query-policy';
+import { Toaster } from '../shared/ui/toast';
 import { ContainerProvider } from './container';
+import { usePreferencesStore } from './preferences/preferences.store';
 
 /**
- * Провайдеры приложения: клиент запросов и контейнер внедрения зависимостей.
- * Значения по умолчанию задаются один раз здесь, а не в каждом хуке.
+ * Application providers: the query client and the dependency-injection container.
+ * The defaults are set once here rather than in every hook.
  */
 
 function createQueryClient(): QueryClient {
@@ -25,9 +27,18 @@ function createQueryClient(): QueryClient {
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient);
 
+  // Preferences live in localStorage: read once, after mount, so server and
+  // client render the same defaults first.
+  useEffect(() => {
+    usePreferencesStore.getState().hydrate();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <ContainerProvider>{children}</ContainerProvider>
+      <ContainerProvider>
+        {children}
+        <Toaster />
+      </ContainerProvider>
     </QueryClientProvider>
   );
 }
