@@ -4,12 +4,12 @@ import { WorkspaceRoleSchema, WorkspaceSchema } from './workspace';
 import { IdSchema, IsoDateTimeSchema } from './ids';
 
 /**
- * События домена для асинхронной обработки (Queues).
- * Поисковый индекс, вебхуки и очистка подписываются на эти типы,
- * поэтому payload здесь, а не в потребителе.
+ * Domain events for asynchronous processing (Queues).
+ * The search index, webhooks and cleanup subscribe to these types, so the
+ * payload lives here rather than in each consumer.
  */
 export const PageEventBaseSchema = z.object({
-  /** Идентификатор события: дедупликация на стороне потребителя. */
+  /** Event id: deduplication on the consumer side. */
   id: IdSchema,
   occurredAt: IsoDateTimeSchema,
   workspaceId: IdSchema,
@@ -32,7 +32,7 @@ export const PageEventSchema = z.discriminatedUnion('type', [
   PageEventBaseSchema.extend({
     type: z.literal('page.deleted'),
     payload: z.object({
-      /** true — страница ушла в корзину, false — восстановлена. */
+      /** true — the page moved to the trash, false — it was restored. */
       trashed: z.boolean(),
     }),
   }),
@@ -58,9 +58,9 @@ export const PAGE_EVENT_TYPES = [
 export type CreatePageEventInput = z.input<typeof PageEventSchema>;
 
 /**
- * События рабочих пространств и участников.
- * Их потребители появятся вместе с realtime и поиском: подписка на события
- * не должна зависеть от того, кто их публикует.
+ * Events for workspaces and their members.
+ * Consumers appear together with realtime and search: subscribing to events
+ * must not depend on who publishes them.
  */
 export const WorkspaceEventBaseSchema = z.object({
   id: IdSchema,

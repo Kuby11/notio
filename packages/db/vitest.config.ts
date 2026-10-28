@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-/** Утилиты Drizzle чисты и не зависят от Workers, поэтому тестируются в Node. */
+/** Drizzle utilities are pure and have no Workers dependency, so they are tested in Node. */
 export default defineConfig({
   test: {
     name: '@notio/db',

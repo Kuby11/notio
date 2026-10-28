@@ -1,18 +1,18 @@
 import { z } from 'zod';
 
 /**
- * Идентификаторы сущностей — UUID версии 4 (решение ADR 0006).
- * Генерируются на стороне сервиса, поэтому в базе лежат как TEXT.
+ * Entity ids are UUID v4 (decision in ADR 0006).
+ * They are generated service-side, which is why they are stored as TEXT.
  */
 export const IdSchema = z.uuidv4();
 export type Id = z.infer<typeof IdSchema>;
 
-/** Новый идентификатор. Криптостойкий источник — WebCrypto, доступный в Workers. */
+/** A new id. The cryptographically secure source is WebCrypto, available in Workers. */
 export function newId(): Id {
   return IdSchema.parse(crypto.randomUUID());
 }
 
-/** Слаг рабочего пространства: маленькие латинские буквы, цифры и дефис. */
+/** Workspace slug: lowercase Latin letters, digits and hyphens. */
 export const SlugSchema = z
   .string()
   .min(2)
@@ -22,9 +22,10 @@ export const SlugSchema = z
 export type Slug = z.infer<typeof SlugSchema>;
 
 /**
- * Порядок в дереве страниц — fractional indexing (решение ADR 0006).
- * Строка всегда лексикографически больше предыдущей и меньше следующей,
- * поэтому вставка между соседями не требует перезаписи других строк.
+ * Ordering in the page tree uses fractional indexing (decision in ADR 0006).
+ * A string is always lexicographically greater than the previous one and
+ * smaller than the next, so inserting between neighbours never rewrites
+ * the other keys.
  */
 export const PositionSchema = z.string().min(1);
 export type Position = z.infer<typeof PositionSchema>;
@@ -33,11 +34,11 @@ export const IsoDateTimeSchema = z.iso.datetime();
 export type IsoDateTime = z.infer<typeof IsoDateTimeSchema>;
 
 /**
- * URL только со схемой http(s).
+ * URLs with the http(s) scheme only.
  *
- * `z.url()` проверяет URL синтаксически и пропускает `javascript:alert(1)`,
- * поэтому схему дополнительно сужаем: в пользовательский контент попадают
- * только http(s)-ссылки (см. правила безопасности в .agents/AGENTS.md).
+ * `z.url()` validates a URL syntactically and lets `javascript:alert(1)`
+ * through, so the scheme is narrowed further: only http(s) links reach user
+ * content (see the security rules in .agents/AGENTS.md).
  */
 export const HttpUrlSchema = z.url().refine(
   (value) => {

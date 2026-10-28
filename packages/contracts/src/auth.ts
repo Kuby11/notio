@@ -1,9 +1,8 @@
 import { z } from 'zod';
 
-/** Путь, по которому gateway получает JWKS у auth-service через Service Binding. */
+/** Path the gateway uses to fetch the auth-service JWKS through a Service Binding. */
 export const AUTH_JWKS_PATH = '/api/auth/jwks';
 
-/** Схема JWKS в том виде, в котором его отдаёт auth-service. */
 export const JsonWebKeySetSchema = z.object({
   keys: z.array(
     z.object({
@@ -23,16 +22,16 @@ export const JsonWebKeySetSchema = z.object({
 export type JsonWebKeySet = z.infer<typeof JsonWebKeySetSchema>;
 
 /**
- * Claims выданного JWT.
+ * Claims of an issued JWT.
  *
- * Проверяются на границе: gateway не доверяет содержимому токена, пока
- * подпись не сверена с ключом из JWKS.
+ * Verified at the boundary: the gateway does not trust the token payload
+ * until the signature has been checked against the JWKS key.
  */
 export const AuthClaimsSchema = z.object({
   sub: z.string().min(1),
   email: z.email().optional(),
   name: z.string().optional(),
-  /** Идентификатор сессии Better Auth — по нему можно отозвать доступ. */
+  /** Better Auth session id — access can be revoked through it. */
   sessionId: z.string().optional(),
   exp: z.number(),
   iat: z.number().optional(),
@@ -40,7 +39,7 @@ export const AuthClaimsSchema = z.object({
 
 export type AuthClaims = z.infer<typeof AuthClaimsSchema>;
 
-/** Пользователь, определённый gateway из подписанного токена. */
+/** User resolved by the gateway from the signed token. */
 export interface AuthenticatedUser {
   id: string;
   claims: AuthClaims;

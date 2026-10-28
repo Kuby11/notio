@@ -1,8 +1,9 @@
 import { defineConfig } from 'vitest/config';
 
 /**
- * Контракты — чистые Zod-схемы без Workers-зависимостей, поэтому тестируются
- * обычным Vitest в Node. Порог покрытия 80% общий для всего монорепо.
+ * Contracts are pure Zod schemas with no Workers dependencies, so they are
+ * tested with plain Vitest in Node. The 80% coverage threshold is shared by
+ * the whole monorepo.
  */
 export default defineConfig({
   test: {

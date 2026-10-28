@@ -12,14 +12,14 @@ export const WorkspaceSchema = z.object({
   slug: SlugSchema,
   icon: z.string().max(16).optional(),
   ownerId: IdSchema,
-  /** Мягкое удаление: после архивации workspace ещё какое-то время доступен владельцу. */
+  /** Soft delete: after archiving the workspace stays reachable by its owner for a while. */
   archivedAt: IsoDateTimeSchema.nullable(),
   createdAt: IsoDateTimeSchema,
   updatedAt: IsoDateTimeSchema,
 });
 export type Workspace = z.infer<typeof WorkspaceSchema>;
 
-/** Права, которые роль разрешает: матрица живёт в одном месте и покрыта тестами. */
+/** What each role allows: the matrix lives in one place and is covered by tests. */
 export const WORKSPACE_PERMISSIONS = [
   'workspace:read',
   'workspace:write',
@@ -50,7 +50,6 @@ export function roleCan(role: WorkspaceRole, permission: WorkspacePermission): b
   return ROLE_PERMISSIONS[role].includes(permission);
 }
 
-/** Участник workspace с краткими данными пользователя. */
 export const MemberSchema = z.object({
   workspaceId: IdSchema,
   userId: IdSchema,
@@ -68,17 +67,16 @@ export type Member = z.infer<typeof MemberSchema>;
 export const MemberListSchema = z.object({ items: z.array(MemberSchema) });
 
 /**
- * Приглашение по ссылке: токен — единственное доказательство права войти.
- * Почта необязательна: ссылку можно передать любым способом.
+ * Invitation by link: the token is the only proof of the right to join.
+ * The email is optional — the link can be passed along any way.
  */
 export const InvitationSchema = z.object({
   id: IdSchema,
   workspaceId: IdSchema,
   role: WorkspaceRoleSchema,
-  /** Секретная часть ссылки; в списках наружу не отдаётся. */
+  /** The secret part of the link; never included in list responses. */
   token: z.string().min(20).max(200),
   invitedEmail: z.email().nullable(),
-  /** Ссылка, которую можно отправить приглашённому. */
   inviteUrl: z.string().min(1).max(500),
   createdBy: IdSchema,
   expiresAt: IsoDateTimeSchema,
@@ -112,22 +110,22 @@ export type ChangeMemberRoleInput = z.infer<typeof ChangeMemberRoleInputSchema>;
 
 export const CreateInvitationInputSchema = z.object({
   role: WorkspaceRoleSchema.exclude(['owner']),
-  /** Почта не обязательна: приглашение живёт по ссылке. */
+  /** The email is optional: the invitation lives on the link. */
   invitedEmail: z.email().optional(),
 });
 export type CreateInvitationInput = z.infer<typeof CreateInvitationInputSchema>;
 
-/** Ссылка-приглашение, отдельная от записи: сервису нужен только токен. */
+/** The invitation link, separate from the record: the service only needs the token. */
 export const AcceptInvitationInputSchema = z.object({
   token: z.string().min(20).max(200),
 });
 export type AcceptInvitationInput = z.infer<typeof AcceptInvitationInputSchema>;
 
 /**
- * Workspace вместе с ролью текущего пользователя.
+ * Workspace together with the current user's role.
  *
- * Роль едет в том же ответе, что и список: иначе интерфейс делал бы отдельный
- * запрос на каждое пространство, чтобы понять, какие действия показать.
+ * The role travels in the same response as the list: otherwise the UI would
+ * make a separate request per workspace just to decide which actions to show.
  */
 export const WorkspaceListItemSchema = WorkspaceSchema.extend({
   currentUserRole: WorkspaceRoleSchema.nullable(),
@@ -136,7 +134,7 @@ export type WorkspaceListItem = z.infer<typeof WorkspaceListItemSchema>;
 
 export const WorkspaceListSchema = z.object({ items: z.array(WorkspaceListItemSchema) });
 
-/** Разбор id из пути: невалидный id — ошибка 400, а не 404. */
+/** Parsing the id from the path: an invalid id is a 400, not a 404. */
 export const WorkspaceIdParamsSchema = z.object({ id: IdSchema });
 export const MemberParamsSchema = z.object({ id: IdSchema, userId: IdSchema });
 export const InvitationTokenParamsSchema = z.object({ token: z.string().min(20).max(200) });

@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-/** Сервисы notio, участвующие в агрегированном health-отчёте. */
 export const SERVICE_NAMES = [
   'gateway',
   'pages-service',
   'auth-service',
   'workspace-service',
+  'media-service',
 ] as const;
 export type ServiceName = (typeof SERVICE_NAMES)[number];
 
@@ -14,7 +14,6 @@ export type HealthStatus = (typeof HEALTH_STATUSES)[number];
 
 export const UNKNOWN_VERSION = 'unknown';
 
-/** Состояние одного сервиса в health-отчёте. */
 export const ServiceHealthSchema = z.object({
   service: z.enum(SERVICE_NAMES),
   status: z.enum(HEALTH_STATUSES),
@@ -24,7 +23,6 @@ export const ServiceHealthSchema = z.object({
 });
 export type ServiceHealth = z.infer<typeof ServiceHealthSchema>;
 
-/** Агрегированный ответ `/health` и `/api/health`. */
 export const HealthResponseSchema = z.object({
   status: z.enum(HEALTH_STATUSES),
   version: z.string().min(1),
@@ -34,15 +32,15 @@ export const HealthResponseSchema = z.object({
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 
 /**
- * Статус всего отчёта: `degraded`, если хотя бы один сервис не `ok`.
- * Пустой список трактуется как `ok` — вызывающая сторона не передаёт
- * ни одного сервиса только в баге, а «degraded по умолчанию» скрыл бы его.
+ * Status of the whole report: `degraded` if at least one service is not `ok`.
+ * An empty list counts as `ok` — a caller passing no services can only be a
+ * bug, and a "degraded by default" would hide it.
  */
 export function aggregateStatus(services: readonly ServiceHealth[]): HealthStatus {
   return services.every((service) => service.status === 'ok') ? 'ok' : 'degraded';
 }
 
-/** HTTP-код ответа health: 503, если хотя бы один сервис недоступен. */
+/** HTTP status of the health response: 503 when at least one service is down. */
 export function healthStatusCode(status: HealthStatus): 200 | 503 {
   return status === 'ok' ? 200 : 503;
 }

@@ -1,27 +1,32 @@
 import { z } from 'zod';
 import { IdSchema, IsoDateTimeSchema, PositionSchema } from './ids';
 
-/** Стандартные иконки и цвета обложек страниц. */
 export const PageIconSchema = z.string().min(1).max(64);
 
 export const PageSchema = z.object({
   id: IdSchema,
   workspaceId: IdSchema,
-  /** null — страница находится в корне рабочего пространства. */
+  /** null — the page sits at the root of the workspace. */
   parentId: IdSchema.nullable(),
   title: z.string().max(500),
   icon: PageIconSchema.optional(),
   coverFileId: IdSchema.optional(),
   position: PositionSchema,
   isFavorite: z.boolean(),
-  /** Корзина — мягкое удаление: строка остаётся, но скрыта из дерева. */
+  /** Trash is a soft delete: the row stays but is hidden from the tree. */
   isTrashed: z.boolean(),
   /**
-   * Есть ли у страницы неудалённые дочерние страницы.
+   * Page lock: content and title become read-only.
+   * The field is optional in the contract so older clients keep working; on
+   * the server the column is always set (false by default).
+   */
+  isLocked: z.boolean().optional(),
+  /**
+   * Whether the page has non-deleted child pages.
    *
-   * Поле вычисляется сервером только в списках для дерева, чтобы клиент
-   * не запрашивал детей каждого узла, пока узел свёрнут. В одиночных
-   * ответах (создание, PATCH, GET по id) его может не быть.
+   * The server computes this field only in tree lists so the client does not
+   * have to ask for the children of every collapsed node. Single-item
+   * responses (create, PATCH, GET by id) may omit it.
    */
   hasChildren: z.boolean().optional(),
   createdBy: IdSchema,
@@ -30,20 +35,19 @@ export const PageSchema = z.object({
 });
 export type Page = z.infer<typeof PageSchema>;
 
-/** То, что клиент присылает при создании страницы. */
 export const CreatePageInputSchema = z.strictObject({
   workspaceId: IdSchema,
   parentId: IdSchema.nullable().default(null),
   title: z.string().max(500).default(''),
   icon: PageIconSchema.optional(),
-  /** Вставка сразу после указанной соседней страницы. */
+  /** Insert right after the specified sibling page. */
   afterPageId: IdSchema.optional(),
 });
 export type CreatePageInput = z.infer<typeof CreatePageInputSchema>;
 
 /**
- * Частичное обновление. Объект обязан содержать хотя бы одно поле:
- * пустой PATCH почти всегда означает баг на клиенте, а не «ничего не менять».
+ * Partial update. The object must contain at least one field: an empty PATCH
+ * almost always means a client bug, not "change nothing".
  */
 export const UpdatePageInputSchema = z
   .strictObject({
@@ -52,6 +56,7 @@ export const UpdatePageInputSchema = z
     coverFileId: IdSchema.nullable().optional(),
     isFavorite: z.boolean().optional(),
     isTrashed: z.boolean().optional(),
+    isLocked: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'Нужно передать хотя бы одно изменяемое поле',
@@ -64,7 +69,6 @@ export const MovePageInputSchema = z.strictObject({
 });
 export type MovePageInput = z.infer<typeof MovePageInputSchema>;
 
-/** Ответ постраничного списка страниц. */
 export const PageListResultSchema = z.object({
   items: z.array(PageSchema),
   nextCursor: z.string().min(1).nullable(),

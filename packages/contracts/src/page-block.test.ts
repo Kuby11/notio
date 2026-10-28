@@ -105,6 +105,64 @@ describe('BlockContentSchema', () => {
     expect(() => BlockContentSchema.parse({ type: 'heading', level: 5, content: 'x' })).toThrow();
     expect(() => BlockContentSchema.parse({ type: 'paragraph' })).toThrow();
     expect(() => BlockContentSchema.parse({ type: 'divider', content: 'лишнее' })).toThrow();
+    expect(() =>
+      BlockContentSchema.parse({
+        type: 'video',
+        fileId: null,
+        url: 'javascript:alert(1)',
+        caption: null,
+      }),
+    ).toThrow();
+    expect(() =>
+      BlockContentSchema.parse({
+        type: 'file',
+        fileId: null,
+        url: null,
+        name: '',
+        sizeBytes: null,
+      }),
+    ).toThrow();
+  });
+
+  it('принимает пресеты цвета текстовых блоков и отвергает чужие значения', () => {
+    expect(
+      BlockContentSchema.parse({
+        type: 'paragraph',
+        content: 'текст',
+        color: 'red',
+        backgroundColor: 'blue',
+      }),
+    ).toEqual({ type: 'paragraph', content: 'текст', color: 'red', backgroundColor: 'blue' });
+    expect(() =>
+      BlockContentSchema.parse({ type: 'paragraph', content: 'текст', color: 'magenta' }),
+    ).toThrow();
+    expect(() =>
+      BlockContentSchema.parse({ type: 'code', language: null, content: 'x', color: 'red' }),
+    ).toThrow();
+  });
+
+  it('принимает геометрию таблицы и отвергает чужие значения', () => {
+    expect(
+      BlockContentSchema.parse({
+        type: 'table',
+        headerRow: true,
+        rows: [['a', 'b']],
+        colWidths: [100, null],
+        rowHeights: [null, 44],
+      }),
+    ).toEqual({
+      type: 'table',
+      headerRow: true,
+      rows: [['a', 'b']],
+      colWidths: [100, null],
+      rowHeights: [null, 44],
+    });
+    expect(() =>
+      BlockContentSchema.parse({ type: 'table', headerRow: true, rows: [['a']], colWidths: [10] }),
+    ).toThrow();
+    expect(() =>
+      BlockContentSchema.parse({ type: 'table', headerRow: true, rows: [['a']], rowHeights: [0] }),
+    ).toThrow();
   });
 
   it('разрешает вложенные блоки и свёрнутость toggle', () => {
@@ -125,15 +183,32 @@ describe('BlockContentSchema', () => {
     expect(BlockContentSchema.parse(toggle)).toEqual(toggle);
   });
 
-  it('требует fileId для изображения и nullable caption', () => {
+  it('требует источник у медиа-блоков и nullable caption', () => {
     expect(() => BlockContentSchema.parse({ type: 'image', caption: null })).toThrow();
+    expect(() =>
+      BlockContentSchema.parse({
+        type: 'image',
+        fileId: null,
+        url: null,
+        caption: null,
+      }),
+    ).toThrow();
     expect(
       BlockContentSchema.parse({
         type: 'image',
         fileId: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
+        url: null,
         caption: null,
       }),
     ).toMatchObject({ caption: null });
+    expect(
+      BlockContentSchema.parse({
+        type: 'video',
+        fileId: null,
+        url: 'https://example.com/clip.mp4',
+        caption: null,
+      }),
+    ).toMatchObject({ url: 'https://example.com/clip.mp4' });
   });
 
   it('покрыт всеми типами из BLOCK_TYPES', () => {
@@ -149,9 +224,31 @@ describe('BlockContentSchema', () => {
       image: {
         type: 'image',
         fileId: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
+        url: null,
         caption: null,
+        fullWidth: true,
       },
+      video: { type: 'video', fileId: null, url: 'https://example.com/clip.mp4', caption: null },
+      file: { type: 'file', fileId: null, url: null, name: 'doc.pdf', sizeBytes: 12 },
+      emoji: { type: 'emoji', emoji: '🚀' },
       toggle: { type: 'toggle', content: '' },
+      table: { type: 'table', headerRow: true, rows: [['', '']] },
+      page: {
+        type: 'page',
+        pageId: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
+        title: '',
+        icon: null,
+      },
+      columns: {
+        type: 'columns',
+        columns: [{ children: [{ type: 'paragraph', content: '' }] }, {}],
+      },
+      equation: { type: 'equation', expression: 'E = mc^2' },
+      linkToPage: {
+        type: 'linkToPage',
+        pageId: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
+      },
+      breadcrumb: { type: 'breadcrumb' },
     };
 
     expect(Object.keys(samples).toSorted()).toEqual([...BLOCK_TYPES].toSorted());

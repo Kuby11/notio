@@ -87,6 +87,7 @@ describe('HealthResponseSchema', () => {
       'pages-service',
       'auth-service',
       'workspace-service',
+      'media-service',
     ]);
     expect(HEALTH_STATUSES).toEqual(['ok', 'degraded']);
   });

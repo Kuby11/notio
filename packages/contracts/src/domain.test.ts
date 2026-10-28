@@ -79,7 +79,6 @@ describe('WorkspaceSchema и роли', () => {
     name: 'Команда notio',
     slug: 'notio-team',
     ownerId: '2f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
-    // Активное пространство: archivedAt заполняется только при архивации.
     archivedAt: null,
     createdAt: '2026-10-18T12:00:00.000Z',
     updatedAt: '2026-10-18T12:00:00.000Z',

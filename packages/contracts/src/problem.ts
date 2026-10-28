@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { defaultErrorCodeForStatus, ErrorCodeSchema, type ErrorCode } from './error-codes';
 
-/** Content-Type для всех ошибок API (RFC 7807). */
+/** Content-Type of every API error (RFC 7807). */
 export const PROBLEM_CONTENT_TYPE = 'application/problem+json';
 
 export const DEFAULT_PROBLEM_TYPE = 'about:blank';
@@ -18,9 +18,9 @@ export const ProblemDetailsSchema = z.object({
   status: z.number().int().min(100).max(599),
   detail: z.string().optional(),
   instance: z.string().optional(),
-  /** Машиночитаемый код ошибки из общего enum: фронтенк строит по нему типы. */
+  /** Machine-readable code from the shared enum: the frontend builds types from it. */
   code: ErrorCodeSchema,
-  /** Сквозной идентификатор запроса для поиска логов. */
+  /** End-to-end request id used to find the matching log lines. */
   requestId: z.string().min(1).optional(),
   errors: z.array(ProblemErrorSchema).optional(),
 });
@@ -55,7 +55,6 @@ export interface ProblemInit {
   headers?: Record<string, string>;
 }
 
-/** Собирает Response в формате RFC 7807. */
 export function problem(init: ProblemInit): Response {
   const body = ProblemDetailsSchema.parse({
     type: init.type ?? DEFAULT_PROBLEM_TYPE,
@@ -74,12 +73,10 @@ export function problem(init: ProblemInit): Response {
   });
 }
 
-/** Проверяет, что значение — problem details. */
 export function isProblemDetails(value: unknown): value is ProblemDetails {
   return ProblemDetailsSchema.safeParse(value).success;
 }
 
-/** Преобразует ошибки Zod в список полей для problem details. */
 export function toProblemErrors(error: z.ZodError): ProblemError[] {
   return error.issues.map((issue) => ({
     path: issue.path.join('.'),

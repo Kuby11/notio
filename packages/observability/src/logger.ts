@@ -11,12 +11,11 @@ export interface Logger {
 }
 
 export interface LoggerOptions {
-  /** Имя сервиса: gateway, pages-service, ... */
   service: string;
   level?: LogLevel;
-  /** Текущее время в ISO-формате; по умолчанию Date.now(). Передаётся явно в тестах. */
+  /** Current time in ISO format, defaulting to Date.now(). Passed explicitly in tests. */
   now?: () => Date;
-  /** Приёмник строк. По умолчанию console — подменяется в тестах. */
+  /** String sink, defaulting to console — swapped out in tests. */
   sink?: (line: string) => void;
 }
 
@@ -31,7 +30,7 @@ export function isLogLevel(value: string): value is LogLevel {
   return (LOG_LEVELS as readonly string[]).includes(value);
 }
 
-/** Приводит Error к безопасному для логов объекту: стек и причина, но без циклов. */
+/** Coerces an Error into a log-safe object: stack and cause, but no cycles. */
 function serializeError(value: unknown): unknown {
   if (value instanceof Error) {
     return { name: value.name, message: value.message, stack: value.stack };
@@ -41,8 +40,8 @@ function serializeError(value: unknown): unknown {
 }
 
 /**
- * Структурный логгер: одна JSON-строка на событие.
- * В логи не попадают секреты и PII — только то, что сервис передал явно.
+ * Structured logger: one JSON line per event.
+ * Secrets and PII never get logged — only what the service passed in explicitly.
  */
 export function createLogger(options: LoggerOptions): Logger {
   const level = options.level ?? 'info';

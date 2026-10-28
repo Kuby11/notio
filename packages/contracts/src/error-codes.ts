@@ -1,8 +1,9 @@
 import { z } from 'zod';
 
 /**
- * Машиночитаемые коды ошибок. Enum вместо свободных строк: код ошибки —
- * часть контракта, по нему фронтенд строит типы, а не сравнивает текст.
+ * Machine-readable error codes. An enum instead of free-form strings: the
+ * code is part of the contract, the frontend builds types from it rather
+ * than comparing text.
  */
 export const ERROR_CODES = [
   'VALIDATION_ERROR',

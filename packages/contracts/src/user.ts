@@ -11,10 +11,10 @@ export const UserSchema = z.object({
 export type User = z.infer<typeof UserSchema>;
 
 /**
- * Публичные данные пользователя для других сервисов.
+ * Public user data for other services.
  *
- * Только то, что нужно показать рядом с ролью: почта и имя. Пароль, хеш и
- * внутренние поля наружу не отдаются — даже внутри системы.
+ * Only what is needed next to a role: email and name. The password, its hash
+ * and internal fields are never exposed — not even inside the system.
  */
 export const UserProfileSchema = z.object({
   id: IdSchema,
@@ -25,11 +25,10 @@ export type UserProfile = z.infer<typeof UserProfileSchema>;
 
 export const UserProfileListSchema = z.object({ items: z.array(UserProfileSchema) });
 
-/** Сколько id можно запросить за один раз: ограничение защищает от раздутых ответов. */
+/** How many ids may be requested at once: the cap protects against bloated responses. */
 export const MAX_USER_PROFILES_PER_REQUEST = 50;
 
 export const UserProfilesQuerySchema = z.object({
-  /** Список id через запятую: короткий и однозначный формат для query. */
   ids: z
     .string()
     .min(1)

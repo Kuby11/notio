@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-/** Имя приложения notio: используется и в контракте, и в UI. */
 export const APP_NAME = 'notio';
 
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
@@ -13,7 +12,6 @@ export const ApiEndpointSchema = z.object({
 });
 export type ApiEndpoint = z.infer<typeof ApiEndpointSchema>;
 
-/** Ответ `GET /` — индекс публичного API gateway. */
 export const ServiceIndexSchema = z.object({
   name: z.literal(APP_NAME),
   version: z.string().min(1),
