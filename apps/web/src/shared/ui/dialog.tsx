@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
 import { cn } from 'cn';
 
@@ -27,8 +28,11 @@ function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) 
   return (
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
+      // Base UI hides nested backdrops by default; a dialog opened from
+      // another dialog must still darken the surface underneath it.
+      forceRender
       className={cn(
-        'fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        'fixed inset-0 isolate z-50 bg-black/40 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
         className,
       )}
       {...props}
@@ -44,6 +48,8 @@ function DialogContent({
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean;
 }) {
+  const t = useTranslations('common');
+
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -62,7 +68,7 @@ function DialogContent({
             render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
           >
             <XIcon />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t('close')}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>
@@ -84,6 +90,8 @@ function DialogFooter({
 }: React.ComponentProps<'div'> & {
   showCloseButton?: boolean;
 }) {
+  const t = useTranslations('common');
+
   return (
     <div
       data-slot="dialog-footer"
@@ -95,7 +103,9 @@ function DialogFooter({
     >
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>Close</DialogPrimitive.Close>
+        <DialogPrimitive.Close render={<Button variant="outline" />}>
+          {t('close')}
+        </DialogPrimitive.Close>
       )}
     </div>
   );
