@@ -1,5 +1,7 @@
 export * from './auth';
 export * from './block';
+export * from './database';
+export * from './database-engine';
 export * from './error-codes';
 export * from './events';
 export * from './file';
