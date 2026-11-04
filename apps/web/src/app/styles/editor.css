@@ -1,0 +1,273 @@
+/*
+ * Empty-block placeholder. The BlockPlaceholder extension puts
+ * data-placeholder on the current empty textblock (nested ones included) but does
+ * not draw text — CSS does. `height: 0` keeps the hint from stretching the line.
+ */
+.tiptap :is(p, h1, h2, h3, h4, blockquote, summary).is-empty[data-placeholder]::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/*
+ * Base editor block styles.
+ *
+ * Tailwind preflight resets heading sizes and removes list markers,
+ * and @tailwindcss/typography is not installed. So the visual
+ * H1–H4 levels and spacing are defined explicitly here.
+ */
+.tiptap {
+  margin: 0 auto;
+  max-width: 52rem;
+  min-height: 70vh;
+  outline: none;
+  /* padding-left: 6rem;   */
+}
+
+/* Leave room on the left for the drag handle and align every block, toggles included. */
+.tiptap h1,
+.tiptap h2,
+.tiptap h3,
+.tiptap h4 {
+  color: var(--foreground);
+  margin: 1.25rem 0 0.25rem;
+}
+
+.tiptap h1:first-child,
+.tiptap h2:first-child,
+.tiptap h3:first-child,
+.tiptap h4:first-child {
+  margin-top: 0;
+}
+
+.tiptap h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.tiptap h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.tiptap h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.tiptap h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.tiptap p {
+  line-height: 1.65;
+  margin: 0.125rem 0;
+}
+
+.tiptap ul,
+.tiptap ol {
+  list-style: none;
+  margin: 0.125rem 0;
+  padding-left: 0;
+}
+
+.tiptap .notio-list-item {
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.tiptap .notio-list-marker {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  left: 0;
+  line-height: 1.65rem;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  user-select: none;
+}
+
+.tiptap ol {
+  counter-reset: notio-list;
+}
+
+.tiptap ol > li {
+  counter-increment: notio-list;
+}
+
+.tiptap ul > li > .notio-list-marker::before {
+  content: '•';
+}
+
+.tiptap ol > li > .notio-list-marker::before {
+  content: counter(notio-list) '.';
+}
+
+.tiptap li p {
+  margin: 0;
+}
+
+/*
+ * Official Details (toggle): the triangle button and content come from
+ * @tiptap/extension-details, so only appearance and spacing live here.
+ */
+.tiptap [data-type='details'] {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.125rem;
+  margin: 0.125rem 0;
+}
+
+.tiptap [data-type='details'] > button {
+  background: transparent;
+  border: 0;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  flex: 0 0 1.5rem;
+  height: 1.65rem;
+  margin: 0;
+  padding: 0;
+  width: 1.5rem;
+}
+
+.tiptap [data-type='details'] > button::before {
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  border-top: 4px solid transparent;
+  content: '';
+  display: inline-block;
+  transition: transform 120ms ease;
+}
+
+.tiptap [data-type='details'].is-open > button::before {
+  transform: rotate(90deg);
+}
+
+.tiptap [data-type='details'] > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.tiptap [data-type='details'] summary {
+  cursor: text;
+  line-height: 1.65;
+  list-style: none;
+}
+
+.tiptap [data-type='details'] summary::-webkit-details-marker {
+  display: none;
+}
+
+.tiptap [data-type='details'] [data-type='detailsContent'] {
+  padding-left: 1.5rem;
+}
+
+/*
+ * Drop target: a toggle is highlighted when the dropped block would be
+ * aligned inside it. The DropTargetHighlight plugin sets the class.
+ */
+.tiptap [data-type='details'].notio-drop-target {
+  background-color: var(--accent);
+  border-radius: 0.375rem;
+}
+
+/* Official TaskList: checkbox on the left, completed text struck through. */
+.tiptap ul[data-type='taskList'] {
+  list-style: none;
+  margin: 0.125rem 0;
+  padding-left: 0;
+}
+
+.tiptap ul[data-type='taskList'] li {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tiptap ul[data-type='taskList'] li > label {
+  align-items: center;
+  display: flex;
+  height: 1.65rem;
+}
+
+.tiptap ul[data-type='taskList'] li > label input {
+  accent-color: var(--primary);
+  cursor: pointer;
+  height: 1rem;
+  margin: 0;
+  width: 1rem;
+}
+
+.tiptap ul[data-type='taskList'] li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.tiptap ul[data-type='taskList'] li > div > p {
+  margin: 0;
+}
+
+.tiptap ul[data-type='taskList'] li[data-checked='true'] > div {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+
+.tiptap ul[data-type='taskList'] ul[data-type='taskList'] {
+  padding-left: 1.5rem;
+}
+
+/* Official DragHandle: the extension positions the element itself. */
+.notio-block-handle {
+  align-items: center;
+  display: flex;
+  gap: 0.125rem;
+  z-index: 40;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid var(--border);
+  color: var(--muted-foreground);
+  margin: 0.5rem 0;
+  padding-left: 1rem;
+}
+
+.tiptap blockquote p {
+  margin: 0;
+}
+
+.tiptap pre {
+  background: var(--muted);
+  border-radius: var(--radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  padding: 0.75rem 1rem;
+}
+
+.tiptap code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875em;
+}
+
+.tiptap pre code {
+  font-size: inherit;
+}
+
+.tiptap hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 1rem 0;
+}

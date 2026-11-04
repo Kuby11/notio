@@ -5,12 +5,12 @@ import { env } from '../../../shared/configs/env';
 import type { MediaRepository } from '../types/ports';
 
 /**
- * Репозиторий медиа поверх gateway.
+ * Media repository over the gateway.
  *
- * Файл уходит multipart-запросом; ошибки RFC 7807 превращаются в HttpError
- * с деталью от сервиса — по ней строится текст тоста про размер или тип.
+ * The file is sent as a multipart request; RFC 7807 errors become HttpError
+ * with the service detail, which drives the size/type toast text.
  */
-/** Текст ошибки из RFC 7807 ответа; при мусоре — статус. */
+/** Error text from the RFC 7807 response; the status when it is garbage. */
 async function problemMessage(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { detail?: string };

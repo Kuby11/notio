@@ -1,0 +1,128 @@
+/* A table background preset fills the whole table (cell text inherits
+ * from the shared [data-color=…] rules above). */
+.tiptap table[data-background-color] {
+  border-radius: 0.25rem;
+}
+
+/* Child-page link: the atomic subPage node. */
+.tiptap a.notio-page-link {
+  align-items: center;
+  color: var(--foreground);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.375rem;
+  margin: 0.125rem 0;
+  max-width: 100%;
+  text-decoration: none;
+}
+
+.tiptap a.notio-page-link:hover .notio-page-title {
+  text-decoration: underline;
+}
+
+.tiptap a.notio-page-link .notio-page-icon {
+  flex-shrink: 0;
+}
+
+.tiptap a.notio-page-link .notio-page-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tiptap a.notio-page-link.ProseMirror-selectednode {
+  background: var(--accent);
+  border-radius: 0.25rem;
+}
+
+/*
+ * Block colours: named presets from the contract (ADR 0017). Text colour
+ * is inherited by the node's children; the background fills the whole block.
+ */
+.tiptap [data-color='gray'] {
+  color: #787772;
+}
+.tiptap [data-color='brown'] {
+  color: #9f6b53;
+}
+.tiptap [data-color='orange'] {
+  color: #d9730d;
+}
+.tiptap [data-color='yellow'] {
+  color: #b08800;
+}
+.tiptap [data-color='green'] {
+  color: #448361;
+}
+.tiptap [data-color='blue'] {
+  color: #337ea9;
+}
+.tiptap [data-color='purple'] {
+  color: #9065b0;
+}
+.tiptap [data-color='pink'] {
+  color: #c14c8a;
+}
+.tiptap [data-color='red'] {
+  color: #d44c47;
+}
+
+.tiptap [data-background-color='gray'] {
+  background-color: #f1f1ef;
+}
+.tiptap [data-background-color='brown'] {
+  background-color: #f4eeee;
+}
+.tiptap [data-background-color='orange'] {
+  background-color: #fbecdd;
+}
+.tiptap [data-background-color='yellow'] {
+  background-color: #fbf3db;
+}
+.tiptap [data-background-color='green'] {
+  background-color: #edf3ec;
+}
+.tiptap [data-background-color='blue'] {
+  background-color: #e7f3f8;
+}
+.tiptap [data-background-color='purple'] {
+  background-color: #f6f3f9;
+}
+.tiptap [data-background-color='pink'] {
+  background-color: #faf1f5;
+}
+.tiptap [data-background-color='red'] {
+  background-color: #fdebec;
+}
+
+.tiptap [data-background-color] {
+  border-radius: 0.25rem;
+}
+
+.dark .tiptap [data-background-color='gray'] {
+  background-color: #3b3b39;
+}
+.dark .tiptap [data-background-color='brown'] {
+  background-color: #473b34;
+}
+.dark .tiptap [data-background-color='orange'] {
+  background-color: #4d3a24;
+}
+.dark .tiptap [data-background-color='yellow'] {
+  background-color: #453c1f;
+}
+.dark .tiptap [data-background-color='green'] {
+  background-color: #293a30;
+}
+.dark .tiptap [data-background-color='blue'] {
+  background-color: #273746;
+}
+.dark .tiptap [data-background-color='purple'] {
+  background-color: #373043;
+}
+.dark .tiptap [data-background-color='pink'] {
+  background-color: #402c35;
+}
+.dark .tiptap [data-background-color='red'] {
+  background-color: #46292b;
+}
