@@ -10,7 +10,8 @@
  *  4. api must not pull in React, TanStack Query, Zustand, core or stores:
  *     only raw calls and pure helpers.
  *  5. A module's ui folder holds no hooks or stores: ui is components only.
- *  6. Each module has exactly one facade hook: hooks/use-<module>.ts.
+ *  6. Hooks: one exported hook per file, and every module has its facade
+ *     hooks/use-<module>.ts. Large facades may be split across hook files.
  *  7. TanStack Query keys live only in utils/query-keys.ts.
  *
  * The script never resolves files on disk — it compares normalised import paths.
@@ -76,8 +77,8 @@ function rel(path) {
 const violations = [];
 const files = [...collectFiles(SRC), ...collectFiles(join(ROOT, 'test'))];
 
-// 6. One facade hook per module. No nested hooks or helper files:
-//    the name is fixed — hooks/use-<module>.ts.
+// 6. Hooks: a facade hook per module plus optional operation hooks, each in
+//    its own file. The file name must match the hook it exports.
 const hooksByModule = new Map();
 
 for (const file of files) {
@@ -94,18 +95,35 @@ for (const file of files) {
   hooksByModule.set(moduleName, hooks);
 }
 
+/** `use-database-views.ts` -> `useDatabaseViews`. */
+function hookNameForFile(fileName) {
+  const [first, ...rest] = fileName.replace(/\.ts$/u, '').split('-');
+
+  return first + rest.map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+}
+
 for (const [moduleName, hooks] of hooksByModule) {
-  if (hooks.length > 1) {
-    violations.push(
-      `modules/${moduleName}/hooks: у модуля должен быть один facade-хук, найдено ${hooks.length}`,
-    );
+  const facade = `use-${moduleName}.ts`;
+
+  if (!hooks.some((hook) => hook.fileName === facade)) {
+    violations.push(`modules/${moduleName}/hooks: отсутствует facade-хук ${facade}`);
   }
 
   for (const hook of hooks) {
-    if (hook.fileName !== `use-${moduleName}.ts`) {
+    const source = readFileSync(join(SRC, hook.relativePath), 'utf8');
+    const exported = [...source.matchAll(/^export\s+(?:function|const)\s+(use[A-Z]\w*)/gmu)].map(
+      (match) => match[1],
+    );
+
+    if (exported.length !== 1) {
       violations.push(
-        `${hook.relativePath}: в hooks допускается только facade-хук use-${moduleName}.ts`,
+        `${hook.relativePath}: в одном файле должен быть ровно один хук, найдено ${exported.length}`,
       );
+      continue;
+    }
+
+    if (exported[0] !== hookNameForFile(hook.fileName)) {
+      violations.push(`${hook.relativePath}: имя файла не совпадает с хуком ${exported[0] ?? ''}`);
     }
   }
 }

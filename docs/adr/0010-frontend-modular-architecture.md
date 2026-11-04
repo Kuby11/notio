@@ -29,7 +29,7 @@ src/
 ├─ core/        # composition root: container, providers, каркас (AppLayout/AppSidebar)
 ├─ shared/      # hooks, ui (примитивы), configs, types — без знания о домене
 └─ modules/<module>/
-   ├─ hooks/            # единственный facade-хук модуля
+   ├─ hooks/            # facade-хук модуля и хуки операций (один хук на файл)
    ├─ stores/           # Zustand: только UI-состояние модуля (если нужно)
    ├─ api/              # вызовы + Zod, кеш токена, без состояния и UI
    ├─ types/            # типы, порты, DTO-схемы
@@ -44,13 +44,15 @@ src/
 ### Правила границ
 
 - `shared` не импортирует `modules`/`core`/`app`.
-- Вход в модуль — только `modules/<module>` (index.ts): фабрика, единственный
-  facade-хук, public-компоненты, публичные типы.
+- Вход в модуль — только `modules/<module>` (index.ts): фабрика, facade-хук
+  и публичные хуки, public-компоненты, публичные типы.
 - `api` и `stores` используются только внутри своего модуля.
 - `api` — только сеть и Zod: без React, TanStack Query, Zustand и `core`.
 - Стор хранит сырое UI-состояние; снаружи доступен через facade-хук.
-- У модуля ровно один facade-хук (`useAuth`, `usePages`, `useWorkspaces`, `useEditor`):
-  он оркестрирует запросы, мутации, стор и правила, а не дробится на мелкие хуки.
+- У модуля есть facade-хук (`useAuth`, `usePages`, `useWorkspaces`, `useEditor`):
+  он отдаёт компонентам запросы, мутации, стор и правила. Крупный facade можно
+  разделить на хуки операций, но в одном файле — один хук, и имя файла совпадает
+  с именем хука (`use-database-views.ts` → `useDatabaseViews`).
 - Ключи TanStack Query — только в `utils/query-keys.ts` модуля.
 - В `ui` живут только компоненты: папки `hooks` и `stores` внутри `ui` запрещены.
 - Инверсия зависимостей: хуки зависят от порта (`types/ports.ts`), адаптер
@@ -64,7 +66,7 @@ src/
 `scripts/check-boundaries.mjs` запускается в составе `pnpm lint` и запрещает импорты
 shared из modules, глубокие импорты модулей, вынос `stores`/`api` за пределы модуля,
 React/Query/Zustand внутри `api`, папки `hooks/use-cases`, `hooks`/`stores` внутри `ui`,
-второй facade-хук модуля и `query-keys.ts` вне `utils`.
+отсутствие facade-хука, несколько хуков в одном файле и `query-keys.ts` вне `utils`.
 
 ### Composition root
 
