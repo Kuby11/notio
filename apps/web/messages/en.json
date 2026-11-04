@@ -524,8 +524,8 @@
   "meta": {
     "title": "notio — a Notion clone on Cloudflare",
     "description": "Portfolio project: workspaces, a block editor and real-time collaborative editing on Cloudflare Workers microservices.",
-    "loginTitle": "Sign in — notio",
-    "registerTitle": "Sign up — notio"
+    "loginTitle": "Sign in",
+    "registerTitle": "Sign up"
   },
   "media": {
     "unknownType": "unknown",

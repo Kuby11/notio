@@ -524,8 +524,8 @@
   "meta": {
     "title": "notio — клон Notion на Cloudflare",
     "description": "Портфолио-проект: рабочие пространства, блочный редактор и групповое редактирование в реальном времени на микросервисах Cloudflare Workers.",
-    "loginTitle": "Вход — notio",
-    "registerTitle": "Регистрация — notio"
+    "loginTitle": "Вход",
+    "registerTitle": "Регистрация"
   },
   "media": {
     "unknownType": "неизвестен",
