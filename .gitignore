@@ -26,6 +26,8 @@ blob-report/
 !.dev.vars.example
 !.env.example
 
+.cloud-attachments
+
 # wrangler / miniflare
 .wrangler/
 .mf/
