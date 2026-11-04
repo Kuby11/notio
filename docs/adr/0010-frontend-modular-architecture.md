@@ -25,7 +25,7 @@ adapters → ui (ADR 0009). Слои были распределены по па
 
 ```
 src/
-├─ app/         # тонкие роуты Next.js
+├─ app/         # тонкие роуты App Router
 ├─ core/        # composition root: container, providers, каркас (AppLayout/AppSidebar)
 ├─ shared/      # hooks, ui (примитивы), configs, types — без знания о домене
 └─ modules/<module>/

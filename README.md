@@ -13,25 +13,25 @@
 
 ## Стек
 
-| Область         | Выбор                                                            |
-| --------------- | ---------------------------------------------------------------- |
-| Монорепо        | pnpm workspaces + Turborepo                                      |
-| Фронтенд        | Next.js 16 (App Router), TanStack Query, Zustand, Zod, shadcn/ui |
-| Редактор        | Tiptap + Yjs, dnd-kit                                            |
-| Бэкенд          | Hono на Cloudflare Workers, Service Bindings между сервисами     |
-| Данные          | D1 (database-per-service), Drizzle ORM + drizzle-kit             |
-| Файлы и очереди | R2, KV, Queues, Cron Triggers                                    |
-| Realtime        | Durable Objects (Hibernation API) + Yjs                          |
-| Аутентификация  | Better Auth (Drizzle-адаптер, D1)                                |
-| Тесты           | Vitest 5, @cloudflare/vitest-plugin, Testing Library, Playwright |
-| Линт и формат   | oxlint + oxfmt                                                   |
-| CI/CD           | GitHub Actions + Wrangler                                        |
+| Область         | Выбор                                                                   |
+| --------------- | ----------------------------------------------------------------------- |
+| Монорепо        | pnpm workspaces + Turborepo                                             |
+| Фронтенд        | vinext (Next.js App Router на Vite), TanStack Query, Zustand, shadcn/ui |
+| Редактор        | Tiptap + Yjs, dnd-kit                                                   |
+| Бэкенд          | Hono на Cloudflare Workers, Service Bindings между сервисами            |
+| Данные          | D1 (database-per-service), Drizzle ORM + drizzle-kit                    |
+| Файлы и очереди | R2, KV, Queues, Cron Triggers                                           |
+| Realtime        | Durable Objects (Hibernation API) + Yjs                                 |
+| Аутентификация  | Better Auth (Drizzle-адаптер, D1)                                       |
+| Тесты           | Vitest 5, @cloudflare/vitest-plugin, Testing Library, Playwright        |
+| Линт и формат   | oxlint + oxfmt                                                          |
+| CI/CD           | GitHub Actions + Wrangler                                               |
 
 ## Структура
 
 ```
 notio/
-├─ apps/web/                Next.js App Router
+├─ apps/web/                App Router на vinext (Vite)
 ├─ services/
 │  ├─ gateway/              единственная публичная точка входа: роутинг, CORS, rate limit
 │  ├─ pages-service/        страницы и блоки, своя база D1 notio-pages
@@ -53,7 +53,7 @@ pnpm install
 cp .dev.vars.example .dev.vars   # локальный BETTER_AUTH_SECRET
 pnpm db:migrate                  # миграции обеих баз: notio-pages и notio-auth
 pnpm db:seed:pages               # демо-данные (по желанию)
-pnpm dev                         # workers (wrangler) и web (next dev)
+pnpm dev                         # workers (wrangler) и web (vinext / vite dev)
 ```
 
 Секреты читаются из `.dev.vars` рядом с конфигом сервиса, поэтому файл нужен и в корне,
@@ -162,7 +162,7 @@ auth-service пишет её в лог (`oauth_callback_error`).
 | `pnpm dev`                                              | Поднимает workers и web вместе                    |
 | `pnpm dev:workers`                                      | Только backend: `wrangler dev` с тремя сервисами  |
 | `pnpm dev:gateway` / `pnpm dev:auth` / `pnpm dev:pages` | Один сервис отдельно                              |
-| `pnpm build`                                            | Сборка воркеров (dry-run bundle) и Next.js        |
+| `pnpm build`                                            | Сборка воркеров (dry-run bundle) и фронтенда      |
 | `pnpm typecheck`                                        | `tsc` во всех пакетах + генерация типов Workers   |
 | `pnpm lint`                                             | oxlint по всему монорепо                          |
 | `pnpm format` / `pnpm format:check`                     | oxfmt                                             |

@@ -1,13 +1,3 @@
-<!-- BEGIN:nextjs-agent-rules -->
-
-## This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
-
 # AGENTS.md — фронтенд notio (`apps/web`)
 
 Документ для ИИ-агентов и разработчиков: как устроен фронтенд клона Notion и по каким правилам в нём пишется код. Это каноническая версия для `apps/web`; локальные копии лежат в `.agents/AGENTS.md` и `.opencode/AGENTS.md`. Если задача требует нарушить правило — остановись и спроси, а не обходи его.
@@ -18,19 +8,19 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## 1. Стек
 
-| Задача                    | Инструмент                                                  |
-| ------------------------- | ----------------------------------------------------------- |
-| Фреймворк                 | Next.js 16 (App Router), React 19, TypeScript strict        |
-| Серверное состояние       | TanStack Query                                              |
-| Клиентское (UI) состояние | Zustand                                                     |
-| Валидация и схемы         | Zod 4, общие схемы из `packages/contracts`                  |
-| UI-kit                    | shadcn/ui (стиль `base-nova` на Base UI), Tailwind          |
-| Формы                     | react-hook-form + `zodResolver`                             |
-| Редактор                  | Tiptap 3 (официальные расширения, DragHandle, Suggestion)   |
-| Сеть                      | `fetch` через gateway + Zod-валидация ответов               |
-| Аутентификация            | клиент Better Auth, JWT кешируется в памяти                 |
-| Тесты                     | Vitest 5, Testing Library, jsdom; smoke `scripts/smoke.mjs` |
-| Линт и формат             | oxlint + oxfmt, плюс скрипт проверки границ                 |
+| Задача                    | Инструмент                                                      |
+| ------------------------- | --------------------------------------------------------------- |
+| Фреймворк                 | vinext 1.4 (Next.js 16 App Router на Vite), React 19, TS strict |
+| Серверное состояние       | TanStack Query                                                  |
+| Клиентское (UI) состояние | Zustand                                                         |
+| Валидация и схемы         | Zod 4, общие схемы из `packages/contracts`                      |
+| UI-kit                    | shadcn/ui (стиль `base-nova` на Base UI), Tailwind              |
+| Формы                     | react-hook-form + `zodResolver`                                 |
+| Редактор                  | Tiptap 3 (официальные расширения, DragHandle, Suggestion)       |
+| Сеть                      | `fetch` через gateway + Zod-валидация ответов                   |
+| Аутентификация            | клиент Better Auth, JWT кешируется в памяти                     |
+| Тесты                     | Vitest 5, Testing Library, jsdom; smoke `scripts/smoke.mjs`     |
+| Линт и формат             | oxlint + oxfmt, плюс скрипт проверки границ                     |
 
 **Важно про shadcn/base-nova.** Стиль собран на Base UI (`@base-ui/react`), а не на Radix: проп `asChild` не поддерживается. Вложенные интерактивные элементы делаются через `render`:
 
@@ -47,7 +37,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ```
 apps/web/
 ├─ src/
-│  ├─ app/                        # Next.js App Router. Роуты тонкие: только композиция
+│  ├─ app/                        # App Router (vinext). Роуты тонкие: только композиция
 │  │  ├─ (auth)/login|register/
 │  │  ├─ workspaces/[workspaceId]/...
 │  │  └─ layout.tsx
@@ -224,7 +214,7 @@ facade hook ──► useContainer() ──► Container (core/container.tsx)
 
 ---
 
-## 9. Компоненты и Next.js
+## 9. Компоненты и App Router
 
 - **Server Components по умолчанию.** `'use client'` ставится на самом глубоком листе, которому нужен интерактив/хуки/Query/Zustand.
 - Роут в `app/` тонкий: импортирует public-компонент модуля и рендерит его; никакой бизнес-логики.
@@ -301,3 +291,9 @@ pnpm test:coverage   # покрытие (порог 80% для utils)
 pnpm build           # turbo run build
 pnpm smoke           # сквозной сценарий против локальных воркеров
 ```
+
+В `apps/web` вместо Next CLI работает vinext поверх Vite: `pnpm dev` — `vite dev`
+(порт 3000), `pnpm build` — `vite build`, `pnpm start` — предпросмотр собранного
+Worker локально, `pnpm deploy` — деплой через `vinext-cloudflare`. Пакет `next`
+не установлен: типы `next/*` и рантайм даёт `vinext`, а конфиг — `next.config.ts`,
+который vinext читает сам.
