@@ -152,4 +152,38 @@ describe('PageTree', () => {
 
     expect(screen.getAllByRole('button', { name: 'Создать страницу' })).toHaveLength(1);
   });
+
+  it('показывает базы данных рядом с их страницей, даже без дочерних страниц', async () => {
+    const user = userEvent.setup();
+    const gateway = gatewayStub();
+    gateway.accessToken.mockResolvedValue('jwt');
+
+    renderWithProviders(
+      <PageTree
+        workspaceId={WORKSPACE_ID}
+        hasExtras={(parentId) => parentId === LEAF_ID}
+        extras={(parentId, depth) =>
+          parentId === LEAF_ID ? (
+            <li data-testid="leaf-database" data-depth={depth}>
+              <a href={`/workspaces/${WORKSPACE_ID}/databases/db-1`}>Leaf database</a>
+            </li>
+          ) : null
+        }
+      />,
+      gateway,
+    );
+
+    await screen.findByRole('link', { name: /Leaf/ });
+
+    // Leaf has no child pages: only the database row makes it expandable.
+    await user.click(screen.getByRole('button', { name: 'Развернуть «Leaf»' }));
+
+    const extra = await screen.findByTestId('leaf-database');
+
+    expect(screen.getByRole('link', { name: 'Leaf database' })).toBeInTheDocument();
+    expect(extra).toHaveAttribute('data-depth', '1');
+    expect(extra.closest('[role="treeitem"]')).toBe(
+      screen.getByRole('link', { name: 'Leaf' }).closest('[role="treeitem"]'),
+    );
+  });
 });

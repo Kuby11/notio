@@ -15,6 +15,10 @@ interface PageTreeProps {
   workspaceId: string;
   parentId?: string | null;
   depth?: number;
+  /** Extra `<li>` rows (databases) for one tree level, alongside pages. */
+  extras?: (parentId: string | null, depth: number) => React.ReactNode;
+  /** Whether a level has extra rows — keeps the expand control visible for DB-only pages. */
+  hasExtras?: (parentId: string | null) => boolean;
 }
 
 /** The root-level "Add new" row: a muted pill, as in the Notion sidebar. */
@@ -28,7 +32,13 @@ const ADD_ROW_CLASS =
  * come from the single facade hook `usePages`. Store state
  * and network calls do not leak outside the component.
  */
-export function PageTree({ workspaceId, parentId = null, depth = 0 }: PageTreeProps) {
+export function PageTree({
+  workspaceId,
+  parentId = null,
+  depth = 0,
+  extras,
+  hasExtras,
+}: PageTreeProps) {
   const t = useTranslations('sidebar');
   const router = useRouter();
   const { expanded, toggle, children, createPage } = usePages(workspaceId, parentId);
@@ -42,10 +52,11 @@ export function PageTree({ workspaceId, parentId = null, depth = 0 }: PageTreePr
   }
 
   const items = children.data ?? [];
+  const levelHasExtras = hasExtras?.(parentId) ?? false;
 
   // Nested levels without children render nothing; the root level keeps its
   // empty state and the "Add new" row, so the first page can be created here.
-  if (items.length === 0 && depth > 0) {
+  if (items.length === 0 && depth > 0 && !levelHasExtras) {
     return null;
   }
 
@@ -61,9 +72,9 @@ export function PageTree({ workspaceId, parentId = null, depth = 0 }: PageTreePr
 
   return (
     <>
-      {items.length === 0 ? (
-        <PageTreeStatus>{t('noPages')}</PageTreeStatus>
-      ) : (
+      {items.length === 0 && depth === 0 ? <PageTreeStatus>{t('noPages')}</PageTreeStatus> : null}
+
+      {items.length > 0 || levelHasExtras ? (
         <ul className="space-y-0.5" role="tree" aria-label={t('pages')}>
           {items.map((page) => (
             <PageTreeNode
@@ -72,11 +83,14 @@ export function PageTree({ workspaceId, parentId = null, depth = 0 }: PageTreePr
               workspaceId={workspaceId}
               depth={depth}
               expanded={expanded[page.id] ?? false}
+              extras={extras}
+              hasExtras={hasExtras}
               onToggle={() => toggle(page.id)}
             />
           ))}
+          {extras ? extras(parentId, depth) : null}
         </ul>
-      )}
+      ) : null}
 
       {depth === 0 ? (
         <button
@@ -100,10 +114,20 @@ interface PageTreeNodeProps {
   workspaceId: string;
   depth: number;
   expanded: boolean;
+  extras?: (parentId: string | null, depth: number) => React.ReactNode;
+  hasExtras?: (parentId: string | null) => boolean;
   onToggle: () => void;
 }
 
-function PageTreeNode({ page, workspaceId, depth, expanded, onToggle }: PageTreeNodeProps) {
+function PageTreeNode({
+  page,
+  workspaceId,
+  depth,
+  expanded,
+  extras,
+  hasExtras,
+  onToggle,
+}: PageTreeNodeProps) {
   const t = useTranslations('sidebar');
   const router = useRouter();
   const pathname = usePathname();
@@ -117,9 +141,10 @@ function PageTreeNode({ page, workspaceId, depth, expanded, onToggle }: PageTree
   // For a collapsed node we rely on hasChildren from the list. After
   // expanding — on actually loaded children: so the button doesn't disappear
   // while the request is in progress, and updates if data changes.
+  const hasDatabaseChildren = hasExtras?.(page.id) ?? false;
   const canExpand = expanded
-    ? children.isPending || children.isError || loadedChildren > 0
-    : (page.hasChildren ?? loadedChildren > 0);
+    ? children.isPending || children.isError || loadedChildren > 0 || hasDatabaseChildren
+    : (page.hasChildren ?? loadedChildren > 0) || hasDatabaseChildren;
 
   // While the page menu is open, controls must remain visible:
   // a hidden anchor causes Base UI to position the menu in the top-left
@@ -195,7 +220,13 @@ function PageTreeNode({ page, workspaceId, depth, expanded, onToggle }: PageTree
         </div>
       </div>
       {expanded && canExpand ? (
-        <PageTree workspaceId={workspaceId} parentId={page.id} depth={depth + 1} />
+        <PageTree
+          workspaceId={workspaceId}
+          parentId={page.id}
+          depth={depth + 1}
+          extras={extras}
+          hasExtras={hasExtras}
+        />
       ) : null}
     </li>
   );

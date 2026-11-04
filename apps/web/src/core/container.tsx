@@ -7,6 +7,7 @@ import {
   type AuthGateway,
   type AuthModule,
 } from '../modules/auth';
+import { createDatabasesModule, type DatabasesModule } from '../modules/databases';
 import { createEditorModule, type EditorModule } from '../modules/editor';
 import { createMediaModule, type MediaModule } from '../modules/media';
 import { createPagesModule, type PagesModule } from '../modules/pages';
@@ -29,6 +30,7 @@ export interface Container {
   workspaces: WorkspacesModule;
   editor: EditorModule;
   media: MediaModule;
+  databases: DatabasesModule;
 }
 
 /** Builds the application over a ready-made auth gateway (tests, storybook). */
@@ -52,6 +54,7 @@ function createContainerWithAuth(auth: AuthModule): Container {
     workspaces: createWorkspacesModule({ accessToken }),
     editor: createEditorModule({ accessToken }),
     media: createMediaModule({ accessToken }),
+    databases: createDatabasesModule({ accessToken }),
   };
 }
 

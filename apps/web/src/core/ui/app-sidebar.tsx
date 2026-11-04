@@ -1,10 +1,12 @@
 'use client';
 
 import { PanelLeftClose, Search, Star, Trash2 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { cn } from 'cn';
-import { FavoritesList, PageTree, SearchDialog, TrashList } from '@/modules/pages';
+import { DatabasesTree, useWorkspaceDatabases } from '@/modules/databases';
+import { FavoritesList, PageTree, SearchDialog, TrashList, usePages } from '@/modules/pages';
 import {
   Dialog,
   DialogContent,
@@ -53,6 +55,7 @@ const TOOLTIP_KBD_CLASS = 'rounded-sm bg-background/15 px-1.5 py-0.5 font-mono t
 export function AppSidebar({ workspaceId }: AppSidebarProps) {
   const t = useTranslations('sidebar');
   const tPages = useTranslations('pages');
+  const pathname = usePathname();
   const modKey = useModKeyLabel();
   const collapsed = useSidebarStore((state) => state.collapsed);
   const toggleSidebar = useSidebarStore((state) => state.toggle);
@@ -60,6 +63,28 @@ export function AppSidebar({ workspaceId }: AppSidebarProps) {
   const [panel, setPanel] = useState<SidebarPanel | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const workspaceDatabases = useWorkspaceDatabases(workspaceId);
+  const { setExpanded } = usePages(workspaceId, null, 'tree', { enabled: false });
+
+  // Opening a page or a database should reveal its database rows without an
+  // extra click. The effect runs only when the route or the branch data changes,
+  // so a manual collapse stays collapsed afterwards.
+  useEffect(() => {
+    const pagePrefix = `/workspaces/${workspaceId}/`;
+    const activeDatabase = workspaceDatabases.items.find(
+      (database) => pathname === `/workspaces/${workspaceId}/databases/${database.id}`,
+    );
+    const activePageId = pathname.startsWith(pagePrefix)
+      ? pathname.slice(pagePrefix.length).split('/')[0]
+      : null;
+    const branchId =
+      activeDatabase?.parentId ??
+      (activePageId && !activePageId.startsWith('databases') ? activePageId : null);
+
+    if (branchId && workspaceDatabases.items.some((database) => database.parentId === branchId)) {
+      setExpanded(branchId, true);
+    }
+  }, [pathname, workspaceDatabases.items, setExpanded, workspaceId]);
 
   useKeybinding('mod+/', toggleSidebar);
   useKeybinding('mod+k', () => setSearchOpen(true));
@@ -135,10 +160,6 @@ export function AppSidebar({ workspaceId }: AppSidebarProps) {
             </Tooltip>
           </div>
 
-          <div className="px-2 pb-1">
-            <ProfileMenu workspaceId={workspaceId} />
-          </div>
-
           {/* Search sits under the header row; the kbd chip hints Ctrl+K. */}
           <form className="px-2 pb-2" onSubmit={submitSearch} role="search">
             <div className="flex h-8 items-center gap-2 rounded-md border border-neutral-200 bg-neutral-100/60 px-2 focus-within:border-neutral-300 focus-within:bg-white dark:border-neutral-800 dark:bg-neutral-900/60 dark:focus-within:border-neutral-700 dark:focus-within:bg-neutral-900">
@@ -181,8 +202,24 @@ export function AppSidebar({ workspaceId }: AppSidebarProps) {
               {t('private')}
             </p>
 
-            <PageTree workspaceId={workspaceId} />
+            <PageTree
+              workspaceId={workspaceId}
+              extras={(parentId, depth) => (
+                <DatabasesTree workspaceId={workspaceId} parentId={parentId} depth={depth} />
+              )}
+              hasExtras={(parentId) =>
+                workspaceDatabases.items.some(
+                  (database) => (database.parentId ?? null) === parentId,
+                )
+              }
+            />
           </nav>
+
+          {/* Profile stays at the bottom edge, as in Notion, instead of
+              competing with the workspace tree at the top of the panel. */}
+          <div className="border-neutral-200 p-2 dark:border-neutral-800">
+            <ProfileMenu workspaceId={workspaceId} />
+          </div>
 
           {/* Panels open as a dialog over the page: the tree stays
               in place while the content can be scrolled inside the window. */}
