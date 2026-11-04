@@ -125,7 +125,7 @@ describe('адаптер аутентификации', () => {
   });
 
   it('после обновления профиля отдаёт состояние из сессии, а не тело ответа', async () => {
-    // update-user отвечает `{ status: true }` — раньше это ломалось на разборе.
+    // update-user answers `{ status: true }` — parsing used to fail on it.
     const fetchMock = stubFetch((url) => {
       if (url.includes('/update-user')) {
         return json({ status: true });

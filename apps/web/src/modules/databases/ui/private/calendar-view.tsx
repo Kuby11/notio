@@ -100,9 +100,7 @@ export function CalendarView({ properties, rows, view }: CalendarViewProps) {
   const weekdays = useMemo(
     () =>
       Array.from({ length: 7 }, (_, index) =>
-        new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(
-          new Date(2024, 0, 7 + index),
-        ),
+        new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(new Date(2024, 0, 7 + index)),
       ),
     [locale],
   );
@@ -131,7 +129,9 @@ export function CalendarView({ properties, rows, view }: CalendarViewProps) {
             size="icon-xs"
             aria-label={t('previous')}
             title={t('previous')}
-            onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
+            onClick={() =>
+              setMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))
+            }
           >
             <ChevronLeft aria-hidden="true" />
           </Button>
@@ -141,7 +141,9 @@ export function CalendarView({ properties, rows, view }: CalendarViewProps) {
             size="icon-xs"
             aria-label={t('next')}
             title={t('next')}
-            onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
+            onClick={() =>
+              setMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))
+            }
           >
             <ChevronRight aria-hidden="true" />
           </Button>
@@ -201,9 +203,7 @@ export function CalendarView({ properties, rows, view }: CalendarViewProps) {
                     </div>
                   ))}
                   {events.length > 3 ? (
-                    <p className="text-muted-foreground px-1 text-[10px]">
-                      +{events.length - 3}
-                    </p>
+                    <p className="text-muted-foreground px-1 text-[10px]">+{events.length - 3}</p>
                   ) : null}
                 </div>
               </div>

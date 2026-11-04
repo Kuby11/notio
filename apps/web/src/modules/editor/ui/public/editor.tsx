@@ -1,6 +1,5 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
 import { DragHandle } from '@tiptap/extension-drag-handle-react';
 import type { DragHandleRule, NestedOptions } from '@tiptap/extension-drag-handle';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
@@ -45,7 +44,6 @@ import { collectWorkspacePages, setPageLinkBridge } from '../../utils/page-link'
 import { mediaFileUrl, useMedia } from '../../../media';
 import { env } from '../../../../shared/configs/env';
 import { useContainer } from '../../../../core/container';
-import { databaseKeys } from '../../../databases';
 import type { BlockColorPreset } from '@notio/contracts';
 import type { SlashCommand } from '../../utils/slash';
 import { BlockActionsMenu } from '../private/block-actions-menu';
@@ -121,6 +119,8 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
     setSelectedBlock,
     autosave,
     createSubPage,
+    createDatabaseBlock,
+    getDatabaseBlock,
   } = useEditor(pageId, workspaceId);
   const { upload: uploadMediaFile } = useMedia();
   const router = useRouter();
@@ -405,12 +405,16 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
    * and navigation, but ReactRenderer renders them outside the application
    * tree — context and hooks do not reach it (see utils/page-link).
    */
-  const { pages, databases } = useContainer();
-  const queryClient = useQueryClient();
+  const { pages } = useContainer();
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
-  const databasesRef = useRef(databases);
-  databasesRef.current = databases;
+  // Fresh references per render without making the bridge effect depend on
+  // them: re-registering the bridge on every keystroke recreated the editor's
+  // plugin state.
+  const createDatabaseBlockRef = useRef(createDatabaseBlock);
+  createDatabaseBlockRef.current = createDatabaseBlock;
+  const getDatabaseBlockRef = useRef(getDatabaseBlock);
+  getDatabaseBlockRef.current = getDatabaseBlock;
 
   /**
    * Bridge for database blocks: the block is inserted immediately, while the
@@ -427,36 +431,12 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
         setDatabaseError(false);
 
         try {
-          const created = await databasesRef.current.create({
-            workspaceId,
-            // Both kinds belong to the page they are inserted into, so the
-            // sidebar tree shows them next to that page's child pages.
-            parentId: pageId,
+          return await createDatabaseBlockRef.current({
             title: t('databaseBlock.defaultTitle'),
             isInline: kind === 'inline',
+            chartType,
+            chartTitle: t('databaseBlock.chartTitle'),
           });
-
-          // A chart block owns a dedicated view of its new database. The
-          // block stores the view id, so the chart stays selected after reload.
-          let viewId: string | undefined;
-
-          if (chartType) {
-            const view = await databasesRef.current.createView({
-              databaseId: created.id,
-              name: t('databaseBlock.chartTitle'),
-              type: chartType,
-              visiblePropertyIds: [],
-            });
-
-            viewId = view.id;
-            await queryClient.invalidateQueries({ queryKey: databaseKeys.views(created.id) });
-          }
-
-          // The sidebar tree stays mounted: refresh its list so the new
-          // database appears there too.
-          await queryClient.invalidateQueries({ queryKey: databaseKeys.list(workspaceId) });
-
-          return { id: created.id, title: created.title, viewId };
         } catch {
           setDatabaseError(true);
 
@@ -465,9 +445,7 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
       },
       getDatabase: async (databaseId) => {
         try {
-          const database = await databasesRef.current.get(databaseId);
-
-          return { id: database.id, title: database.title };
+          return await getDatabaseBlockRef.current(databaseId);
         } catch {
           return null;
         }
@@ -483,7 +461,7 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
         setPendingDatabaseId(databaseId);
       },
     });
-  }, [editor, workspaceId, pageId, t, queryClient]);
+  }, [editor, workspaceId, t]);
 
   useEffect(() => {
     if (!editor) {

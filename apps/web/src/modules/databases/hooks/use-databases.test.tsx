@@ -5,8 +5,10 @@ import { describe, expect, it } from 'vitest';
 import type { ReactNode } from 'react';
 import { ContainerProvider, createContainer } from '../../../core/container';
 import { gatewayStub } from '../../../../test/auth-fixture';
+import { createFakeDatabaseRepository } from '../../../../test/database-fixture';
 import type { Database } from '@notio/contracts';
-import { useDatabases, useWorkspaceDatabases } from './use-databases';
+import { useDatabases } from './use-databases';
+import { useWorkspaceDatabases } from './use-workspace-databases';
 
 const DB_ID = 'db-test-123';
 const WORKSPACE_ID = '00000000-0000-4000-8000-000000000020';
@@ -17,7 +19,9 @@ function createWrapper() {
       queries: { retry: false },
     },
   });
-  const container = createContainer(gatewayStub());
+  const container = createContainer(gatewayStub(), {
+    databases: createFakeDatabaseRepository(),
+  });
 
   return function Wrapper({ children }: { children: ReactNode }) {
     return (

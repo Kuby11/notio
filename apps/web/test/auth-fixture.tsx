@@ -3,7 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { render } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { vi, type Mock } from 'vitest';
-import { ContainerProvider, createContainer } from '../src/core/container';
+import { ContainerProvider, createContainer, type ContainerOverrides } from '../src/core/container';
 import type {
   AuthError,
   AuthGateway,
@@ -13,10 +13,10 @@ import type {
 } from '../src/modules/auth';
 
 /**
- * Общие фикстуры для компонентных тестов.
+ * Shared fixtures for component tests.
  *
- * Сеть и контейнер подменяются, а формы и хуки — настоящие:
- * тест проверяет поведение пользователя, а не мок.
+ * Network and container are replaced, while forms and hooks are real:
+ * the test checks user behaviour, not a mock.
  */
 
 type AsyncVoid = () => Promise<void>;
@@ -38,7 +38,7 @@ export const SESSION: AuthSession = {
   expiresAt: '2026-10-19T00:00:00.000Z',
 };
 
-/** Порт аутентификации с типизированными моками всех вызовов. */
+/** Auth port with typed mocks for every call. */
 export function gatewayStub(overrides: Partial<AuthGateway> = {}): AuthGatewayStub {
   return {
     signUp: vi.fn<SignUpGetter>(async () => undefined),
@@ -54,30 +54,30 @@ export function gatewayStub(overrides: Partial<AuthGateway> = {}): AuthGatewaySt
   } as AuthGatewayStub;
 }
 
-/** Мок вызова без аргументов, который падает с заданной доменной ошибкой. */
+/** Argument-less call mock that fails with the given domain error. */
 export function failsWith(error: AuthError): Mock<AsyncVoid> {
   return vi.fn<AsyncVoid>(async () => {
     throw error;
   });
 }
 
-/** Мок запроса сессии, который падает с заданной доменной ошибкой. */
+/** Session request mock that fails with the given domain error. */
 export function sessionFailsWith(error: AuthError): Mock<SessionGetter> {
   return vi.fn<SessionGetter>(async () => {
     throw error;
   });
 }
 
-/** Мок сессии: удобно, когда состояние фиксировано. */
+/** Session mock: handy when the state is fixed. */
 export function sessionOf(session: AuthSession | null): Mock<SessionGetter> {
   return vi.fn<SessionGetter>(async () => session);
 }
 
 /**
- * Рендерит компонент внутри провайдеров запросов и внедрения зависимостей.
- * Повторы отключены: в тестах мы ждём конкретный исход, а не «попробуем ещё раз».
+ * Renders a component inside the query and dependency-injection providers.
+ * Retries are off: tests wait for a specific outcome, not "try again".
  */
-/** Сообщения для тестов: компактный сабсет, нужный рендерящимся UI. */
+/** Test messages: a compact subset needed by the rendered UI. */
 export const TEST_MESSAGES = {
   pages: {
     loadFailed: 'Не удалось загрузить страницы',
@@ -313,6 +313,7 @@ export const TEST_MESSAGES = {
     },
     views: {
       add: 'Добавить представление',
+      tablistLabel: 'Представления базы данных',
       groups: {
         tables: 'Таблицы',
         boards: 'Доски',
@@ -448,6 +449,10 @@ export const TEST_MESSAGES = {
       hide: 'Скрыть свойство',
       delete: 'Удалить свойство',
       copySuffix: '{name} (копия)',
+      untitled: 'Без названия',
+      empty: 'Пусто',
+      emptyUrl: 'Пустая ссылка',
+      noStatus: 'Без статуса',
       types: {
         text: 'Текст',
         number: 'Число',
@@ -457,6 +462,26 @@ export const TEST_MESSAGES = {
         date: 'Дата',
       },
     },
+    view: {
+      loading: 'Загрузка базы данных…',
+      loadFailed: 'Не удалось загрузить базу данных',
+      retry: 'Попробовать снова',
+    },
+    table: {
+      rowActions: 'Действия со строкой',
+      deleteRow: 'Удалить строку «{title}»',
+      newPage: '+ Новая страница',
+      percentChecked: '{value}% отмечено',
+      summary: 'Итоги по столбцам',
+    },
+  },
+  errors: {
+    notFoundTitle: 'Страница не найдена',
+    notFoundDescription: 'Такой страницы нет или она удалена.',
+    backHome: 'На главную',
+    routeTitle: 'Что-то пошло не так',
+    routeDescription: 'Не удалось загрузить страницу. Попробуйте снова.',
+    retry: 'Попробовать снова',
   },
   media: {
     unknownType: 'неизвестен',
@@ -691,7 +716,11 @@ export function renderWithIntl(ui: ReactElement) {
   );
 }
 
-export function renderWithProviders(ui: ReactElement, gateway: AuthGateway) {
+export function renderWithProviders(
+  ui: ReactElement,
+  gateway: AuthGateway,
+  overrides: ContainerOverrides = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -699,7 +728,7 @@ export function renderWithProviders(ui: ReactElement, gateway: AuthGateway) {
   return render(
     <NextIntlClientProvider locale="ru" messages={TEST_MESSAGES}>
       <QueryClientProvider client={queryClient}>
-        <ContainerProvider container={createContainer(gateway)}>{ui}</ContainerProvider>
+        <ContainerProvider container={createContainer(gateway, overrides)}>{ui}</ContainerProvider>
       </QueryClientProvider>
     </NextIntlClientProvider>,
   );

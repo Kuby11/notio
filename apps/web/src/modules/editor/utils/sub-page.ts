@@ -7,12 +7,12 @@ import type { EditorBlockLocation } from './block-insert';
 import type { SlashRange } from './slash';
 
 /**
- * Вставка блока-подстраницы: оптимистичный узел без pageId, затем создание
- * страницы сервисом и обновление attrs. Чистые операции над редактором —
- * сеть и навигация приходят через мост из ui/public/editor.tsx.
+ * Sub-page block insertion: an optimistic node without a pageId, then page
+ * creation by the service and an attrs update. Pure editor operations —
+ * network and navigation arrive through the bridge from ui/public/editor.tsx.
  */
 
-/** Дочерняя страница, созданная сервисом: id и данные для отображения. */
+/** Child page created by the service: id and display data. */
 export interface SubPageDraft {
   id: string;
   title: string;
@@ -20,16 +20,16 @@ export interface SubPageDraft {
 }
 
 /**
- * Мост к React-слою: расширения не знают про сеть и роутер.
+ * Bridge to the React layer: extensions know nothing about the network or router.
  *
- * Живёт в WeakMap по экземпляру редактора: typing `editor.storage` в Tiptap
- * использует DOM-интерфейс Storage без индексной сигнатуры, поэтому хранить
- * мост в storage без as-приведения нельзя. WeakMap умирает вместе с редактором.
+ * It lives in a WeakMap keyed by editor instance: Tiptap types `editor.storage`
+ * as the DOM Storage interface without an index signature, so the bridge
+ * cannot live in storage without an `as` cast. The WeakMap dies with the editor.
  */
 export interface SubPageBridge {
-  /** Создаёт дочернюю страницу для текущей; null — создать не удалось. */
+  /** Creates a child page for the current one; null means creation failed. */
   createSubPage: () => Promise<SubPageDraft | null>;
-  /** Открывает страницу (навигация на её роут). */
+  /** Opens the page (navigates to its route). */
   openSubPage: (pageId: string) => void;
 }
 
@@ -40,7 +40,7 @@ const NOOP_BRIDGE: SubPageBridge = {
 
 const bridges = new WeakMap<object, SubPageBridge>();
 
-/** Назначает мост редактору — один раз на экземпляр из ui/public/editor.tsx. */
+/** Assigns the bridge to an editor instance, once per instance from ui/public/editor.tsx. */
 export function setSubPageBridge(editor: object, bridge: SubPageBridge): void {
   bridges.set(editor, bridge);
 }
@@ -52,16 +52,16 @@ export function subPageBridge(editor: object): SubPageBridge {
 function createSubPageNode(editor: Editor): ProseMirrorNode | null {
   const type = editor.state.schema.nodes['subPage'];
 
-  // Свой blockId нужен, чтобы найти узел после асинхронного ответа сервиса.
+  // A dedicated blockId lets us find the node after the asynchronous service response.
   return type?.create({ blockId: newId() }) ?? null;
 }
 
 /**
- * Вставляет подстраницу вместо `/page` в текущем блоке.
+ * Inserts a sub-page instead of `/page` in the current block.
  *
- * Пустой абзац заменяется узлом-ссылкой, непустой получает её снизу. Из
- * списка команда выходит так же, как заголовок или toggle: иначе атомарный
- * узел оказался бы внутри listItem и потерялся при сериализации.
+ * An empty paragraph is replaced by the link node; a non-empty one gets it below.
+ * The command leaves a list the same way a heading or toggle does: otherwise the
+ * atomic node would sit inside listItem and be lost during serialisation.
  */
 export async function insertSubPageAtSlash(editor: Editor, range: SlashRange): Promise<boolean> {
   const node = createSubPageNode(editor);
@@ -73,7 +73,7 @@ export async function insertSubPageAtSlash(editor: Editor, range: SlashRange): P
   return linkCreatedPage(editor, blockIdOf(node));
 }
 
-/** Вставляет подстраницу под блоком из plus-меню. */
+/** Inserts a sub-page below the block from the plus menu. */
 export async function insertSubPageBelow(
   editor: Editor,
   source: EditorBlockLocation,
@@ -118,12 +118,12 @@ function findSubPageByBlockId(editor: Editor, blockId: string): NodePosition | n
 }
 
 /**
- * Дожидается создания страницы и связывает узел с ней.
+ * Waits for page creation and links the node to it.
  *
- * Узел с пустым pageId не сохраняется, поэтому гонки с автосохранением нет:
- * блок попадёт в БД только после ответа сервиса. Если страницу создать не
- * удалось, заглушка заменяется пустым абзацем. Пользователь мог удалить
- * узел за время запроса — тогда ничего не трогаем.
+ * A node with an empty pageId is not saved, so there is no race with autosave:
+ * the block reaches the DB only after the service responds. If the page cannot
+ * be created, the placeholder becomes an empty paragraph. The user may have
+ * deleted the node during the request, in which case nothing is touched.
  */
 async function linkCreatedPage(editor: Editor, blockId: string): Promise<boolean> {
   const draft = await subPageBridge(editor).createSubPage();
@@ -156,8 +156,8 @@ async function linkCreatedPage(editor: Editor, blockId: string): Promise<boolean
     return false;
   }
 
-  // Если следом уже стоит пустой абзац (его добавила вставка для набора
-  // текста), заглушку просто удаляем — документ возвращается к одному блоку.
+  // If an empty paragraph already follows (insertion added it for typing
+  // text), we simply delete the placeholder: the document is back to one block.
   const next = editor.state.doc.resolve(found.pos + found.node.nodeSize).nodeAfter;
   const nextIsEmptyParagraph = next?.type.name === 'paragraph' && next.textContent.length === 0;
   const transaction = nextIsEmptyParagraph

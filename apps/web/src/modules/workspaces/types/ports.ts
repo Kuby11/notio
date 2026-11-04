@@ -7,10 +7,10 @@ import type {
 } from '@notio/contracts';
 
 /**
- * Порты работы с рабочими пространствами.
+ * Ports for workspaces.
  *
- * Реализация — адаптер поверх gateway; facade-хуки знают только этот
- * интерфейс, поэтому в тестах подставляется in-memory версия без сети.
+ * Implemented by the gateway adapter; the facade hooks know only this
+ * interface, so tests substitute an in-memory version with no network.
  */
 export interface WorkspaceGateway {
   list(): Promise<WorkspaceListItem[]>;

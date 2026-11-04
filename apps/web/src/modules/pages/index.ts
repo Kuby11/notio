@@ -1,4 +1,4 @@
-import { createPageRepositoryApi } from './api/page.repository.api';
+import { createPageRepositoryApi } from './api/page.api';
 import type { TokenProvider } from '../../shared/types';
 import type { PageRepository } from './types/ports';
 

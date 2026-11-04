@@ -594,7 +594,7 @@ export function FileView({ node, editor, updateAttributes }: ReactNodeViewProps)
           });
         }
       } catch {
-        // Внешняя ссылка без CORS: остаёмся без размера — это не ошибка.
+        // External link without CORS: no size available, and that is not an error.
       }
     })();
 
@@ -646,7 +646,7 @@ export function FileView({ node, editor, updateAttributes }: ReactNodeViewProps)
   );
 }
 
-/** Набор для пикера эмодзи: частые символы без поиска на этом этапе. */
+/** Emoji picker set: frequent symbols, no search at this stage. */
 const EMOJI_CHOICES = [
   '⭐',
   '❤️',

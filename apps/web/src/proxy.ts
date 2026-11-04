@@ -1,14 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * Proxy (бывший middleware): проверка сессии до рендера страниц приложения.
+ * Proxy (formerly middleware): session check before app pages render.
  *
- * Локаль next-intl здесь не участвует: язык хранится в cookie NEXT_LOCALE и
- * читается в i18n/request.ts. URL не переписывается на /ru/... — префиксов
- * локалей в приложении нет.
+ * next-intl locale plays no part here: the language lives in the NEXT_LOCALE cookie
+ * and is read in i18n/request.ts. URLs are not rewritten to /ru/...: there are
+ * no locale prefixes in the app.
  *
- * Proxy смотрит только наличие cookie: настоящая проверка подписи и прав
- * выполняется на gateway. Скрытие страницы здесь — UX, а не защита.
+ * Proxy only checks that the cookie exists: real signature and permission checks
+ * happen on the gateway. Hiding a page here is UX, not security.
  */
 
 const SESSION_COOKIE = 'notio.session_token';

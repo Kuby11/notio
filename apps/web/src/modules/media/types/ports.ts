@@ -1,13 +1,13 @@
 import type { FileMeta } from '@notio/contracts';
 
 /**
- * Порт репозитория медиа.
+ * Media repository port.
  *
- * Реализация — адаптер поверх gateway; facade-хук знает только этот
- * интерфейс, поэтому в тестах подставляется in-memory версия без сети.
+ * Implemented by the gateway adapter; the facade hook knows only this
+ * interface, so tests substitute an in-memory version with no network.
  */
 export interface MediaRepository {
-  /** Загружает файл в media-service (R2) и возвращает его метаданные. */
+  /** Uploads a file to media-service (R2) and returns its metadata. */
   upload(input: { workspaceId: string; file: File }): Promise<FileMeta>;
 }
 

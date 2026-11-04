@@ -1,12 +1,12 @@
 import { TextSelection, type Transaction } from '@tiptap/pm/state';
 
 /**
- * Превращает текущий текстовый блок в официальный Tiptap Details.
+ * Turns the current text block into the official Tiptap Details node.
  *
- * Details состоит из `detailsSummary` (заголовок) и `detailsContent` (тело).
- * Это та же модель, что у toggle в Notion: заголовок остаётся редактируемым,
- * а дочерние блоки можно сворачивать. Обычный `setNode` не подходит, потому
- * что Tiptap поддерживает его только для textblock-узлов.
+ * Details consists of `detailsSummary` (the heading) and `detailsContent` (the body).
+ * This matches Notion's toggle: the heading stays editable,
+ * and child blocks can be collapsed. Plain `setNode` does not work because
+ * Tiptap supports it only for textblock nodes.
  */
 export function replaceTextblockWithDetails(
   transaction: Transaction,
@@ -35,7 +35,7 @@ export function replaceTextblockWithDetails(
     return false;
   }
 
-  // Не заменяем родительский список: это удалило бы соседние элементы.
+  // Do not replace the parent list: that would delete its siblings.
   if (!parent.canReplaceWith(index, index + 1, detailsType)) {
     return false;
   }
@@ -59,7 +59,7 @@ export function replaceTextblockWithDetails(
   const end = $from.after(depth);
   transaction.replaceWith(start, end, details);
 
-  // Курсор — в конец заголовка, чтобы можно было сразу продолжать печатать.
+  // Cursor at the end of the heading so typing can continue immediately.
   transaction.setSelection(TextSelection.create(transaction.doc, start + 2 + headerText.length));
 
   return true;

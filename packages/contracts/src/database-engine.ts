@@ -12,6 +12,7 @@ import {
   type PropertyValue,
   type RollupConfig,
 } from './database';
+import { evaluateFormulaExpression } from './formula';
 import { newId } from './ids';
 
 /**
@@ -503,77 +504,18 @@ export function calculateAggregation(
 }
 
 /**
- * Safe Notion formula evaluator.
- * Supports:
- * - prop("Property Name" or "propertyId")
- * - Arithmetic: +, -, *, /, %
- * - String concat: + or concat(a, b, ...)
- * - Logic & Conditionals: if(cond, thenVal, elseVal), and, or, not
- * - Math functions: min, max, round, abs
- * - String functions: length, toLowerCase, toUpperCase
+ * Evaluates a Notion-like formula against one row.
+ *
+ * The expression is parsed, never executed as JavaScript: see
+ * `evaluateFormulaExpression` for the supported syntax and the sandboxing
+ * rationale. Invalid expressions evaluate to `null`.
  */
 export function evaluateFormula(
   row: DatabaseRow,
   expression: string,
   properties: DatabaseProperty[],
 ): string | number | boolean | null {
-  try {
-    const propMapByName = new Map<string, DatabaseProperty>();
-    for (const p of properties) {
-      propMapByName.set(p.name, p);
-      propMapByName.set(p.id, p);
-    }
-
-    // Resolve prop("...") calls
-    let resolved = expression.replace(/prop\s*\(\s*["']([^"']+)["']\s*\)/gu, (_, propName) => {
-      const prop = propMapByName.get(propName);
-      const val = prop
-        ? prop.id === 'title' || prop.type === 'title'
-          ? row.title
-          : row.properties[prop.id]
-        : null;
-
-      if (val === null || val === undefined) return 'null';
-      if (typeof val === 'string') return JSON.stringify(val);
-      if (typeof val === 'number' || typeof val === 'boolean') return String(val);
-      return JSON.stringify(val);
-    });
-
-    // Replace Notion functions with JS equivalents in a safe sandbox
-    // if(a, b, c) -> (a ? b : c)
-    resolved = resolved.replace(
-      /if\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/gu,
-      '($1 ? $2 : $3)',
-    );
-    // concat(...) -> [...] .join('')
-    resolved = resolved.replace(/concat\s*\(([^)]+)\)/gu, '([$1].join(""))');
-
-    // Run in a restricted Function scope with no access to window/document/global
-    const sandbox = {
-      round: Math.round,
-      abs: Math.abs,
-      min: Math.min,
-      max: Math.max,
-      floor: Math.floor,
-      ceil: Math.ceil,
-      length: (str: unknown) => (typeof str === 'string' ? str.length : 0),
-    };
-
-    const fn = new Function(...Object.keys(sandbox), `"use strict"; return (${resolved});`);
-    const result = fn(...Object.values(sandbox));
-
-    if (
-      typeof result === 'string' ||
-      typeof result === 'number' ||
-      typeof result === 'boolean' ||
-      result === null
-    ) {
-      return result;
-    }
-    return String(result);
-  } catch {
-    return null;
-  }
+  return evaluateFormulaExpression(row, expression, properties);
 }
 
 /**

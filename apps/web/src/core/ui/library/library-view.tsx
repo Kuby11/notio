@@ -3,7 +3,17 @@
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Clock, ListFilter, Lock, Plus, Search, SlidersHorizontal, Star, Users } from 'lucide-react';
+import {
+  Check,
+  Clock,
+  ListFilter,
+  Lock,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Star,
+  Users,
+} from 'lucide-react';
 import { cn } from 'cn';
 import type { Page } from '@notio/contracts';
 import { useAuth } from '@/modules/auth';

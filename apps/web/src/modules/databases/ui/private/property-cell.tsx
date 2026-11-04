@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { DatabaseProperty, PropertyValue } from '@notio/contracts';
 import { PropertyBadge } from './property-badge';
@@ -12,7 +13,16 @@ export interface PropertyCellProps {
   className?: string;
 }
 
+/**
+ * A cell is an editor, not a document: its read mode is a button so it can be
+ * reached with Tab and opened with Enter/Space. A clickable `<div>` is invisible
+ * to the keyboard and to assistive technology.
+ */
+const CELL_BUTTON_CLASS =
+  'w-full cursor-text truncate rounded px-2 py-1 text-left hover:bg-muted/50 transition-colors';
+
 export function PropertyCell({ property, value, isTitle, onChange, className }: PropertyCellProps) {
+  const t = useTranslations('databases.property');
   const [isEditing, setIsEditing] = useState(false);
   const [tempText, setTempText] = useState(String(value ?? ''));
 
@@ -21,8 +31,9 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
       return (
         <input
           autoFocus
+          aria-label={property.name}
           className={cn(
-            'w-full bg-transparent px-2 py-1 text-sm font-semibold outline-none ring-1 ring-primary rounded',
+            'ring-primary w-full rounded bg-transparent px-2 py-1 text-sm font-semibold outline-none ring-1',
             className,
           )}
           value={tempText}
@@ -43,19 +54,22 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
       );
     }
     return (
-      <div
+      <button
+        type="button"
+        aria-label={value ? String(value) : t('untitled')}
         onClick={() => {
           setTempText(String(value ?? ''));
           setIsEditing(true);
         }}
         className={cn(
-          'w-full cursor-text truncate px-2 py-1 text-sm font-medium hover:bg-muted/50 rounded transition-colors',
+          CELL_BUTTON_CLASS,
+          'text-sm font-medium',
           !value && 'text-muted-foreground italic',
           className,
         )}
       >
-        {value ? String(value) : 'Untitled'}
-      </div>
+        {value ? String(value) : t('untitled')}
+      </button>
     );
   }
 
@@ -65,9 +79,10 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
       <div className="flex items-center px-2 py-1">
         <input
           type="checkbox"
+          aria-label={property.name}
           checked={isChecked}
           onChange={(e) => onChange(e.target.checked)}
-          className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+          className="border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer rounded"
         />
       </div>
     );
@@ -78,13 +93,14 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
     const currentOpt = options.find((opt) => opt.id === value);
 
     return (
-      <div className="relative group px-2 py-1">
+      <div className="group relative px-2 py-1">
         <select
+          aria-label={property.name}
           value={String(value ?? '')}
           onChange={(e) => onChange(e.target.value || null)}
-          className="text-xs bg-transparent border-none outline-none cursor-pointer appearance-none pr-4 font-medium"
+          className="cursor-pointer appearance-none border-none bg-transparent pr-4 text-xs font-medium outline-none"
         >
-          <option value="">No Status</option>
+          <option value="">{t('noStatus')}</option>
           {options.map((opt) => (
             <option key={opt.id} value={opt.id}>
               {opt.name}
@@ -105,13 +121,14 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
     const currentOpt = options.find((opt) => opt.id === value);
 
     return (
-      <div className="relative group px-2 py-1">
+      <div className="group relative px-2 py-1">
         <select
+          aria-label={property.name}
           value={String(value ?? '')}
           onChange={(e) => onChange(e.target.value || null)}
-          className="text-xs bg-transparent border-none outline-none cursor-pointer appearance-none pr-4 font-medium"
+          className="cursor-pointer appearance-none border-none bg-transparent pr-4 text-xs font-medium outline-none"
         >
-          <option value="">Empty</option>
+          <option value="">{t('empty')}</option>
           {options.map((opt) => (
             <option key={opt.id} value={opt.id}>
               {opt.name}
@@ -133,8 +150,9 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
         <input
           type="number"
           autoFocus
+          aria-label={property.name}
           className={cn(
-            'w-full bg-transparent px-2 py-1 text-sm outline-none ring-1 ring-primary rounded font-mono',
+            'ring-primary w-full rounded bg-transparent px-2 py-1 font-mono text-sm outline-none ring-1',
             className,
           )}
           value={tempText}
@@ -155,19 +173,24 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
       );
     }
     return (
-      <div
+      <button
+        type="button"
+        aria-label={
+          value !== null && value !== undefined ? String(value) : `${property.name}: ${t('empty')}`
+        }
         onClick={() => {
           setTempText(value !== null && value !== undefined ? String(value) : '');
           setIsEditing(true);
         }}
         className={cn(
-          'w-full cursor-text truncate px-2 py-1 text-sm font-mono hover:bg-muted/50 rounded transition-colors',
+          CELL_BUTTON_CLASS,
+          'font-mono text-sm',
           (value === null || value === undefined) && 'text-muted-foreground italic',
           className,
         )}
       >
-        {value !== null && value !== undefined ? String(value) : 'Empty'}
-      </div>
+        {value !== null && value !== undefined ? String(value) : t('empty')}
+      </button>
     );
   }
 
@@ -196,7 +219,8 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
         <input
           type="url"
           autoFocus
-          className="w-full bg-transparent px-2 py-1 text-xs outline-none ring-1 ring-primary rounded"
+          aria-label={property.name}
+          className="ring-primary w-full rounded bg-transparent px-2 py-1 text-xs outline-none ring-1"
           value={tempText}
           onChange={(e) => setTempText(e.target.value)}
           onBlur={() => {
@@ -213,15 +237,25 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
       );
     }
     return (
-      <div
+      <button
+        type="button"
+        aria-label={value ? String(value) : t('emptyUrl')}
         onClick={() => {
           setTempText(value ? String(value) : '');
           setIsEditing(true);
         }}
-        className="w-full cursor-text truncate px-2 py-1 text-xs text-primary underline underline-offset-2 hover:bg-muted/50 rounded"
+        className={cn(
+          CELL_BUTTON_CLASS,
+          'text-primary text-xs underline underline-offset-2',
+          className,
+        )}
       >
-        {value ? String(value) : <span className="text-muted-foreground italic">Empty URL</span>}
-      </div>
+        {value ? (
+          String(value)
+        ) : (
+          <span className="text-muted-foreground italic">{t('emptyUrl')}</span>
+        )}
+      </button>
     );
   }
 
@@ -230,7 +264,8 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
     return (
       <input
         autoFocus
-        className="w-full bg-transparent px-2 py-1 text-sm outline-none ring-1 ring-primary rounded"
+        aria-label={property.name}
+        className="ring-primary w-full rounded bg-transparent px-2 py-1 text-sm outline-none ring-1"
         value={tempText}
         onChange={(e) => setTempText(e.target.value)}
         onBlur={() => {
@@ -248,18 +283,21 @@ export function PropertyCell({ property, value, isTitle, onChange, className }: 
   }
 
   return (
-    <div
+    <button
+      type="button"
+      aria-label={value ? String(value) : `${property.name}: ${t('empty')}`}
       onClick={() => {
         setTempText(value ? String(value) : '');
         setIsEditing(true);
       }}
       className={cn(
-        'w-full cursor-text truncate px-2 py-1 text-sm hover:bg-muted/50 rounded transition-colors',
+        CELL_BUTTON_CLASS,
+        'text-sm',
         !value && 'text-muted-foreground italic',
         className,
       )}
     >
-      {value ? String(value) : 'Empty'}
-    </div>
+      {value ? String(value) : t('empty')}
+    </button>
   );
 }

@@ -1,9 +1,10 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Block, BlockContent, Page } from '@notio/contracts';
+import type { Block, BlockContent, DatabaseViewType, Page } from '@notio/contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useContainer } from '../../../core/container';
+import { databaseKeys } from '../../databases';
 import { pageKeys } from '../../pages';
 import { useEditorStore } from '../stores/editor.store';
 import type { CreateBlockFormInput } from '../types/ports';
@@ -33,7 +34,7 @@ export interface Autosave {
  * only reports the current JSON document and knows nothing about the network.
  */
 export function useEditor(pageId: string, workspaceId: string) {
-  const { editor, pages } = useContainer();
+  const { editor, pages, databases } = useContainer();
   const queryClient = useQueryClient();
   const selectedBlockId = useEditorStore((state) => state.selectedBlockId);
   const setSelectedBlock = useEditorStore((state) => state.setSelectedBlock);
@@ -95,6 +96,65 @@ export function useEditor(pageId: string, workspaceId: string) {
       await queryClient.invalidateQueries({ queryKey: pageKeys.all(page.workspaceId) });
     },
   });
+
+  /**
+   * Creates the row behind a database block.
+   *
+   * The block is inserted immediately and gets its id when this resolves, so
+   * the orchestration (row + optional chart view + sidebar invalidation) lives
+   * here: the editor component must not know about the query cache or the
+   * databases port.
+   */
+  const createDatabaseBlock = useCallback(
+    async (input: {
+      title: string;
+      isInline: boolean;
+      chartType?: DatabaseViewType;
+      chartTitle?: string;
+    }): Promise<{ id: string; title: string; viewId?: string }> => {
+      const created = await databases.create({
+        workspaceId,
+        // Both kinds belong to the page they are inserted into, so the
+        // sidebar tree shows them next to that page's child pages.
+        parentId: pageId,
+        title: input.title,
+        isInline: input.isInline,
+      });
+
+      let viewId: string | undefined;
+
+      // A chart block owns a dedicated view of its new database. The block
+      // stores the view id, so the chart stays selected after reload.
+      if (input.chartType) {
+        const view = await databases.createView({
+          databaseId: created.id,
+          name: input.chartTitle ?? input.title,
+          type: input.chartType,
+          visiblePropertyIds: [],
+        });
+
+        viewId = view.id;
+        await queryClient.invalidateQueries({ queryKey: databaseKeys.views(created.id) });
+      }
+
+      // The sidebar tree stays mounted: refresh its list so the new database
+      // appears there too.
+      await queryClient.invalidateQueries({ queryKey: databaseKeys.list(workspaceId) });
+
+      return { id: created.id, title: created.title, viewId };
+    },
+    [databases, workspaceId, pageId, queryClient],
+  );
+
+  /** Title for a database link chip: the page keeps its name after renaming. */
+  const getDatabaseBlock = useCallback(
+    async (databaseId: string): Promise<{ id: string; title: string }> => {
+      const database = await databases.get(databaseId);
+
+      return { id: database.id, title: database.title };
+    },
+    [databases],
+  );
 
   const [autosaveStatus, setAutosaveStatus] = useState<AutosaveStatus>('idle');
   const [autosaveError, setAutosaveError] = useState<Error | null>(null);
@@ -279,25 +339,8 @@ export function useEditor(pageId: string, workspaceId: string) {
     deleteBlock,
     moveBlock,
     createSubPage,
+    createDatabaseBlock,
+    getDatabaseBlock,
     autosave,
   };
-}
-
-/**
- * Creating blocks outside the open document (Markdown import in settings).
- *
- * useEditor loads the document of a specific page, while an import writes blocks
- * into a page that is not open yet — hence a separate mutation without the document query.
- */
-export function useBlockCreator() {
-  const { editor } = useContainer();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ pageId, content }: { pageId: string; content: BlockContent }) =>
-      editor.create(pageId, content),
-    onSuccess: async (block) => {
-      await queryClient.invalidateQueries({ queryKey: editorKeys.document(block.pageId) });
-    },
-  });
 }

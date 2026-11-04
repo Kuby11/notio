@@ -37,7 +37,10 @@ export function ListView({ properties, rows, view, onAddRow, onDeleteRow }: List
         ) : (
           <ul className="divide-border divide-y">
             {rows.map((row) => (
-              <li key={row.id} className="group hover:bg-muted/25 flex items-start gap-3 px-3 py-2.5">
+              <li
+                key={row.id}
+                className="group hover:bg-muted/25 flex items-start gap-3 px-3 py-2.5"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="text-foreground truncate text-sm font-medium">
                     {row.title || tCommon('untitled')}

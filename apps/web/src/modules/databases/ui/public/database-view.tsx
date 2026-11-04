@@ -21,6 +21,7 @@ export interface DatabaseViewProps {
 
 export function DatabaseView({ databaseId, initialViewId, className }: DatabaseViewProps) {
   const t = useTranslations('databases.property');
+  const tv = useTranslations('databases.view');
   const {
     database,
     rows,
@@ -30,6 +31,7 @@ export function DatabaseView({ databaseId, initialViewId, className }: DatabaseV
     aggregations,
     isLoading,
     isError,
+    refetch,
     setActiveViewId,
     createRow,
     deleteRow,
@@ -49,16 +51,29 @@ export function DatabaseView({ databaseId, initialViewId, className }: DatabaseV
 
   if (isLoading && !database) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-muted-foreground animate-pulse">
-        Loading database...
+      <div
+        role="status"
+        aria-live="polite"
+        className="text-muted-foreground flex h-64 items-center justify-center text-sm animate-pulse"
+      >
+        {tv('loading')}
       </div>
     );
   }
 
   if (isError || !database) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-destructive">
-        Failed to load database.
+      <div role="alert" className="flex h-64 flex-col items-center justify-center gap-3 text-sm">
+        <p className="text-destructive">{tv('loadFailed')}</p>
+        <button
+          type="button"
+          onClick={() => {
+            void refetch();
+          }}
+          className="border-border hover:bg-muted rounded-md border px-3 py-1.5 text-xs font-medium"
+        >
+          {tv('retry')}
+        </button>
       </div>
     );
   }
@@ -126,7 +141,7 @@ export function DatabaseView({ databaseId, initialViewId, className }: DatabaseV
       />
 
       {/* Active View Content */}
-      <div className="flex-1">
+      <div className="flex-1" role="tabpanel" aria-label={activeView?.name ?? database.title}>
         {activeView?.type === 'board' ? (
           <BoardView
             properties={properties}

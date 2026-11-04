@@ -129,6 +129,7 @@
     },
     "views": {
       "add": "Add view",
+      "tablistLabel": "Database views",
       "groups": {
         "tables": "Tables",
         "boards": "Boards",
@@ -263,6 +264,10 @@
       "hide": "Hide property",
       "delete": "Delete property",
       "copySuffix": "{name} copy",
+      "untitled": "Untitled",
+      "empty": "Empty",
+      "emptyUrl": "Empty URL",
+      "noStatus": "No status",
       "types": {
         "text": "Text",
         "number": "Number",
@@ -271,6 +276,18 @@
         "checkbox": "Checkbox",
         "date": "Date"
       }
+    },
+    "view": {
+      "loading": "Loading database…",
+      "loadFailed": "Could not load the database",
+      "retry": "Try again"
+    },
+    "table": {
+      "rowActions": "Row actions",
+      "deleteRow": "Delete row \"{title}\"",
+      "newPage": "+ New page",
+      "percentChecked": "{value}% checked",
+      "summary": "Column summary"
     }
   },
   "auth": {
@@ -495,6 +512,14 @@
       "fallbackTitle": "Imported page",
       "hint": "Supports .md and .txt: headings, lists, to-dos, quotes, code and dividers."
     }
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "This page does not exist or was deleted.",
+    "backHome": "Go home",
+    "routeTitle": "Something went wrong",
+    "routeDescription": "The page failed to load. Try again.",
+    "retry": "Try again"
   },
   "meta": {
     "title": "notio — a Notion clone on Cloudflare",

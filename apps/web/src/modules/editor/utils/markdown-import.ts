@@ -16,7 +16,7 @@ const BULLET_PATTERN = /^[-*]\s+(.*)$/;
 const NUMBERED_PATTERN = /^\d+[.)]\s+(.*)$/;
 const QUOTE_PATTERN = /^>\s?(.*)$/;
 
-/** Разбирает Markdown-текст в блоки для создания страницы. */
+/** Parses Markdown text into blocks for page creation. */
 export function parseMarkdownToBlocks(markdown: string): BlockContent[] {
   const blocks: BlockContent[] = [];
   const lines = markdown.replaceAll('\r\n', '\n').split('\n');
@@ -112,7 +112,7 @@ export function parseMarkdownToBlocks(markdown: string): BlockContent[] {
   return blocks;
 }
 
-/** Заголовок импортируемой страницы: первый заголовок или имя файла. */
+/** Title of the imported page: the first heading or the file name. */
 export function importTitleFrom(
   blocks: readonly BlockContent[],
   filename: string,

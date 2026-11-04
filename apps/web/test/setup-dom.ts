@@ -3,8 +3,8 @@ import { cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
 /**
- * Общая настройка DOM-тестов: очистка размонтированных деревьев между
- * тестами и матчеры jest-dom для доступных имён ролей и текста.
+ * Shared DOM test setup: cleanup of unmounted trees between
+ * tests and jest-dom matchers for accessible role and text names.
  */
 afterEach(() => {
   cleanup();

@@ -1,9 +1,10 @@
-import { createBlockRepositoryApi } from './api/block.repository.api';
+import { createBlockRepositoryApi } from './api/block.api';
 import type { TokenProvider } from '../../shared/types';
 import type { BlockRepository } from './types/ports';
 
 export { Editor } from './ui/public/editor';
-export { useBlockCreator, useEditor } from './hooks/use-editor';
+export { useEditor } from './hooks/use-editor';
+export { useBlockCreator } from './hooks/use-block-creator';
 export { editorKeys } from './utils/query-keys';
 export {
   DEFAULT_BLOCK_DEFINITIONS,

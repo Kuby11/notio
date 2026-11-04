@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FileMeta } from '@notio/contracts';
-import { createMediaRepositoryApi } from './media.repository.api';
+import { createMediaRepositoryApi } from './media.api';
 import type { TokenProvider } from '../../../shared/types';
 
 const WORKSPACE_ID = '00000000-0000-4000-8000-000000000001';

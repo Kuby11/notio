@@ -16,7 +16,8 @@ import {
   DialogTitle,
 } from '../../../../shared/ui/dialog';
 import { Button } from '../../../../shared/ui/button';
-import { useDatabaseViews, useWorkspaceDatabases } from '../../hooks/use-databases';
+import { useDatabaseViews } from '../../hooks/use-database-views';
+import { useWorkspaceDatabases } from '../../hooks/use-workspace-databases';
 
 export interface DatabasesTreeProps {
   workspaceId: string;

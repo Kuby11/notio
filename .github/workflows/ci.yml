@@ -66,6 +66,7 @@ jobs:
         with:
           name: coverage
           path: |
+            apps/web/coverage
             packages/contracts/coverage
             services/*/coverage
           retention-days: 7

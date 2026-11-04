@@ -4,11 +4,11 @@ import { TextSelection, type Transaction } from '@tiptap/pm/state';
 import type { Editor } from '@tiptap/react';
 
 /**
- * Перестановка строк и колонок таблицы. В prosemirror-tables этой версии
- * нет команд moveRow/moveColumn, поэтому таблица пересобирается целиком
- * одной транзакцией: attrs ячеек (colwidth) и строк (rowHeight) переезжают
- * вместе с ними. Вставка/удаление строк и колонок делают официальные
- * команды addRowAfter / addColumnAfter / deleteRow / deleteColumn.
+ * Reordering table rows and columns. This version of prosemirror-tables
+ * has no moveRow/moveColumn commands, so the table is rebuilt entirely in
+ * one transaction: cell (colwidth) and row (rowHeight) attrs move
+ * along with them. Inserting and deleting rows/columns uses the official
+ * addRowAfter / addColumnAfter / deleteRow / deleteColumn commands.
  */
 
 function childrenOf(node: ProseMirrorNode): ProseMirrorNode[] {
@@ -21,7 +21,7 @@ function childrenOf(node: ProseMirrorNode): ProseMirrorNode[] {
   return children;
 }
 
-/** Переставляет элемент массива на позицию вставки insertionIndex. */
+/** Moves an array element to the insertionIndex position. */
 function moveTo<T>(items: T[], from: number, insertionIndex: number): T[] {
   if (from === insertionIndex || from === insertionIndex - 1) {
     return items;
@@ -38,7 +38,7 @@ function moveTo<T>(items: T[], from: number, insertionIndex: number): T[] {
   return next;
 }
 
-/** Курсор — в первую ячейку строки rowIndex, колонку colIndex. */
+/** Puts the cursor in the first cell of rowIndex/colIndex. */
 function selectCell(
   transaction: Transaction,
   tablePos: number,
@@ -58,11 +58,11 @@ function selectCell(
     offset += cells[index]?.nodeSize ?? 0;
   }
 
-  // offset — перед целевой ячейкой; +2 попадает в её первый textblock.
+  // offset points before the target cell; +2 lands in its first textblock.
   transaction.setSelection(TextSelection.near(transaction.doc.resolve(offset + 2)));
 }
 
-/** Переставляет строку таблицы; insertionIndex — позиция вставки. */
+/** Moves a table row; insertionIndex is the insertion position. */
 export function moveTableRow(
   editor: Editor,
   tablePos: number,
@@ -96,7 +96,7 @@ export function moveTableRow(
   return true;
 }
 
-/** Переставляет колонку таблицы во всех строках; insertionIndex — позиция вставки. */
+/** Moves a table column across all rows; insertionIndex is the insertion position. */
 export function moveTableColumn(
   editor: Editor,
   tablePos: number,

@@ -1,6 +1,6 @@
 import { isAllowedMimeType, maxUploadSizeForMime } from '@notio/contracts';
 
-/** Куда грузим: изображение, видео или произвольный файл. */
+/** What is uploaded: image, video or an arbitrary file. */
 export type MediaKind = 'image' | 'video' | 'file';
 
 export function mediaKindOfMime(mimeType: string): MediaKind {
@@ -17,15 +17,15 @@ export function mediaKindOfMime(mimeType: string): MediaKind {
 
 export interface MediaCheck {
   ok: boolean;
-  /** Причина отказа: текст переводит UI, а не доменная проверка. */
+  /** Rejection reason: the UI translates it, not the domain check. */
   reason: 'type' | 'size' | null;
-  /** MIME-тип файла: нужен для сообщения о неподдерживаемом типе. */
+  /** File MIME type: used for the unsupported-type message. */
   mimeType: string | null;
-  /** Лимит в байтах, если файл его превысил. */
+  /** The byte limit the file exceeded. */
   limitBytes: number | null;
 }
 
-/** Клиентская проверка до отправки: размер и MIME-тип. */
+/** Client-side check before upload: size and MIME type. */
 export function checkUploadable(file: File): MediaCheck {
   if (!isAllowedMimeType(file.type)) {
     return { ok: false, reason: 'type', mimeType: file.type, limitBytes: null };
@@ -40,7 +40,7 @@ export function checkUploadable(file: File): MediaCheck {
   return { ok: true, reason: null, mimeType: file.type, limitBytes: null };
 }
 
-/** Подписи единиц размера: приходят из словаря текущей локали. */
+/** Size unit labels: supplied by the current locale's dictionary. */
 export interface MediaSizeUnits {
   byte: string;
   kilobyte: string;
@@ -49,10 +49,10 @@ export interface MediaSizeUnits {
 
 const DEFAULT_SIZE_UNITS: MediaSizeUnits = { byte: 'Б', kilobyte: 'КБ', megabyte: 'МБ' };
 
-/** Размер в человекочитаемом виде: КБ/МБ. */
+/** Human-readable size: KB/MB. */
 export function formatBytes(bytes: number, units: MediaSizeUnits = DEFAULT_SIZE_UNITS): string {
   if (bytes >= 1024 * 1024) {
-    // Одна цифра после точки, но без хвостового «.0»: лимиты круглые.
+    // One decimal place, but no trailing ".0": the limits are round numbers.
     return `${Number((bytes / (1024 * 1024)).toFixed(1))} ${units.megabyte}`;
   }
 
@@ -63,7 +63,7 @@ export function formatBytes(bytes: number, units: MediaSizeUnits = DEFAULT_SIZE_
   return `${bytes} ${units.byte}`;
 }
 
-/** Публичный URL файла в gateway по id объекта R2. */
+/** Public gateway URL for the file, from the R2 object id. */
 export function mediaFileUrl(fileId: string, gatewayUrl: string, download = false): string {
   return `${gatewayUrl}/api/media/files/${fileId}${download ? '?download=1' : ''}`;
 }

@@ -5,12 +5,12 @@ import { assertWorkspaceName } from '../utils/rules';
 import { workspaceKeys } from '../utils/query-keys';
 
 /**
- * Единственный facade-хук модуля рабочих пространств.
+ * The workspaces module's single facade hook.
  *
- * Список и участники — серверное состояние TanStack Query, правила
- * (непустое название) — в `utils`, обращения к сервису — через порт из
- * контейнера. Если `workspaceId` не передан, запрос участников выключен:
- * сайдбару достаточно списка workspace.
+ * The list and members are TanStack Query server state, the rules
+ * (non-empty name) live in `utils`, service calls go through the port from
+ * the container. When `workspaceId` is missing the members query is disabled:
+ * the sidebar only needs the workspace list.
  */
 export function useWorkspaces(workspaceId?: string) {
   const { workspaces } = useContainer();

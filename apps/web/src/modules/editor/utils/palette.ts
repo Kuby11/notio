@@ -1,9 +1,9 @@
 import type { BlockColorPreset } from '@notio/contracts';
 
 /**
- * Палитра цветов — единственный источник имён и образцов для UI
- * (меню блока и текстовый бабл-меню). Отображение в CSS живёт в
- * globals.css через data-атрибуты (светлая/тёмная темы).
+ * The colour palette is the single source of names and swatches for the UI
+ * (block menu and text bubble menu). The CSS mapping lives in
+ * globals.css through data attributes (light and dark themes).
  */
 export interface ColorSwatch {
   hex: string;

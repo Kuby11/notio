@@ -4,8 +4,6 @@ import * as React from 'react';
 import * as RechartsPrimitive from 'recharts';
 import { cn } from 'cn';
 
-const THEMES = { light: '', dark: '.dark' } as const;
-
 export type ChartConfig = Record<
   string,
   {
@@ -26,28 +24,22 @@ function useChart(): { config: ChartConfig } {
   return context;
 }
 
-function ChartStyle({ id, config }: { id: string; config: ChartConfig }) {
-  const colorConfig = Object.entries(config).filter(([, item]) => item.color);
+/**
+ * The theme colours become custom properties on the container itself instead
+ * of a generated `<style>` block. Markup-injected CSS was unnecessary here:
+ * the same variables are readable by every descendant, and no string built
+ * from configuration ever reaches the DOM as stylesheet text.
+ */
+function chartColorStyles(config: ChartConfig): React.CSSProperties {
+  const styles: Record<string, string> = {};
 
-  if (colorConfig.length === 0) {
-    return null;
+  for (const [key, item] of Object.entries(config)) {
+    if (item.color) {
+      styles[`--color-${key}`] = item.color;
+    }
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(([, prefix]) => {
-            const declarations = colorConfig
-              .map(([key, item]) => `--color-${key}: ${item.color};`)
-              .join('\n');
-
-            return `${prefix} [data-chart="${id}"] {\n${declarations}\n}`;
-          })
-          .join('\n'),
-      }}
-    />
-  );
+  return styles as React.CSSProperties;
 }
 
 export function ChartContainer({
@@ -68,6 +60,7 @@ export function ChartContainer({
       <div
         data-slot="chart"
         data-chart={chartId}
+        style={{ ...chartColorStyles(config), ...props.style }}
         className={cn(
           'flex aspect-video justify-center text-xs',
           "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
@@ -75,7 +68,6 @@ export function ChartContainer({
         )}
         {...props}
       >
-        <ChartStyle id={chartId} config={config} />
         <RechartsPrimitive.ResponsiveContainer>{children}</RechartsPrimitive.ResponsiveContainer>
       </div>
     </ChartContext.Provider>

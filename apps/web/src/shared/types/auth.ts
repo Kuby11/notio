@@ -1,9 +1,9 @@
 /**
- * Провайдер access-токена для API-адаптеров.
+ * Access-token provider for API adapters.
  *
- * Модули не импортируют реализацию из `modules/auth`: они зависят только от
- * этого интерфейса. Так `api` остаётся тонким слоем сети, а auth-модуль
- * может менять способ выдачи токена, не затрагивая другие модули.
+ * Modules do not import the implementation from `modules/auth`: they depend only on
+ * this interface. That keeps `api` a thin network layer, and the auth module
+ * can change how tokens are issued without touching other modules.
  */
 export interface TokenProvider {
   execute(): Promise<string | null>;

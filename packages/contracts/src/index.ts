@@ -5,6 +5,7 @@ export * from './database-engine';
 export * from './error-codes';
 export * from './events';
 export * from './file';
+export * from './formula';
 export * from './health';
 export * from './headers';
 export * from './ids';

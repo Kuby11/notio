@@ -12,7 +12,7 @@ import type {
 
 /**
  * Port for database operations (Clean Architecture).
- * Implemented by database.repository.api.ts.
+ * Implemented by database.api.ts.
  */
 export interface DatabaseRepository {
   get(id: string): Promise<Database>;

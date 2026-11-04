@@ -1421,11 +1421,11 @@ const ToggleInput = Extension.create({
 });
 
 /**
- * Набор расширений редактора.
+ * The editor extension set.
  *
- * Mark-расширения (bold/italic/strike/code/link) включены: rich text
- * сериализуется в InlineSegment[] (ADR 0021). underline выключен — его нет
- * в контракте, включать нельзя, чтобы не терять форматирование.
+ * Mark extensions (bold/italic/strike/code/link) are enabled: rich text
+ * is serialised into InlineSegment[] (ADR 0021). underline is off: it is
+ * not part of the contract, and enabling it would lose formatting.
  */
 export const editorExtensions = [
   StarterKit.configure({
@@ -1469,8 +1469,8 @@ export const editorExtensions = [
   VideoBlock,
   FileBlock,
   EmojiBlock,
-  // resizable включает официальный columnResizing: перетаскивание границ
-  // колонок, colgroup и атрибут colwidth у ячеек.
+  // resizable enables the official columnResizing: dragging column borders
+  // and the colgroup/colwidth attributes on cells.
   Table.configure({ resizable: true }),
   TableRowBlock,
   TableHeader,

@@ -8,12 +8,12 @@ import { toast } from '../../../shared/ui/toast';
 import type { FileMeta } from '@notio/contracts';
 
 /**
- * Единственный facade-хук модуля медиа.
+ * The media module's single facade hook.
  *
- * Проверяет лимиты на клиенте (20 МБ изображение, 50 МБ видео, 20 МБ файл),
- * грузит через порт и превращает любые сбои — клиентские и серверные (413) —
- * в тост с понятным текстом. Возвращает null вместо исключения: вызывающему
- * коду не нужно различать причины.
+ * Checks limits on the client (20 MB image, 50 MB video, 20 MB file),
+ * uploads through the port and turns any failure, client-side or server-side (413),
+ * into a toast with clear text. Returns null instead of throwing: callers
+ * need not tell the causes apart.
  */
 export function useMedia() {
   const t = useTranslations('media');

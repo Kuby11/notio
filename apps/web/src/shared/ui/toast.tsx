@@ -5,9 +5,9 @@ import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 
 /**
- * Минимальные тосты без зависимостей: стор на zustand + один <Toaster />
- * в providers. Экраны ошибок форм и error boundary остаются на своих
- * местах; тосты — для кратких уведомлений действий (загрузка файлов).
+ * Minimal dependency-free toasts: a zustand store plus one <Toaster />
+ * in providers. Form error screens and the error boundary stay where they
+ * are; toasts are for short action notices (file uploads).
  */
 
 export type ToastTone = 'error' | 'success';
@@ -26,6 +26,22 @@ interface ToastState {
 
 let nextToastId = 1;
 
+/**
+ * Auto-dismiss timers, one per toast. They are tracked so a manually dismissed
+ * toast cancels its timer instead of leaving a pending callback that keeps the
+ * module (and in tests, the fake clock) alive after the toast is gone.
+ */
+const dismissTimers = new Map<number, ReturnType<typeof setTimeout>>();
+
+function clearDismissTimer(id: number): void {
+  const timer = dismissTimers.get(id);
+
+  if (timer !== undefined) {
+    clearTimeout(timer);
+    dismissTimers.delete(id);
+  }
+}
+
 const useToastStore = create<ToastState>((set) => ({
   items: [],
   push: (message, tone) => {
@@ -33,22 +49,27 @@ const useToastStore = create<ToastState>((set) => ({
 
     set((state) => ({ items: [...state.items, { id, message, tone }] }));
 
-    // Авторазварачивание: у тоста нет причин задерживаться надолго.
-    setTimeout(() => {
-      set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
-    }, 5000);
+    // Auto-dismiss: a toast has no reason to linger.
+    dismissTimers.set(
+      id,
+      setTimeout(() => {
+        dismissTimers.delete(id);
+        set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
+      }, 5000),
+    );
   },
   dismiss: (id) => {
+    clearDismissTimer(id);
     set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
   },
 }));
 
-/** Показать тост — единственная точка входа для остального кода. */
+/** Shows a toast: the only entry point for the rest of the code. */
 export function toast(message: string, tone: ToastTone = 'error'): void {
   useToastStore.getState().push(message, tone);
 }
 
-/** Стек тостов: монтируется один раз в providers. */
+/** Toast stack: mounted once in providers. */
 export function Toaster() {
   const t = useTranslations('common');
   const items = useToastStore((state) => state.items);

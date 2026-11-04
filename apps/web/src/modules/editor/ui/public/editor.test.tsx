@@ -4,6 +4,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Block, BlockContent } from '@notio/contracts';
 import { gatewayStub, renderWithProviders } from '../../../../../test/auth-fixture';
+import { createFakeDatabaseRepository } from '../../../../../test/database-fixture';
 import { useEditorStore } from '../../stores/editor.store';
 import { Editor } from './editor';
 
@@ -104,7 +105,9 @@ describe('Editor', () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     expect(await screen.findByText('Первый абзац')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Заголовок' })).toBeInTheDocument();
@@ -161,7 +164,9 @@ describe('Editor', () => {
       }),
     ]);
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     const collapse = await screen.findByRole('button', { name: 'Свернуть переключатель' });
     const details = screen.getByText('Переключатель').closest('[data-type="details"]');
@@ -193,7 +198,9 @@ describe('Editor', () => {
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([block(TODO_ID, 'a0', { type: 'toDo', checked: false, content: 'Задача' })]);
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     const checkbox = await screen.findByRole('checkbox', { name: 'Отметить задачу' });
     fireEvent.click(checkbox);
@@ -216,7 +223,9 @@ describe('Editor', () => {
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([block(TODO_ID, 'a0', { type: 'toDo', checked: false, content: '' })]);
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     await screen.findByRole('checkbox', { name: 'Отметить задачу' });
     await waitFor(() => {
@@ -230,7 +239,9 @@ describe('Editor', () => {
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: '' })]);
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     await screen.findByRole('textbox');
     await waitFor(() => {
@@ -251,7 +262,9 @@ describe('Editor', () => {
       }),
     ]);
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     const link = await screen.findByRole('link', { name: 'Дочерняя страница' });
 
@@ -283,7 +296,9 @@ describe('Editor', () => {
       }),
     ]);
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     const video = await waitFor(() => {
       const element = document.querySelector('.ProseMirror figure video');
@@ -315,7 +330,9 @@ describe('Editor', () => {
     document.elementFromPoint = () => document.querySelector('.ProseMirror');
 
     try {
-      renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+      renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+        databases: createFakeDatabaseRepository(),
+      });
 
       const editable = await screen.findByRole('textbox');
       const user = userEvent.setup();
@@ -345,7 +362,9 @@ describe('Editor', () => {
     document.elementFromPoint = () => document.querySelector('.ProseMirror');
 
     try {
-      renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+      renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+        databases: createFakeDatabaseRepository(),
+      });
 
       const editable = await screen.findByRole('textbox');
       const user = userEvent.setup();
@@ -377,7 +396,9 @@ describe('Editor', () => {
     document.elementFromPoint = () => document.querySelector('.ProseMirror');
 
     try {
-      renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+      renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+        databases: createFakeDatabaseRepository(),
+      });
 
       const editable = await screen.findByRole('textbox');
       const user = userEvent.setup();
@@ -409,9 +430,11 @@ describe('Editor', () => {
       }),
     ]);
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
-    // The module seeds a starter database for the id in test mode.
+    // The injected repository seeds a starter database for the id.
     expect(await screen.findByText('Project Tasks')).toBeInTheDocument();
     expect(screen.getByText('Table')).toBeInTheDocument();
     expect(document.querySelector(`[data-database-id="${DATABASE_ID}"]`)).not.toBeNull();
@@ -455,7 +478,9 @@ describe('Editor', () => {
       }),
     );
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     // After HEAD: name from content-disposition, size from content-length.
     expect(await screen.findByText('banner.png')).toBeInTheDocument();
@@ -474,7 +499,9 @@ describe('Editor', () => {
       }),
     ]);
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     await screen.findByText('Цветной текст');
 
@@ -489,7 +516,9 @@ describe('Editor', () => {
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([block(BULLET_ID, 'a0', { type: 'bulletedListItem', content: '' })]);
 
-    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     await screen.findByRole('textbox');
     await waitFor(() => {

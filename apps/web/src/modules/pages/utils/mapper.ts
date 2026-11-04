@@ -2,11 +2,11 @@ import type { Page } from '@notio/contracts';
 import { PageResponseSchema, PageListResponseSchema } from '../types/dto';
 
 /**
- * Маппер DTO ↔ доменная сущность.
+ * DTO ↔ domain entity mapper.
  *
- * Сервер отдаёт Page в том же виде, что и контракт, поэтому маппер здесь
- * минимален: проверка схемой + возврат. Отдельный слой нужен, чтобы при
- * изменении контракта (новое поле) мы меняли только здесь, а не везде.
+ * The server returns Page in the contract's shape, so the mapper here is
+ * minimal: schema validation plus return. The separate layer exists so that
+ * a contract change (a new field) is edited only here, not everywhere.
  */
 export function toPage(dto: unknown): Page {
   return PageResponseSchema.parse(dto);

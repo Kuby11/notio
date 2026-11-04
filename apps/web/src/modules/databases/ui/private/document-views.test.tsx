@@ -104,9 +104,7 @@ describe('document database views', () => {
   it('renders rows in the calendar month and navigates months', async () => {
     const user = userEvent.setup();
 
-    renderWithIntl(
-      <CalendarView properties={PROPERTIES} rows={ROWS} view={view('calendar')} />,
-    );
+    renderWithIntl(<CalendarView properties={PROPERTIES} rows={ROWS} view={view('calendar')} />);
 
     expect(screen.getByText('Ship the calendar view')).toBeInTheDocument();
     const currentMonth = new Intl.DateTimeFormat('ru', {

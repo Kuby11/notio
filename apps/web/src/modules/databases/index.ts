@@ -1,8 +1,10 @@
-import { createDatabaseRepositoryApi } from './api/database.repository.api';
+import { createDatabaseRepositoryApi } from './api/database.api';
 import type { TokenProvider } from '../../shared/types';
 import type { DatabaseRepository } from './types/ports';
 
-export { useDatabases, useWorkspaceDatabases } from './hooks/use-databases';
+export { useDatabases } from './hooks/use-databases';
+export { useDatabaseViews } from './hooks/use-database-views';
+export { useWorkspaceDatabases } from './hooks/use-workspace-databases';
 export { DatabaseView } from './ui/public/database-view';
 export { DatabasesTree } from './ui/public/databases-tree';
 export { databaseKeys } from './utils/query-keys';

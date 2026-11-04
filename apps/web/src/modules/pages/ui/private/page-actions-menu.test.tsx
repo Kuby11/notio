@@ -65,9 +65,7 @@ describe('PageActionsMenu', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'Меню страницы' }));
-    await user.click(
-      await screen.findByRole('menuitem', { name: 'Переместить в корзину' }),
-    );
+    await user.click(await screen.findByRole('menuitem', { name: 'Переместить в корзину' }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();

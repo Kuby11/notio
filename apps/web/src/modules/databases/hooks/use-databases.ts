@@ -470,6 +470,11 @@ export function useDatabases(databaseId: string, initialViewId?: string) {
     });
   };
 
+  /** Retries every query behind the view, for the error state's retry button. */
+  const refetch = async (): Promise<void> => {
+    await Promise.all([databaseQuery.refetch(), rowsQuery.refetch(), viewsQuery.refetch()]);
+  };
+
   return {
     database: databaseQuery.data,
     rows: processedRows,
@@ -480,6 +485,7 @@ export function useDatabases(databaseId: string, initialViewId?: string) {
     aggregations,
     isLoading: databaseQuery.isLoading || rowsQuery.isLoading || viewsQuery.isLoading,
     isError: databaseQuery.isError || rowsQuery.isError || viewsQuery.isError,
+    refetch,
     setActiveViewId,
     createRow: (title?: string, properties?: Record<string, PropertyValue | null>) =>
       createRowMutation.mutate({ title: title ?? 'New page', properties }),
@@ -501,65 +507,5 @@ export function useDatabases(databaseId: string, initialViewId?: string) {
     duplicateProperty,
     hideProperty,
     showProperty,
-  };
-}
-
-/**
- * Views of one database for the sidebar tree. Like page children, the query
- * is enabled only for an expanded branch; the database's defaultViewId is
- * enough to know that the expand control belongs on the row.
- */
-export function useDatabaseViews(databaseId: string, enabled = true) {
-  const { databases } = useContainer();
-
-  return useQuery({
-    queryKey: databaseKeys.views(databaseId),
-    queryFn: () => databases.getViews(databaseId),
-    staleTime: 30_000,
-    enabled,
-  });
-}
-
-/**
- * Databases of a workspace: the list for the sidebar tree plus creation and
- * soft deletion (isTrashed). Separate from the single-database hook because the
- * tree renders outside any open database.
- */
-export function useWorkspaceDatabases(workspaceId: string) {
-  const { databases } = useContainer();
-  const queryClient = useQueryClient();
-
-  const listQuery = useQuery({
-    queryKey: databaseKeys.list(workspaceId),
-    queryFn: () => databases.list(workspaceId),
-    staleTime: 30_000,
-  });
-
-  const createDatabase = useMutation({
-    mutationFn: (title: string) =>
-      databases.create({ workspaceId, parentId: null, title, isInline: false }),
-    onSuccess: (created) => {
-      queryClient.setQueryData<Database[]>(databaseKeys.list(workspaceId), (old = []) => [
-        ...old,
-        created,
-      ]);
-    },
-  });
-
-  const deleteDatabase = useMutation({
-    mutationFn: (id: string) => databases.update(id, { isTrashed: true }),
-    onSuccess: (deleted) => {
-      queryClient.setQueryData<Database[]>(databaseKeys.list(workspaceId), (old = []) =>
-        (old ?? []).filter((item) => item.id !== deleted.id),
-      );
-    },
-  });
-
-  return {
-    items: listQuery.data ?? [],
-    isLoading: listQuery.isLoading,
-    isError: listQuery.isError,
-    createDatabase,
-    deleteDatabase,
   };
 }

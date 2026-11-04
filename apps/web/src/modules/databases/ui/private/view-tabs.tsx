@@ -142,7 +142,11 @@ export function ViewTabs({
 
   return (
     <div className="border-border bg-background/50 flex items-center justify-between border-b px-3 py-1">
-      <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
+      <div
+        role="tablist"
+        aria-label={t('tablistLabel')}
+        className="flex min-w-0 items-center gap-1 overflow-x-auto"
+      >
         {views.map((view) => {
           const isActive = view.id === activeViewId;
           const Icon = VIEW_ICONS[view.type];
@@ -153,8 +157,9 @@ export function ViewTabs({
                 render={
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={isActive}
                     onClick={() => onSelectView(view.id)}
-                    aria-current={isActive ? 'page' : undefined}
                     className={cn(
                       'flex shrink-0 items-center gap-1.5 rounded-md border border-transparent px-2.5 py-1.5 text-xs font-medium transition-colors',
                       isActive
@@ -226,7 +231,10 @@ export function ViewTabs({
                         onClick={() => addView(type)}
                         className="hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm"
                       >
-                        <Icon className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                        <Icon
+                          className="text-muted-foreground size-4 shrink-0"
+                          aria-hidden="true"
+                        />
                         <span>{t(`types.${VIEW_TYPE_KEYS[type]}`)}</span>
                       </button>
                     );

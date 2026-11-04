@@ -1,4 +1,5 @@
 import type { DatabaseProperty, DatabaseRow, DatabaseView, PropertyValue } from '@notio/contracts';
+import { useTranslations } from 'next-intl';
 import { PropertyCell } from './property-cell';
 import { NewPropertyButton, PropertyMenu, type EditablePropertyType } from './property-menu';
 import { Button } from '../../../../shared/ui/button';
@@ -37,6 +38,7 @@ export function TableView({
   onAddRow,
   onDeleteRow,
 }: TableViewProps) {
+  const t = useTranslations('databases.table');
   const visibleProps =
     view.visiblePropertyIds && view.visiblePropertyIds.length > 0
       ? properties.filter((p) => view.visiblePropertyIds.includes(p.id))
@@ -48,12 +50,15 @@ export function TableView({
         {/* Table Header */}
         <thead>
           <tr className="border-b border-border bg-muted/30 text-xs font-medium text-muted-foreground">
-            <th className="w-8 px-2 py-2">#</th>
+            <th scope="col" className="w-8 px-2 py-2">
+              #
+            </th>
             {visibleProps.map((prop) => {
               const width = view.columnWidths?.[prop.id] ?? (prop.type === 'title' ? 240 : 160);
               return (
                 <th
                   key={prop.id}
+                  scope="col"
                   style={{ width: `${width}px`, minWidth: `${width}px` }}
                   className="border-border/50 border-r px-3 py-2 font-medium"
                 >
@@ -68,14 +73,16 @@ export function TableView({
                 </th>
               );
             })}
-            <th className="w-10 px-2 py-2">
+            <th scope="col" className="w-10 px-2 py-2">
               <NewPropertyButton
                 onAdd={propertyActions.add}
                 hiddenProperties={hiddenProperties}
                 onShow={propertyActions.show}
               />
             </th>
-            <th className="w-12 px-2 py-2 text-right"></th>
+            <th scope="col" className="w-12 px-2 py-2 text-right">
+              <span className="sr-only">{t('rowActions')}</span>
+            </th>
           </tr>
         </thead>
 
@@ -107,8 +114,9 @@ export function TableView({
                   variant="ghost"
                   size="icon-xs"
                   onClick={() => onDeleteRow(row.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10"
-                  title="Delete row"
+                  className="text-destructive hover:bg-destructive/10 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                  aria-label={t('deleteRow', { title: row.title })}
+                  title={t('deleteRow', { title: row.title })}
                 >
                   ✕
                 </Button>
@@ -125,7 +133,7 @@ export function TableView({
                 onClick={onAddRow}
                 className="w-full justify-start text-xs text-muted-foreground hover:text-foreground h-8"
               >
-                + New page
+                {t('newPage')}
               </Button>
             </td>
           </tr>
@@ -134,14 +142,18 @@ export function TableView({
         {/* Table Footer: Column Aggregations */}
         <tfoot>
           <tr className="border-t border-border bg-muted/20 text-xs text-muted-foreground font-mono">
-            <td className="px-2 py-2"></td>
+            <td className="px-2 py-2">
+              <span className="sr-only">{t('summary')}</span>
+            </td>
             {visibleProps.map((prop) => {
               const aggVal = aggregations[prop.id];
               return (
                 <td key={prop.id} className="border-r border-border/50 px-3 py-2 truncate">
                   {aggVal !== undefined && aggVal !== null ? (
                     <span className="font-medium text-foreground">
-                      {prop.type === 'checkbox' ? `${aggVal}% checked` : String(aggVal)}
+                      {prop.type === 'checkbox'
+                        ? t('percentChecked', { value: String(aggVal) })
+                        : String(aggVal)}
                     </span>
                   ) : null}
                 </td>

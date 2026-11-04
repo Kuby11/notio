@@ -3,15 +3,15 @@ import type { SlashCommand, SlashRange } from './slash';
 import { replaceTextblockWithDetails } from './toggle-command';
 
 /**
- * Применяет выбранную slash-команду к текущему блоку, убирая `/запрос`.
+ * Applies the selected slash command to the current block, removing the `/query`.
  *
- * Для команд, которые меняют тип строки, элемент списка сначала вынимается
- * из listItem/taskItem: иначе Details или заголовок оказались бы внутри
- * списка и потерялись бы при сериализации BlockContent. Команда `page`
- * сюда не попадает: подстраница создаётся асинхронно (см. utils/sub-page).
+ * For commands that change the line type, the list item is lifted out
+ * of listItem/taskItem first: otherwise Details or a heading would end up
+ * inside the list and be lost when serialising BlockContent. The `page`
+ * command does not come through here: a sub-page is created asynchronously (see utils/sub-page).
  *
- * Достаточно kind и headingLevel: меню действий превращения передаёт сюда
- * синтетическую команду без данных меню.
+ * kind and headingLevel are enough: the turn-into menu passes a
+ * synthetic command without menu data.
  */
 export function applySlashCommand(
   editor: Editor,

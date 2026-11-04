@@ -120,7 +120,5 @@ export function PropertyValueDisplay({
     );
   }
 
-  return (
-    <span className="text-muted-foreground max-w-48 truncate text-xs">{String(value)}</span>
-  );
+  return <span className="text-muted-foreground max-w-48 truncate text-xs">{String(value)}</span>;
 }

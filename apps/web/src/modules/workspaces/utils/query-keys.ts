@@ -1,6 +1,6 @@
 /**
- * Фабрика ключей TanStack Query.
- * Ключи собираются только здесь: разбросанные строки ключей рассинхронизируют кеш.
+ * TanStack Query key factory.
+ * Keys are built only here: scattered key strings desynchronise the cache.
  */
 export const workspaceKeys = {
   all: ['workspaces'] as const,

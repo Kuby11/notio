@@ -8,13 +8,39 @@ import './globals.css';
 import { Geist } from 'next/font/google';
 import { cn } from '@/shared/ui/utils';
 import { THEME_APPLY_SCRIPT } from '../core/ui/theme';
+import { env } from '../shared/configs/env';
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
+// Cyrillic is part of the product: the interface ships a Russian locale, so a
+// Latin-only subset would render it with a fallback font.
+const geist = Geist({ subsets: ['latin', 'cyrillic'], variable: '--font-sans' });
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('meta');
+  const description = t('description');
+  // Canonical origin for social images and absolute URLs. It is optional: a
+  // deployment without it keeps relative metadata instead of inventing a host.
+  const siteUrl = process.env['NEXT_PUBLIC_SITE_URL'];
 
-  return { title: t('title'), description: t('description') };
+  return {
+    ...(siteUrl === undefined ? {} : { metadataBase: new URL(siteUrl) }),
+    title: {
+      default: t('title'),
+      template: `%s — ${env.NEXT_PUBLIC_APP_NAME}`,
+    },
+    description,
+    applicationName: env.NEXT_PUBLIC_APP_NAME,
+    openGraph: {
+      type: 'website',
+      siteName: env.NEXT_PUBLIC_APP_NAME,
+      title: t('title'),
+      description,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: t('title'),
+      description,
+    },
+  };
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

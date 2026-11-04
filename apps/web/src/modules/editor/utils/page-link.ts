@@ -2,14 +2,14 @@ import type { Page } from '@notio/contracts';
 import type { Editor } from '@tiptap/react';
 
 /**
- * Мост к React-слою для блоков, которым нужны данные страниц (ссылка на
- * страницу, хлебные крошки). Расширения и node views не знают ни про сеть,
- * ни про роутер: ReactRenderer рендерит node views вне дерева приложения,
- * поэтому контекст и хуки туда не доходят — как и у sub-page-моста, мост
- * живёт в WeakMap по экземпляру редактора.
+ * Bridge to the React layer for blocks that need page data (page link,
+ * breadcrumbs). Extensions and node views know nothing about the network
+ * or the router: ReactRenderer renders node views outside the app tree,
+ * so context and hooks do not reach them. As with the sub-page bridge, the
+ * bridge lives in a WeakMap keyed by editor instance.
  *
- * Порты передаются структурными типами: pages-порт приходит из контейнера
- * в ui/public/editor.tsx, здесь он только вызывается.
+ * Ports arrive as structural types: the pages port comes from the container
+ * in ui/public/editor.tsx; here it is only called.
  */
 export interface PagesPortLike {
   getPage(pageId: string, workspaceId: string): Promise<Page>;
@@ -21,15 +21,15 @@ export interface PagesPortLike {
 }
 
 export interface PageLinkBridge {
-  /** Активное рабочее пространство: маршруты и выборка страниц. */
+  /** Active workspace: routes and page queries. */
   workspaceId: string;
-  /** Страница, которую редактирует редактор: начало хлебных крошек. */
+  /** The page being edited: the start of the breadcrumbs. */
   currentPageId: string;
-  /** Данные страницы (заголовок, иконка) для ссылки и крошек. */
+  /** Page data (title, icon) for the link and breadcrumbs. */
   getPage: (pageId: string) => Promise<Page>;
-  /** Плоский список страниц пространства для диалога выбора. */
+  /** Flat list of workspace pages for the picker dialog. */
   listPages: () => Promise<Page[]>;
-  /** Навигация (router.push из React-слоя). */
+  /** Navigation (router.push from the React layer). */
   navigate: (href: string) => void;
 }
 
@@ -45,7 +45,7 @@ const NOOP_BRIDGE: PageLinkBridge = {
 
 const bridges = new WeakMap<object, PageLinkBridge>();
 
-/** Назначает мост редактору — один раз на экземпляр из ui/public/editor.tsx. */
+/** Assigns the bridge to an editor instance, once per instance from ui/public/editor.tsx. */
 export function setPageLinkBridge(editor: object, bridge: PageLinkBridge): void {
   bridges.set(editor, bridge);
 }
@@ -54,10 +54,10 @@ export function pageLinkBridge(editor: object): PageLinkBridge {
   return bridges.get(editor) ?? NOOP_BRIDGE;
 }
 
-/** Ограничение глубины обхода дерева страниц для диалога выбора. */
+/** Depth limit for walking the page tree in the picker dialog. */
 const LIST_PAGES_MAX_DEPTH = 4;
 
-/** Плоский список страниц пространства: корни, затем дети до глубины 4. */
+/** Flat list of workspace pages: roots, then children down to depth 4. */
 export async function collectWorkspacePages(
   pages: PagesPortLike,
   workspaceId: string,
@@ -85,7 +85,7 @@ export async function collectWorkspacePages(
   return result;
 }
 
-/** Цепочка родителей страницы: [корень, …, родитель] без самой страницы. */
+/** Ancestor chain of a page: [root, …, parent] without the page itself. */
 export async function pageBreadcrumbChain(
   pages: PagesPortLike,
   workspaceId: string,
@@ -103,5 +103,5 @@ export async function pageBreadcrumbChain(
   return chain;
 }
 
-/** Тип редактора для мостов: нужен только как ключ WeakMap. */
+/** Editor type for the bridges: used only as a WeakMap key. */
 export type PageLinkEditor = Editor;

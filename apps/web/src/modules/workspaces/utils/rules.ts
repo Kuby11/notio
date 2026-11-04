@@ -1,12 +1,12 @@
 /**
- * Правила рабочих пространств на клиенте.
+ * Client-side workspace rules.
  *
- * Те же ограничения, что и на сервере: интерфейс не должен предлагать
- * действие, которое сервис всё равно отклонит.
+ * The same constraints as on the server: the UI must not offer
+ * an action the service would reject anyway.
  */
 import type { WorkspaceRole } from '@notio/contracts';
 
-/** Роли, которые можно выдать по приглашению: owner выдаётся только вручную. */
+/** Roles that can be granted by invitation: owner is assigned manually only. */
 export const INVITABLE_ROLES = ['editor', 'viewer'] as const satisfies readonly WorkspaceRole[];
 
 const ROLE_LABELS: Readonly<Record<WorkspaceRole, string>> = {
@@ -15,7 +15,7 @@ const ROLE_LABELS: Readonly<Record<WorkspaceRole, string>> = {
   viewer: 'Наблюдатель',
 };
 
-/** Действия, доступные текущей роли в интерфейсе. */
+/** Actions available to the current role in the UI. */
 export interface RoleCapabilities {
   canRename: boolean;
   canArchive: boolean;
@@ -41,10 +41,10 @@ export function isInvitableRole(role: string): role is (typeof INVITABLE_ROLES)[
 }
 
 /**
- * Обрезает пробелы и запрещает пустое название.
+ * Trims whitespace and rejects an empty name.
  *
- * Пустое имя сервис отклонит так же, но проверка на клиенте не гоняет
- * пользователя в сеть ради отказа.
+ * The service rejects an empty name too, but the client check avoids a
+ * round trip just to be refused.
  */
 export function assertWorkspaceName(name: string): string {
   const trimmed = name.trim();

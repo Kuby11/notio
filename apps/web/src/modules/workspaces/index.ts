@@ -1,4 +1,4 @@
-import { createWorkspaceRepositoryApi } from './api/workspace.repository.api';
+import { createWorkspaceRepositoryApi } from './api/workspace.api';
 import type { TokenProvider } from '../../shared/types';
 import type {
   Invitation,
@@ -22,10 +22,10 @@ export {
 } from './utils/rules';
 
 /**
- * Публичный API модуля рабочих пространств.
+ * Public API of the workspaces module.
  *
- * Фабрика собирает репозиторий поверх gateway; наружу отдаётся только порт,
- * которым пользуются facade-хуки. Адаптер и DTO остаются внутри модуля.
+ * The factory builds the gateway repository; only the port is exported,
+ * used by the facade hooks. The adapter and DTOs stay inside the module.
  */
 
 export type WorkspacesModule = WorkspaceGateway;

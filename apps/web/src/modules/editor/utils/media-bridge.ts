@@ -1,16 +1,16 @@
 import type { FileMeta } from '@notio/contracts';
 
 /**
- * Мост медиа-блоков к React-слою — как мост подстраниц (см. utils/sub-page).
+ * Bridge from media blocks to the React layer, like the sub-page bridge (see utils/sub-page).
  *
- * Node view'ы блоков не знают про сеть и env: загрузка файла и построение
- * публичного URL приходят из ui/public/editor.tsx. WeakMap живёт, пока
- * жив редактор.
+ * Block node views know nothing about the network or env: file upload and
+ * public URL construction come from ui/public/editor.tsx. The WeakMap lives
+ * while the editor lives.
  */
 export interface MediaBridge {
-  /** Загружает файл; тосты об ошибках показывает мост, null — не удалось. */
+  /** Uploads a file; the bridge shows error toasts, null means failure. */
   uploadFile: (file: File) => Promise<FileMeta | null>;
-  /** Публичный URL файла в gateway. */
+  /** Public URL of the file on the gateway. */
   fileUrl: (fileId: string, download?: boolean) => string;
 }
 

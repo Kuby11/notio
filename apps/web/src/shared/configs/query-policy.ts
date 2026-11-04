@@ -1,11 +1,11 @@
 import { HttpError } from '../types/http-error';
 
 /**
- * Политика повторов TanStack Query.
+ * TanStack Query retry policy.
  *
- * 4xx — ошибка запроса, а не временный сбой: повторять её бессмысленно,
- * а для 429 ещё и вредно, потому что каждый retry расходует тот же лимит.
- * Сетевые ошибки и 5xx повторяем один раз.
+ * 4xx is a request error, not a transient failure: retrying is pointless,
+ * and for 429 it is harmful because every retry spends the same quota.
+ * Network errors and 5xx are retried once.
  */
 export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
   if (error instanceof HttpError && error.status >= 400 && error.status < 500) {

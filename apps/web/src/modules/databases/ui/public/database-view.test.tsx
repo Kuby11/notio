@@ -2,6 +2,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { createFakeDatabaseRepository } from '../../../../../test/database-fixture';
 import { gatewayStub, renderWithProviders } from '../../../../../test/auth-fixture';
 import { DatabaseView } from './database-view';
 
@@ -13,7 +14,9 @@ describe('DatabaseView properties', () => {
     gateway.accessToken.mockResolvedValue('jwt');
     const user = userEvent.setup();
 
-    renderWithProviders(<DatabaseView databaseId={DB_ID} />, gateway);
+    renderWithProviders(<DatabaseView databaseId={DB_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     expect(await screen.findByText('Project Tasks')).toBeInTheDocument();
 
@@ -30,7 +33,9 @@ describe('DatabaseView properties', () => {
     gateway.accessToken.mockResolvedValue('jwt');
     const user = userEvent.setup();
 
-    renderWithProviders(<DatabaseView databaseId={DB_ID} />, gateway);
+    renderWithProviders(<DatabaseView databaseId={DB_ID} />, gateway, {
+      databases: createFakeDatabaseRepository(),
+    });
 
     await screen.findByText('Project Tasks');
 

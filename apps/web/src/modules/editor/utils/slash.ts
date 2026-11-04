@@ -1,6 +1,6 @@
 import type { BlockType, DatabaseViewType } from '@notio/contracts';
 
-/** Действие, которое slash-команда применяет к текущему блоку. */
+/** Action a slash command applies to the current block. */
 export type SlashCommandKind =
   | 'paragraph'
   | 'heading'
@@ -30,24 +30,24 @@ export interface SlashCommand {
   id: string;
   label: string;
   icon: string;
-  /** Markdown-триггер, который Notion использует для этого блока. */
+  /** Markdown trigger Notion uses for this block. */
   markdown: string | null;
   kind: SlashCommandKind;
   headingLevel?: 1 | 2 | 3 | 4;
   /** For kind 'chart': the view type created for the inserted chart block. */
   chartType?: DatabaseViewType;
-  /** Для kind 'columns': сколько колонок создать (2–5). */
+  /** For kind 'columns': how many columns to create (2–5). */
   columnsCount?: 2 | 3 | 4 | 5;
   blockType: BlockType;
-  /** Синонимы для поиска: английские команды Notion и русские названия. */
+  /** Search synonyms: Notion's English commands and Russian labels. */
   keywords: readonly string[];
 }
 
 /**
- * Базовые блоки из Notion.
+ * Basic Notion blocks.
  *
- * Порядок фиксирован: истории частых команд у нас пока нет, поэтому меню
- * не пересортировывается после каждого использования.
+ * The order is fixed: we have no frequent-command history yet, so the menu
+ * is not re-sorted after each use.
  */
 export const SLASH_COMMANDS: readonly SlashCommand[] = [
   {
@@ -398,9 +398,9 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
 ];
 
 export interface SlashRange {
-  /** Позиция слэша в документе. */
+  /** Position of the slash in the document. */
   from: number;
-  /** Позиция курсора в документе. */
+  /** Cursor position in the document. */
   to: number;
 }
 
@@ -428,10 +428,10 @@ function scoreCommand(command: SlashCommand, query: string): number | null {
 }
 
 /**
- * Фильтрует команды по тексту после `/`.
+ * Filters commands by the text after `/`.
  *
- * Сначала показываются точные совпадения (`/h2`), затем совпадения с начала
- * слова (`/head`), затем вхождения внутри названия или синонима.
+ * Exact matches (`/h2`) come first, then prefix matches
+ * (`/head`), then matches inside the label or a synonym.
  */
 export function filterSlashCommands(query: string): SlashCommand[] {
   const normalized = normalize(query).replace(/^\/+/u, '');

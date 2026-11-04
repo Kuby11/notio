@@ -81,10 +81,8 @@ describe('ViewTabs', () => {
     const user = userEvent.setup();
     const props = renderTabs();
 
-    await user.click(screen.getByRole('button', { name: /Table/ }));
-    await user.click(
-      await screen.findByRole('menuitem', { name: 'Переименовать представление' }),
-    );
+    await user.click(screen.getByRole('tab', { name: /Table/ }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Переименовать представление' }));
 
     const input = await screen.findByRole('textbox', { name: 'Название представления' });
 
@@ -99,11 +97,11 @@ describe('ViewTabs', () => {
     const user = userEvent.setup();
     const props = renderTabs();
 
-    await user.click(screen.getByRole('button', { name: /Table/ }));
+    await user.click(screen.getByRole('tab', { name: /Table/ }));
     await user.click(await screen.findByRole('menuitem', { name: 'Дублировать представление' }));
     expect(props.onDuplicateView).toHaveBeenCalledWith(TABLE, 'Table (копия)');
 
-    await user.click(screen.getByRole('button', { name: /Table/ }));
+    await user.click(screen.getByRole('tab', { name: /Table/ }));
     await user.click(await screen.findByRole('menuitem', { name: 'Удалить представление' }));
 
     const dialog = await screen.findByRole('dialog');

@@ -51,7 +51,7 @@ describe('insertSubPageAtSlash', () => {
     expect(inserted).toBe(true);
     expect(subPageNodes(current)).toEqual([{ pageId: DRAFT.id, title: '' }]);
 
-    // После ссылки остаётся пустой абзац для продолжения набора.
+    // An empty paragraph remains after the link so typing can continue.
     const types = (current.getJSON().content ?? []).map((node) => node.type);
     expect(types).toEqual(['subPage', 'paragraph']);
   });

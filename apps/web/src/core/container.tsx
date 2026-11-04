@@ -33,9 +33,21 @@ export interface Container {
   databases: DatabasesModule;
 }
 
+/**
+ * Ports a test replaces. The production adapters are strict HTTP clients, so a
+ * test that needs fixtures injects its own in-memory implementation here
+ * instead of the app shipping a fake backend.
+ */
+export interface ContainerOverrides {
+  databases?: DatabasesModule;
+}
+
 /** Builds the application over a ready-made auth gateway (tests, storybook). */
-export function createContainer(gateway: AuthGateway): Container {
-  return createContainerWithAuth(createAuthModuleWithGateway(gateway));
+export function createContainer(
+  gateway: AuthGateway,
+  overrides: ContainerOverrides = {},
+): Container {
+  return createContainerWithAuth(createAuthModuleWithGateway(gateway), overrides);
 }
 
 /** Builds the production container over the HTTP gateway. */
@@ -43,7 +55,7 @@ export function createAppContainer(): Container {
   return createContainerWithAuth(createAuthModule({ baseUrl: env.NEXT_PUBLIC_GATEWAY_URL }));
 }
 
-function createContainerWithAuth(auth: AuthModule): Container {
+function createContainerWithAuth(auth: AuthModule, overrides: ContainerOverrides = {}): Container {
   // The token is a resource shared by the modules, but the dependency is declared as TokenProvider
   // from shared: the modules do not know that the auth module stands behind it.
   const accessToken = auth.accessToken;
@@ -54,7 +66,7 @@ function createContainerWithAuth(auth: AuthModule): Container {
     workspaces: createWorkspacesModule({ accessToken }),
     editor: createEditorModule({ accessToken }),
     media: createMediaModule({ accessToken }),
-    databases: createDatabasesModule({ accessToken }),
+    databases: overrides.databases ?? createDatabasesModule({ accessToken }),
   };
 }
 
