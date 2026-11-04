@@ -84,6 +84,8 @@ export function PageHeader({ workspaceId, pageId }: PageHeaderProps) {
   // Get metadata from detail: it's polled more frequently and contains isLocked.
   const page = pageDetail.data ?? chain.at(-1) ?? null;
   const isLocked = page?.isLocked === true;
+  const isTrashed = page?.isTrashed === true;
+  const isReadOnly = isLocked || isTrashed;
 
   // Tick every 30 seconds so "time ago" updates automatically.
   useEffect(() => {
@@ -193,8 +195,8 @@ export function PageHeader({ workspaceId, pageId }: PageHeaderProps) {
           <div className="flex shrink-0 items-center gap-1">
             {page ? (
               <span className="text-muted-foreground flex items-center gap-1 text-xs whitespace-nowrap">
-                {isLocked ? (
-                  <span title={t('locked')}>
+                {isReadOnly ? (
+                  <span title={isTrashed ? t('trashed') : t('locked')}>
                     <Lock className="size-3.5" aria-hidden="true" />
                   </span>
                 ) : null}
@@ -250,8 +252,8 @@ export function PageHeader({ workspaceId, pageId }: PageHeaderProps) {
           value={displayedTitle}
           placeholder={tCommon('untitled')}
           aria-label={t('titleLabel')}
-          disabled={isLocked}
-          title={isLocked ? t('locked') : undefined}
+          disabled={isReadOnly}
+          title={isTrashed ? t('trashed') : isLocked ? t('locked') : undefined}
           onChange={(event) => setTitle(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {

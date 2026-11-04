@@ -44,13 +44,13 @@ export function useEditor(pageId: string, workspaceId: string) {
     staleTime: 30_000,
   });
 
-  // Page lock: the editor switches Tiptap to read-only. We read the same
-  // detail key as the page header — the lock mutation in the menu invalidates
-  // pageKeys.all, and both subscriptions refresh at once.
-  const isPageLocked = useQuery({
+  // Page state: locked and trashed pages are both read-only. We read the same
+  // detail key as the page header — the menu mutation invalidates pageKeys.all,
+  // and both subscriptions refresh at once.
+  const pageState = useQuery({
     queryKey: pageKeys.detail(workspaceId, pageId),
     queryFn: () => pages.getPage(pageId, workspaceId),
-    select: (page) => page.isLocked === true,
+    select: (page) => ({ isLocked: page.isLocked === true, isTrashed: page.isTrashed }),
     staleTime: 30_000,
   });
 
@@ -270,7 +270,8 @@ export function useEditor(pageId: string, workspaceId: string) {
 
   return {
     document,
-    isPageLocked: isPageLocked.data ?? false,
+    isPageLocked: pageState.data?.isLocked ?? false,
+    isPageTrashed: pageState.data?.isTrashed ?? false,
     selectedBlockId,
     setSelectedBlock,
     createBlock,

@@ -12,6 +12,7 @@ import {
   StarOff,
   Trash,
 } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import {
@@ -62,6 +63,8 @@ export function PageActionsMenu({
   const tRename = useTranslations('pages.rename');
   const tSidebar = useTranslations('sidebar');
   const tCommon = useTranslations('common');
+  const router = useRouter();
+  const pathname = usePathname();
   const { duplicatePage, renamePage, trashPage, toggleFavorite, updatePage } = usePages(
     workspaceId,
     page.id,
@@ -80,6 +83,19 @@ export function PageActionsMenu({
     }
 
     setRenameOpen(false);
+  }
+
+  /** Trashing the open page must leave it immediately: the route is read-only in trash. */
+  async function moveToTrash(): Promise<void> {
+    try {
+      await trashPage.mutateAsync({ id: page.id, workspaceId });
+
+      if (pathname === `/workspaces/${workspaceId}/${page.id}`) {
+        router.push(`/workspaces/${workspaceId}`);
+      }
+    } catch {
+      // The page stays open and editable when the move fails.
+    }
   }
 
   return (
@@ -161,7 +177,10 @@ export function PageActionsMenu({
           <DropdownMenuItem
             className="text-xs"
             variant="destructive"
-            onClick={() => trashPage.mutate({ id: page.id, workspaceId })}
+            disabled={trashPage.isPending}
+            onClick={() => {
+              void moveToTrash();
+            }}
           >
             <Trash aria-hidden="true" />
             {t('trash')}
