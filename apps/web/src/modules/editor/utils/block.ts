@@ -313,6 +313,14 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
         create: () => ({ type }),
         toText: () => '',
       };
+    case 'database':
+      return {
+        type,
+        label: 'База данных',
+        icon: '🗂',
+        create: () => ({ type, databaseId: newId() }),
+        toText: () => '',
+      };
   }
 });
 
@@ -850,6 +858,21 @@ function entryToNode(entry: ContentEntry): EditorNode | null {
     case 'breadcrumb':
       return { type: 'breadcrumbBlock', attrs: { blockId: entry.id } };
 
+    case 'database':
+      return content.display === 'page'
+        ? {
+            type: 'databaseLink',
+            attrs: { blockId: entry.id, databaseId: content.databaseId },
+          }
+        : {
+            type: 'databaseBlock',
+            attrs: {
+              blockId: entry.id,
+              databaseId: content.databaseId,
+              ...(content.viewId ? { viewId: content.viewId } : {}),
+            },
+          };
+
     case 'bulletedListItem':
     case 'numberedListItem':
     case 'toDo':
@@ -1281,6 +1304,28 @@ function nodeToContent(node: EditorNode): BlockContent | null {
 
     case 'breadcrumbBlock':
       return { type: 'breadcrumb' };
+
+    case 'databaseBlock': {
+      // An empty id means the database is still being created: nothing to save yet.
+      const databaseId = node.attrs?.['databaseId'];
+      const viewId = node.attrs?.['viewId'];
+
+      return typeof databaseId === 'string' && databaseId.length > 0
+        ? {
+            type: 'database',
+            databaseId,
+            ...(typeof viewId === 'string' && viewId.length > 0 ? { viewId } : {}),
+          }
+        : null;
+    }
+
+    case 'databaseLink': {
+      const databaseId = node.attrs?.['databaseId'];
+
+      return typeof databaseId === 'string' && databaseId.length > 0
+        ? { type: 'database', databaseId, display: 'page' }
+        : null;
+    }
 
     default:
       return null;

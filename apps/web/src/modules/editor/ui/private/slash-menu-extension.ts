@@ -3,6 +3,7 @@ import { PluginKey } from '@tiptap/pm/state';
 import { Extension, ReactRenderer } from '@tiptap/react';
 import { Suggestion } from '@tiptap/suggestion';
 import { applySlashCommand } from '../../utils/slash-command';
+import { insertDatabaseAtSlash, insertDatabasePageAtSlash } from '../../utils/database-block';
 import { insertSubPageAtSlash } from '../../utils/sub-page';
 import { filterSlashCommands, type SlashCommand } from '../../utils/slash';
 import { SlashMenu, type SlashMenuHandle } from './slash-menu';
@@ -57,6 +58,25 @@ export const SlashMenuExtension = Extension.create({
           // node is inserted — that path lives in utils/sub-page.
           if (props.kind === 'page') {
             void insertSubPageAtSlash(editor, range);
+            return;
+          }
+
+          // A database is created asynchronously too: the node is inserted at
+          // once and the id lands in attrs after the response. The full-page
+          // variant also adds a link to its page.
+          if (props.kind === 'database') {
+            void insertDatabaseAtSlash(editor, range);
+            return;
+          }
+
+          if (props.kind === 'databasePage') {
+            void insertDatabasePageAtSlash(editor, range);
+            return;
+          }
+
+          // A chart is an inline database whose requested view opens first.
+          if (props.kind === 'chart') {
+            void insertDatabaseAtSlash(editor, range, props.chartType);
             return;
           }
 

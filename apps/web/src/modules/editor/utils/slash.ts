@@ -1,4 +1,4 @@
-import type { BlockType } from '@notio/contracts';
+import type { BlockType, DatabaseViewType } from '@notio/contracts';
 
 /** Действие, которое slash-команда применяет к текущему блоку. */
 export type SlashCommandKind =
@@ -21,7 +21,10 @@ export type SlashCommandKind =
   | 'equation'
   | 'inlineEquation'
   | 'linkToPage'
-  | 'breadcrumb';
+  | 'breadcrumb'
+  | 'database'
+  | 'databasePage'
+  | 'chart';
 
 export interface SlashCommand {
   id: string;
@@ -31,6 +34,8 @@ export interface SlashCommand {
   markdown: string | null;
   kind: SlashCommandKind;
   headingLevel?: 1 | 2 | 3 | 4;
+  /** For kind 'chart': the view type created for the inserted chart block. */
+  chartType?: DatabaseViewType;
   /** Для kind 'columns': сколько колонок создать (2–5). */
   columnsCount?: 2 | 3 | 4 | 5;
   blockType: BlockType;
@@ -292,6 +297,103 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'breadcrumb',
     blockType: 'breadcrumb',
     keywords: ['breadcrumb', 'path', 'крошки', 'хлебные крошки', 'путь страницы'],
+  },
+  {
+    id: 'database-inline',
+    label: 'databaseInline',
+    icon: '🗂',
+    markdown: null,
+    kind: 'database',
+    blockType: 'database',
+    keywords: [
+      'inline database',
+      'database inline',
+      'database',
+      'db',
+      'база данных',
+      'инлайн база',
+    ],
+  },
+  {
+    id: 'database-page',
+    label: 'databasePage',
+    icon: '🗄',
+    markdown: null,
+    kind: 'databasePage',
+    blockType: 'database',
+    keywords: [
+      'full page database',
+      'database page',
+      'whole page database',
+      'database',
+      'полная страница базы',
+      'база данных страницей',
+      'страница базы',
+    ],
+  },
+  {
+    id: 'chart-horizontal',
+    label: 'chartHorizontal',
+    icon: '▥',
+    markdown: null,
+    kind: 'chart',
+    chartType: 'chart_horizontal',
+    blockType: 'database',
+    keywords: [
+      'horizontal chart',
+      'bar chart',
+      'chart horizontal',
+      'chart',
+      'горизонтальный график',
+      'график',
+    ],
+  },
+  {
+    id: 'chart-vertical',
+    label: 'chartVertical',
+    icon: '▤',
+    markdown: null,
+    kind: 'chart',
+    chartType: 'chart_vertical',
+    blockType: 'database',
+    keywords: [
+      'vertical chart',
+      'column chart',
+      'chart vertical',
+      'chart',
+      'вертикальный график',
+      'график',
+    ],
+  },
+  {
+    id: 'chart-donut',
+    label: 'chartDonut',
+    icon: '◔',
+    markdown: null,
+    kind: 'chart',
+    chartType: 'chart_donut',
+    blockType: 'database',
+    keywords: ['donut chart', 'pie chart', 'chart donut', 'chart', 'кольцевой график', 'график'],
+  },
+  {
+    id: 'chart-line',
+    label: 'chartLine',
+    icon: '📈',
+    markdown: null,
+    kind: 'chart',
+    chartType: 'chart_line',
+    blockType: 'database',
+    keywords: ['line chart', 'chart line', 'chart', 'линейный график', 'график'],
+  },
+  {
+    id: 'chart-number',
+    label: 'chartNumber',
+    icon: '#',
+    markdown: null,
+    kind: 'chart',
+    chartType: 'chart_number',
+    blockType: 'database',
+    keywords: ['number chart', 'count chart', 'chart number', 'chart', 'числовой график', 'график'],
   },
 ];
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { DragHandle } from '@tiptap/extension-drag-handle-react';
 import type { DragHandleRule, NestedOptions } from '@tiptap/extension-drag-handle';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
@@ -33,12 +34,18 @@ import {
 } from '../../utils/block-insert';
 import { blocksToEditorDocument, findBlockIdAtSelection } from '../../utils/block';
 import { editorExtensions } from '../../utils/editor-extensions';
+import {
+  insertDatabaseBelow,
+  insertDatabasePageBelow,
+  setDatabaseBlockBridge,
+} from '../../utils/database-block';
 import { insertSubPageBelow, setSubPageBridge } from '../../utils/sub-page';
 import { setMediaBridge } from '../../utils/media-bridge';
 import { collectWorkspacePages, setPageLinkBridge } from '../../utils/page-link';
 import { mediaFileUrl, useMedia } from '../../../media';
 import { env } from '../../../../shared/configs/env';
 import { useContainer } from '../../../../core/container';
+import { databaseKeys } from '../../../databases';
 import type { BlockColorPreset } from '@notio/contracts';
 import type { SlashCommand } from '../../utils/slash';
 import { BlockActionsMenu } from '../private/block-actions-menu';
@@ -64,6 +71,7 @@ const FULL_WIDTH_BLOCK_TYPES = new Set([
   'taskList',
   'details',
   'table',
+  'databaseBlock',
 ]);
 
 /**
@@ -109,6 +117,7 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
   const {
     document: pageDocument,
     isPageLocked,
+    isPageTrashed,
     setSelectedBlock,
     autosave,
     createSubPage,
@@ -118,6 +127,10 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
   const hydratedPageId = useRef<string | null>(null);
   const [, setHoveredBlockPos] = useState<number | null>(null);
   const [subPageError, setSubPageError] = useState(false);
+  const [databaseError, setDatabaseError] = useState(false);
+  // A whole-page database opens only after autosave stores the link chip:
+  // navigating earlier would unmount the editor and lose the insert.
+  const [pendingDatabaseId, setPendingDatabaseId] = useState<string | null>(null);
   const hoveredBlockPosRef = useRef<number | null>(null);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<ReturnType<typeof useTiptap> | null>(null);
@@ -156,15 +169,15 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
     },
   });
 
-  // Locked page: content is read-only. While the lock state
-  // loads we edit as usual — false arrives after loading.
+  // Locked or trashed page: content is read-only. While the state loads we
+  // edit as usual — false arrives after loading.
   useEffect(() => {
     if (!editor) {
       return;
     }
 
-    editor.setEditable(isPageLocked !== true);
-  }, [editor, isPageLocked]);
+    editor.setEditable(isPageLocked !== true && isPageTrashed !== true);
+  }, [editor, isPageLocked, isPageTrashed]);
 
   useEffect(() => {
     if (!editor || !pageDocument.data) {
@@ -326,6 +339,19 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
   const routerRef = useRef(router);
   routerRef.current = router;
 
+  useEffect(() => {
+    if (pendingDatabaseId === null || autosave.status !== 'saved') {
+      return;
+    }
+
+    setPendingDatabaseId(null);
+    routerRef.current.push(
+      `/workspaces/${workspaceId}/databases/${pendingDatabaseId}` as Parameters<
+        typeof routerRef.current.push
+      >[0],
+    );
+  }, [pendingDatabaseId, autosave.status, workspaceId]);
+
   /**
    * Bridge for sub-pages: editor extensions create a page and follow its
    * link without knowing about the network or the router. It binds to a specific
@@ -379,9 +405,85 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
    * and navigation, but ReactRenderer renders them outside the application
    * tree — context and hooks do not reach it (see utils/page-link).
    */
-  const { pages } = useContainer();
+  const { pages, databases } = useContainer();
+  const queryClient = useQueryClient();
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
+  const databasesRef = useRef(databases);
+  databasesRef.current = databases;
+
+  /**
+   * Bridge for database blocks: the block is inserted immediately, while the
+   * database row is created through the databases port by the React layer.
+   */
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    setDatabaseBlockBridge(editor, {
+      workspaceId,
+      createDatabase: async (kind, chartType) => {
+        setDatabaseError(false);
+
+        try {
+          const created = await databasesRef.current.create({
+            workspaceId,
+            // Both kinds belong to the page they are inserted into, so the
+            // sidebar tree shows them next to that page's child pages.
+            parentId: pageId,
+            title: t('databaseBlock.defaultTitle'),
+            isInline: kind === 'inline',
+          });
+
+          // A chart block owns a dedicated view of its new database. The
+          // block stores the view id, so the chart stays selected after reload.
+          let viewId: string | undefined;
+
+          if (chartType) {
+            const view = await databasesRef.current.createView({
+              databaseId: created.id,
+              name: t('databaseBlock.chartTitle'),
+              type: chartType,
+              visiblePropertyIds: [],
+            });
+
+            viewId = view.id;
+            await queryClient.invalidateQueries({ queryKey: databaseKeys.views(created.id) });
+          }
+
+          // The sidebar tree stays mounted: refresh its list so the new
+          // database appears there too.
+          await queryClient.invalidateQueries({ queryKey: databaseKeys.list(workspaceId) });
+
+          return { id: created.id, title: created.title, viewId };
+        } catch {
+          setDatabaseError(true);
+
+          return null;
+        }
+      },
+      getDatabase: async (databaseId) => {
+        try {
+          const database = await databasesRef.current.get(databaseId);
+
+          return { id: database.id, title: database.title };
+        } catch {
+          return null;
+        }
+      },
+      openDatabase: (databaseId) => {
+        void routerRef.current.push(
+          `/workspaces/${workspaceId}/databases/${databaseId}` as Parameters<
+            typeof routerRef.current.push
+          >[0],
+        );
+      },
+      openCreatedDatabase: (databaseId) => {
+        setPendingDatabaseId(databaseId);
+      },
+    });
+  }, [editor, workspaceId, pageId, t, queryClient]);
 
   useEffect(() => {
     if (!editor) {
@@ -659,6 +761,15 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
       // appears after the service responds.
       if (command.kind === 'page') {
         void insertSubPageBelow(editor, block);
+      } else if (command.kind === 'database') {
+        // The same for a database: the row is created after the node is placed.
+        void insertDatabaseBelow(editor, block);
+      } else if (command.kind === 'databasePage') {
+        // Full-page database: a link chip is placed and then opened.
+        void insertDatabasePageBelow(editor, block);
+      } else if (command.kind === 'chart') {
+        // Chart block: create an inline database with this chart view.
+        void insertDatabaseBelow(editor, block, command.chartType);
       } else {
         insertBlockBelow(editor, block, command);
       }
@@ -776,6 +887,8 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
       </div>
 
       {subPageError && <EditorStatus tone="error">{t('subPageFailed')}</EditorStatus>}
+
+      {databaseError && <EditorStatus tone="error">{t('databaseBlock.failed')}</EditorStatus>}
 
       {autosave.status === 'error' && <EditorStatus tone="error">{t('saveFailed')}</EditorStatus>}
 

@@ -20,7 +20,7 @@ describe('SlashMenu', () => {
 
     const menu = screen.getByRole('listbox', { name: 'Вставить блок' });
 
-    expect(within(menu).getAllByRole('option')).toHaveLength(26);
+    expect(within(menu).getAllByRole('option')).toHaveLength(33);
     expect(within(menu).getByRole('option', { name: /Текст/ })).toBeInTheDocument();
     expect(within(menu).getByRole('option', { name: /Заголовок 4/ })).toBeInTheDocument();
     expect(within(menu).getByText('####')).toBeInTheDocument();
@@ -42,6 +42,17 @@ describe('SlashMenu', () => {
     expect(within(menu).getByRole('option', { name: /Видео/ })).toBeInTheDocument();
     expect(within(menu).getByRole('option', { name: /Файл/ })).toBeInTheDocument();
     expect(within(menu).getByRole('option', { name: /Эмодзи/ })).toBeInTheDocument();
+    expect(
+      within(menu).getByRole('option', { name: /Встроенная база данных/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(menu).getByRole('option', { name: /База данных отдельной страницей/ }),
+    ).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Горизонтальный график/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Вертикальный график/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Кольцевой график/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Линейный график/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Числовой график/ })).toBeInTheDocument();
   });
 
   it('фильтрует команды по запросу', () => {

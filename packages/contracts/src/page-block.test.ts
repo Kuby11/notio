@@ -249,6 +249,7 @@ describe('BlockContentSchema', () => {
         pageId: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
       },
       breadcrumb: { type: 'breadcrumb' },
+      database: { type: 'database', databaseId: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f' },
     };
 
     expect(Object.keys(samples).toSorted()).toEqual([...BLOCK_TYPES].toSorted());

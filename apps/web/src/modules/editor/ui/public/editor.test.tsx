@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import userEvent from '@testing-library/user-event';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Block, BlockContent } from '@notio/contracts';
 import { gatewayStub, renderWithProviders } from '../../../../../test/auth-fixture';
@@ -34,6 +34,8 @@ const TOGGLE_ID = '00000000-0000-4000-8000-000000000109';
 const TABLE_ID = '00000000-0000-4000-8000-000000000111';
 const SUB_PAGE_ID = '00000000-0000-4000-8000-000000000112';
 const SUB_PAGE_BLOCK_ID = '00000000-0000-4000-8000-000000000113';
+const DATABASE_BLOCK_ID = '00000000-0000-4000-8000-000000000114';
+const DATABASE_ID = '00000000-0000-4000-8000-000000000115';
 const FILE_ID = '00000000-0000-4000-8000-000000000110';
 const NOW = '2026-01-01T00:00:00.000Z';
 
@@ -326,11 +328,93 @@ describe('Editor', () => {
       // changes on each keystroke), and EditorState was recreated, killing the menu.
       const menu = await screen.findByRole('listbox', { name: 'Вставить блок' });
 
-      expect(await screen.findAllByRole('option')).toHaveLength(26);
+      expect(await screen.findAllByRole('option')).toHaveLength(33);
       await waitFor(() => expect(menu).toBeInTheDocument());
     } finally {
       document.elementFromPoint = originalElementFromPoint;
     }
+  });
+
+  it('вставляет базу данных из slash-меню и создаёт её строку', async () => {
+    const gateway = gatewayStub();
+    gateway.accessToken.mockResolvedValue('jwt');
+    mockBlockResponse([block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: '' })]);
+
+    // jsdom has no hit-testing: ProseMirror.posAtCoords needs elementFromPoint.
+    const originalElementFromPoint = document.elementFromPoint;
+    document.elementFromPoint = () => document.querySelector('.ProseMirror');
+
+    try {
+      renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+
+      const editable = await screen.findByRole('textbox');
+      const user = userEvent.setup();
+
+      await user.click(editable);
+      await user.type(editable, '/database');
+
+      const menu = await screen.findByRole('listbox', { name: 'Вставить блок' });
+
+      expect(within(menu).getByRole('option', { name: /База данных/ })).toBeInTheDocument();
+
+      await user.keyboard('{Enter}');
+
+      // The database row is created by the editor bridge; the node view renders it.
+      expect(await screen.findByText('Новая база данных')).toBeInTheDocument();
+      expect(document.querySelector('[data-block-type="database"]')).not.toBeNull();
+    } finally {
+      document.elementFromPoint = originalElementFromPoint;
+    }
+  });
+
+  it('вставляет график из slash-меню и открывает его представление', async () => {
+    const gateway = gatewayStub();
+    gateway.accessToken.mockResolvedValue('jwt');
+    mockBlockResponse([block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: '' })]);
+
+    // jsdom has no hit-testing: ProseMirror.posAtCoords needs elementFromPoint.
+    const originalElementFromPoint = document.elementFromPoint;
+    document.elementFromPoint = () => document.querySelector('.ProseMirror');
+
+    try {
+      renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+
+      const editable = await screen.findByRole('textbox');
+      const user = userEvent.setup();
+
+      await user.click(editable);
+      await user.type(editable, '/line');
+
+      const menu = await screen.findByRole('listbox', { name: 'Вставить блок' });
+
+      // fireEvent avoids the editor’s global mousemove bridge, which dispatches
+      // a MouseEvent that jsdom cannot construct after the menu closes.
+      fireEvent.click(within(menu).getByRole('option', { name: /Линейный график/ }));
+
+      // The chart view is selected by viewId on the new database block.
+      expect(await screen.findByRole('button', { name: 'Тип графика' })).toBeInTheDocument();
+      expect(document.querySelector('[data-block-type="database"]')).not.toBeNull();
+    } finally {
+      document.elementFromPoint = originalElementFromPoint;
+    }
+  });
+
+  it('рендерит блок базы данных через модуль databases', async () => {
+    const gateway = gatewayStub();
+    gateway.accessToken.mockResolvedValue('jwt');
+    mockBlockResponse([
+      block(DATABASE_BLOCK_ID, 'a0', {
+        type: 'database',
+        databaseId: DATABASE_ID,
+      }),
+    ]);
+
+    renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway);
+
+    // The module seeds a starter database for the id in test mode.
+    expect(await screen.findByText('Project Tasks')).toBeInTheDocument();
+    expect(screen.getByText('Table')).toBeInTheDocument();
+    expect(document.querySelector(`[data-database-id="${DATABASE_ID}"]`)).not.toBeNull();
   });
 
   it('файловый блок добирает имя и размер через HEAD', async () => {

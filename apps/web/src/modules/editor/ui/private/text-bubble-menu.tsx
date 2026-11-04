@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import type { BlockColorPreset } from '@notio/contracts';
 import { HttpUrlSchema } from '@notio/contracts';
 import type { Editor } from '@tiptap/react';
+import { TextSelection } from '@tiptap/pm/state';
 import { cn } from 'cn';
 import { Bold, Code, Highlighter, Italic, Link2, Palette, Strikethrough } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -119,11 +120,17 @@ export function TextBubbleMenu({ editor }: TextBubbleMenuProps) {
   useEffect(() => {
     const update = () => {
       const { selection } = editor.state;
+      // Only a real text selection gets the formatting menu. A click on an
+      // atomic block (database, image, toggle row) produces a NodeSelection —
+      // it is not empty either, and used to open the menu on every click.
       const selected =
         editor.isEditable &&
+        selection instanceof TextSelection &&
         !selection.empty &&
         !editor.isActive('codeBlock') &&
-        selection.$from.sameParent(selection.$to);
+        selection.$from.sameParent(selection.$to) &&
+        selection.$from.parent.isTextblock &&
+        editor.state.doc.textBetween(selection.from, selection.to, ' ').trim().length > 0;
 
       if (!selected) {
         // Keep the menu while one of its own panels owns the focus.

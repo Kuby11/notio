@@ -22,6 +22,7 @@ import { SlashMenuExtension } from '../ui/private/slash-menu-extension';
 import { EmojiView, FileView, ImageView, VideoView } from '../ui/private/media-views';
 import { EquationBlockView, InlineMathView } from '../ui/private/equation-views';
 import { BreadcrumbView, ColumnsColumnView, PageLinkView } from '../ui/private/structure-views';
+import { DatabaseBlockView, DatabaseLinkView } from '../ui/private/database-view';
 import { subPageBridge } from './sub-page';
 import { replaceTextblockWithDetails } from './toggle-command';
 
@@ -115,6 +116,8 @@ const BLOCK_ROW_TYPES = new Set([
   'equationBlock',
   'pageLink',
   'breadcrumbBlock',
+  'databaseBlock',
+  'databaseLink',
 ]);
 
 function ownsBlockRow(typeName: string, parentTypeName: string | null): boolean {
@@ -212,11 +215,13 @@ const UI_TEXTS: Record<string, Record<string, string>> = {
     page: 'Страница',
     pickPage: 'Выбрать страницу…',
     breadcrumb: 'Хлебные крошки документа',
+    database: 'База данных',
   },
   en: {
     page: 'Page',
     pickPage: 'Pick a page…',
     breadcrumb: 'Document breadcrumbs',
+    database: 'Database',
   },
 };
 
@@ -981,6 +986,106 @@ const PageLinkBlock = Node.create({
 });
 
 /**
+ * Inline database: an atom that renders the databases module's view.
+ *
+ * Only databaseId is stored in attrs: the block does not duplicate the
+ * database schema, and a node without an id is not serialised (see
+ * nodeToContent) until the editor has created the database row.
+ */
+const DatabaseBlock = Node.create({
+  name: 'databaseBlock',
+  group: 'block',
+  atom: true,
+  draggable: true,
+  selectable: true,
+  addAttributes() {
+    return {
+      blockId: blockIdAttribute,
+      databaseId: {
+        default: '',
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-database-id') ?? '',
+        renderHTML: (attributes: Record<string, unknown>) =>
+          typeof attributes['databaseId'] === 'string' && attributes['databaseId'].length > 0
+            ? { 'data-database-id': attributes['databaseId'] }
+            : {},
+      },
+      viewId: {
+        default: '',
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-view-id') ?? '',
+        renderHTML: (attributes: Record<string, unknown>) =>
+          typeof attributes['viewId'] === 'string' && attributes['viewId'].length > 0
+            ? { 'data-view-id': attributes['viewId'] }
+            : {},
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: 'div[data-block-type="database"]' }];
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    const databaseId = typeof node.attrs['databaseId'] === 'string' ? node.attrs['databaseId'] : '';
+    const viewId = typeof node.attrs['viewId'] === 'string' ? node.attrs['viewId'] : '';
+
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, {
+        'data-block-type': 'database',
+        class: 'notio-database',
+        ...(viewId.length > 0 ? { 'data-view-id': viewId } : {}),
+      }),
+      ['span', { class: 'notio-database-label' }, databaseId ? uiText('database') : ''],
+    ];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(DatabaseBlockView);
+  },
+});
+
+/**
+ * Link to a whole-page database: a chip in the page, the database itself
+ * lives on its own route. Only databaseId is stored; the title is fetched
+ * through the database bridge, so renaming the database does not break it.
+ */
+const DatabaseLinkBlock = Node.create({
+  name: 'databaseLink',
+  group: 'block',
+  atom: true,
+  draggable: true,
+  selectable: true,
+  addAttributes() {
+    return {
+      blockId: blockIdAttribute,
+      databaseId: {
+        default: '',
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-database-id') ?? '',
+        renderHTML: (attributes: Record<string, unknown>) =>
+          typeof attributes['databaseId'] === 'string' && attributes['databaseId'].length > 0
+            ? { 'data-database-id': attributes['databaseId'] }
+            : {},
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: 'a[data-block-type="databaseLink"]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'a',
+      mergeAttributes(HTMLAttributes, {
+        'data-block-type': 'databaseLink',
+        class: 'notio-page-link',
+        role: 'link',
+        'aria-label': uiText('database'),
+      }),
+      ['span', { class: 'notio-page-title' }, uiText('database')],
+    ];
+  },
+  addNodeView() {
+    return editableReactNodeView(DatabaseLinkView);
+  },
+});
+
+/**
  * Breadcrumbs of the current page: an atom without content, the path is
  * computed by the node view through the pages bridge.
  */
@@ -1379,6 +1484,8 @@ export const editorExtensions = [
   EquationBlock,
   InlineMath,
   PageLinkBlock,
+  DatabaseBlock,
+  DatabaseLinkBlock,
   BreadcrumbBlock,
   QuoteInput,
   ToggleInput,

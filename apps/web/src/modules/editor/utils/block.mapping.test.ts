@@ -468,6 +468,57 @@ describe('blocksToEditorDocument', () => {
     );
   });
 
+  it('переносит блок базы данных в обе стороны', () => {
+    const database = block('b1', {
+      type: 'database',
+      databaseId: '00000000-0000-4000-8000-000000000020',
+    });
+
+    const document = blocksToEditorDocument([database]);
+
+    expect(document.content[0]).toEqual({
+      type: 'databaseBlock',
+      attrs: { blockId: 'b1', databaseId: '00000000-0000-4000-8000-000000000020' },
+    });
+    expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: database.content }]);
+  });
+
+  it('сохраняет выбранное представление блока базы данных', () => {
+    const database = block('b1', {
+      type: 'database',
+      databaseId: '00000000-0000-4000-8000-000000000020',
+      viewId: '00000000-0000-4000-8000-000000000021',
+    });
+
+    const document = blocksToEditorDocument([database]);
+
+    expect(document.content[0]).toEqual({
+      type: 'databaseBlock',
+      attrs: {
+        blockId: 'b1',
+        databaseId: '00000000-0000-4000-8000-000000000020',
+        viewId: '00000000-0000-4000-8000-000000000021',
+      },
+    });
+    expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: database.content }]);
+  });
+
+  it('переносит ссылку на базу данных-страницу в обе стороны', () => {
+    const database = block('b1', {
+      type: 'database',
+      databaseId: '00000000-0000-4000-8000-000000000020',
+      display: 'page',
+    });
+
+    const document = blocksToEditorDocument([database]);
+
+    expect(document.content[0]).toEqual({
+      type: 'databaseLink',
+      attrs: { blockId: 'b1', databaseId: '00000000-0000-4000-8000-000000000020' },
+    });
+    expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: database.content }]);
+  });
+
   it('рендерит ссылку на подстраницу с данными страницы', () => {
     const pageId = '00000000-0000-4000-8000-000000000013';
     const subPage = block('b1', {
@@ -553,6 +604,15 @@ describe('editorDocumentToBlocks', () => {
     const document: EditorDocument = {
       type: 'doc',
       content: [{ type: 'image', attrs: { blockId: 'b1' } }],
+    };
+
+    expect(editorDocumentToBlocks(document)).toEqual([]);
+  });
+
+  it('не сохраняет блок базы данных без id — база ещё создаётся', () => {
+    const document: EditorDocument = {
+      type: 'doc',
+      content: [{ type: 'databaseBlock', attrs: { blockId: 'b1', databaseId: '' } }],
     };
 
     expect(editorDocumentToBlocks(document)).toEqual([]);

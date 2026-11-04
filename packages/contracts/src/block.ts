@@ -25,6 +25,7 @@ export const BLOCK_TYPES = [
   'equation',
   'linkToPage',
   'breadcrumb',
+  'database',
 ] as const;
 
 export type BlockType = (typeof BLOCK_TYPES)[number];
@@ -317,6 +318,27 @@ export interface BreadcrumbBlockContent {
   type: 'breadcrumb';
 }
 
+/**
+ * Inline database: the block only references a `databases` row, which owns the
+ * properties, views and rows. Keeping just the id lets the same database render
+ * in several blocks and keeps inline databases independent of block content.
+ */
+export interface DatabaseBlockContent {
+  type: 'database';
+  databaseId: string;
+  /**
+   * Inline renders the database in the page; page renders a link to the
+   * whole-page database. Missing means inline (older blocks).
+   */
+  display?: 'inline' | 'page';
+  /**
+   * Optional view to open for an inline block. Used by chart blocks inserted
+   * from the slash menu so the page shows the requested chart instead of the
+   * database's default table. Missing means the database default.
+   */
+  viewId?: string;
+}
+
 export type BlockContent =
   | ParagraphBlockContent
   | HeadingBlockContent
@@ -336,7 +358,8 @@ export type BlockContent =
   | ColumnsBlockContent
   | EquationBlockContent
   | LinkToPageBlockContent
-  | BreadcrumbBlockContent;
+  | BreadcrumbBlockContent
+  | DatabaseBlockContent;
 
 /**
  * Media blocks (image/video/file) must have a source: an uploaded file
@@ -458,6 +481,12 @@ const BlockContentSchemaImpl: z.ZodType<BlockContent> = z
         pageId: IdSchema,
       }),
       z.strictObject({ type: z.literal('breadcrumb') }),
+      z.strictObject({
+        type: z.literal('database'),
+        databaseId: IdSchema,
+        display: z.enum(['inline', 'page']).optional(),
+        viewId: IdSchema.optional(),
+      }),
     ]),
   )
   .superRefine((value, ctx) => {

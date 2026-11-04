@@ -36,7 +36,10 @@ export function applySlashCommand(
     command.kind === 'equation' ||
     command.kind === 'inlineEquation' ||
     command.kind === 'linkToPage' ||
-    command.kind === 'breadcrumb';
+    command.kind === 'breadcrumb' ||
+    command.kind === 'database' ||
+    command.kind === 'databasePage' ||
+    command.kind === 'chart';
 
   if (leavesList) {
     if (editor.isActive('taskItem')) {
@@ -112,6 +115,11 @@ export function applySlashCommand(
       chain.insertContent({ type: 'breadcrumbBlock' });
       break;
     case 'page':
+    case 'database':
+    case 'databasePage':
+    case 'chart':
+      // Created asynchronously: the node is inserted by utils/sub-page and
+      // utils/database-block once the service responds.
       break;
   }
 

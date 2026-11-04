@@ -2,6 +2,7 @@ import { newId } from '@notio/contracts';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { TextSelection } from '@tiptap/pm/state';
 import type { Editor } from '@tiptap/react';
+import { insertAtomicAtSlash, insertAtomicBelow } from './atomic-block';
 import type { EditorBlockLocation } from './block-insert';
 import type { SlashRange } from './slash';
 
@@ -48,31 +49,11 @@ export function subPageBridge(editor: object): SubPageBridge {
   return bridges.get(editor) ?? NOOP_BRIDGE;
 }
 
-const LIST_WRAPPER_TYPES = new Set(['bulletList', 'orderedList', 'taskList']);
-
 function createSubPageNode(editor: Editor): ProseMirrorNode | null {
   const type = editor.state.schema.nodes['subPage'];
 
   // Свой blockId нужен, чтобы найти узел после асинхронного ответа сервиса.
   return type?.create({ blockId: newId() }) ?? null;
-}
-
-function insertNodes(
-  editor: Editor,
-  position: number,
-  nodes: ProseMirrorNode[],
-  focusTextblock: boolean,
-): void {
-  const transaction = editor.state.tr.insert(position, nodes);
-
-  if (focusTextblock) {
-    const paragraphPosition = position + (nodes[0]?.nodeSize ?? 0) + 1;
-
-    transaction.setSelection(TextSelection.near(transaction.doc.resolve(paragraphPosition)));
-  }
-
-  editor.view.dispatch(transaction.scrollIntoView());
-  editor.commands.focus();
 }
 
 /**
@@ -83,59 +64,10 @@ function insertNodes(
  * узел оказался бы внутри listItem и потерялся при сериализации.
  */
 export async function insertSubPageAtSlash(editor: Editor, range: SlashRange): Promise<boolean> {
-  const chain = editor.chain().focus().deleteRange(range);
-
-  if (editor.isActive('taskItem')) {
-    chain.liftListItem('taskItem');
-  } else if (editor.isActive('listItem')) {
-    chain.liftListItem('listItem');
-  }
-
-  chain.run();
-
-  const { selection } = editor.state;
   const node = createSubPageNode(editor);
-  const paragraph = editor.state.schema.nodes['paragraph'];
 
-  if (!node || !paragraph || selection.$from.depth < 1) {
+  if (!node || !insertAtomicAtSlash(editor, range, node)) {
     return false;
-  }
-
-  const $from = selection.$from;
-
-  let depth = $from.depth;
-
-  while (depth > 1 && !$from.node(depth).isTextblock) {
-    depth -= 1;
-  }
-
-  const textblock = $from.node(depth);
-  const parent = $from.node(depth - 1);
-  const parentTypeName = parent.type.name;
-  const escapesToTopLevel =
-    parentTypeName === 'details' ||
-    parentTypeName === 'listItem' ||
-    parentTypeName === 'taskItem' ||
-    depth !== $from.depth;
-
-  if (escapesToTopLevel) {
-    // Верхнеуровневый блок под курсором: вставка после него целиком.
-    const topLevel = $from.node(1);
-
-    insertNodes(editor, $from.before(1) + topLevel.nodeSize, [node, paragraph.create()], true);
-  } else if (textblock.type.name === 'paragraph' && textblock.textContent.length === 0) {
-    const start = $from.before(depth);
-    const transaction = editor.state.tr.replaceWith(start, $from.after(depth), [
-      node,
-      paragraph.create(),
-    ]);
-    const cursor = start + node.nodeSize + 1;
-
-    transaction.setSelection(TextSelection.near(transaction.doc.resolve(cursor)));
-    editor.view.dispatch(transaction.scrollIntoView());
-    editor.commands.focus();
-  } else {
-    insertNodes(editor, $from.after(depth), [node, paragraph.create()], true);
   }
 
   return linkCreatedPage(editor, blockIdOf(node));
@@ -147,18 +79,10 @@ export async function insertSubPageBelow(
   source: EditorBlockLocation,
 ): Promise<boolean> {
   const node = createSubPageNode(editor);
-  const paragraph = editor.state.schema.nodes['paragraph'];
 
-  if (!node || !paragraph) {
+  if (!node || !insertAtomicBelow(editor, source, node)) {
     return false;
   }
-
-  // Из списка узел выходит наружу — после всего списка.
-  const position = LIST_WRAPPER_TYPES.has(source.parent.type.name)
-    ? source.parentPos + source.parent.nodeSize
-    : source.pos + source.node.nodeSize;
-
-  insertNodes(editor, position, [node, paragraph.create()], true);
 
   return linkCreatedPage(editor, blockIdOf(node));
 }

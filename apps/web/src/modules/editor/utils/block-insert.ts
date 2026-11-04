@@ -156,6 +156,11 @@ function createBlockNode(command: SlashCommand, schema: Schema): ProseMirrorNode
     case 'page':
       // A sub-page is inserted asynchronously after the page is created.
       return null;
+    case 'database':
+    case 'databasePage':
+    case 'chart':
+      // A database is inserted asynchronously after the row is created.
+      return null;
   }
 }
 
