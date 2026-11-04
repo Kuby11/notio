@@ -50,7 +50,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx,mts,cts}": [
-      "oxlint --fix",
+      "oxlint --fix --no-error-on-unmatched-pattern",
       "oxfmt"
     ],
     "*.{js,mjs,cjs,json,jsonc}": [

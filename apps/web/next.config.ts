@@ -1,6 +1,3 @@
-import path from 'node:path';
-import type { NextConfig } from 'next';
-
 const DEFAULT_GATEWAY_URL = 'http://localhost:8787';
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -20,8 +17,8 @@ function gatewayOrigin(): string {
 /**
  * Baseline CSP.
  *
- * `script-src` still needs `'unsafe-inline'`: Next inlines its hydration
- * bootstrap and the theme script, and a nonce-based policy requires a
+ * `script-src` still needs `'unsafe-inline'`: the framework inlines its
+ * hydration bootstrap and the theme script, and a nonce-based policy requires
  * middleware that rewrites every response. That is the remaining gap; every
  * other directive is restrictive, and `eval` is allowed only in development
  * where React Refresh needs it.
@@ -61,27 +58,16 @@ const securityHeaders = [
     : [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' }]),
 ];
 
-const nextConfig: NextConfig = {
+/**
+ * Consumed by vinext at dev/build time: it reuses the `headers()` hook,
+ * `transpilePackages` and `poweredByHeader` from the Next config format.
+ */
+const nextConfig = {
   reactStrictMode: true,
-  typedRoutes: true,
   transpilePackages: ['@notio/contracts'],
   poweredByHeader: false,
-  turbopack: {
-    resolveAlias: {
-      'next-intl/config': './src/i18n/request.ts',
-    },
-  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
-  },
-  webpack(config) {
-    config.resolve = config.resolve ?? {};
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'next-intl/config': path.resolve('src/i18n/request.ts'),
-    };
-
-    return config;
   },
 };
 

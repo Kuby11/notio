@@ -24,3 +24,7 @@ allowBuilds:
   '@tailwindcss/oxide': true
   '@prisma/client': true
   better-sqlite3: true
+  # Native watcher/SWC builds are optional: both ship prebuilt binaries via
+  # optional dependencies, and their postinstall scripts are unnecessary here.
+  '@parcel/watcher': false
+  '@swc/core': false
