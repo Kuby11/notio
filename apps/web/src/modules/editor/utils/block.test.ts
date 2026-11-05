@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BLOCK_TYPES, type Block } from '@notio/contracts';
 import {
+  blockIdFromAttrs,
   richToPlain,
   blockToText,
   canMoveBlock,
@@ -113,6 +114,80 @@ describe('blockToText / contentToText', () => {
 
     expect(contentToText(divider.content)).toBe('');
     expect(blockToText(divider)).toBe('');
+  });
+});
+
+describe('default definitions coverage', () => {
+  it('creates every contract type and produces preview text', () => {
+    for (const type of BLOCK_TYPES) {
+      const content = createEmptyBlock(type);
+      const value = blockToText(block(`id-${type}`, type, content));
+
+      expect({ type, value: typeof value }).toEqual({ type, value: 'string' });
+    }
+  });
+
+  it('returns an empty preview when a definition gets another content type', () => {
+    for (const type of BLOCK_TYPES) {
+      const value = blockToText(
+        block(`id-${type}`, type, { type: 'paragraph', content: '' } as never),
+      );
+
+      expect({ type, value }).toEqual({ type, value: '' });
+    }
+  });
+
+  it('renders table, columns and toggle preview text', () => {
+    expect(
+      blockToText(
+        block('b1', 'table', {
+          type: 'table',
+          headerRow: true,
+          rows: [
+            ['a', 'b'],
+            ['c', 'd'],
+          ],
+        }),
+      ),
+    ).toBe('a\tb\nc\td');
+
+    expect(
+      blockToText(
+        block('b2', 'columns', {
+          type: 'columns',
+          columns: [{ children: [{ type: 'paragraph', content: 'Left' }] }, { children: [] }, {}],
+        }),
+      ),
+    ).toBe('Left\n\n');
+
+    expect(
+      contentToText({
+        type: 'toggle',
+        content: 'Head',
+        children: [
+          { type: 'paragraph', content: '' },
+          { type: 'paragraph', content: 'Body' },
+          { type: 'toggle', content: 'Nested' },
+        ],
+      }),
+    ).toBe('Head\nBody\nNested');
+  });
+
+  it('rejects an unregistered type', () => {
+    expect(() => createEmptyBlock('unknown' as never)).toThrow(/не зарегистрирован/);
+    expect(getBlockDefinition('unknown' as never)).toBeUndefined();
+  });
+
+  it('reads block ids only from non-empty strings', () => {
+    expect(blockIdFromAttrs({ blockId: 'b1' })).toBe('b1');
+    expect(blockIdFromAttrs({ blockId: '' })).toBeUndefined();
+    expect(blockIdFromAttrs({ blockId: 42 })).toBeUndefined();
+    expect(blockIdFromAttrs(undefined)).toBeUndefined();
+  });
+
+  it('flattens rich text with formulas', () => {
+    expect(richToPlain('plain')).toBe('plain');
+    expect(richToPlain([{ text: 'a' }, { math: 'x^2' }, { text: 'b' }])).toBe('ax^2b');
   });
 });
 

@@ -31,7 +31,14 @@
     "db:migrate:workspace": "wrangler d1 migrations apply notio-workspace --local --persist-to .wrangler/state --config services/workspace-service/wrangler.jsonc",
     "db:migrate": "pnpm run db:migrate:pages && pnpm run db:migrate:auth && pnpm run db:migrate:workspace",
     "db:seed:pages": "wrangler d1 execute notio-pages --local --persist-to .wrangler/state --config services/pages-service/wrangler.jsonc --file=./services/pages-service/db/seed.sql",
-    "db:seed:workspace": "wrangler d1 execute notio-workspace --local --persist-to .wrangler/state --config services/workspace-service/wrangler.jsonc --file=./services/workspace-service/db/seed.sql"
+    "db:seed:workspace": "wrangler d1 execute notio-workspace --local --persist-to .wrangler/state --config services/workspace-service/wrangler.jsonc --file=./services/workspace-service/db/seed.sql",
+    "deploy:auth": "pnpm --filter ./services/auth-service run deploy",
+    "deploy:gateway": "pnpm --filter ./services/gateway run deploy",
+    "deploy:pages": "pnpm --filter ./services/pages-service run deploy",
+    "deploy:workspace": "pnpm --filter ./services/workspace-service run deploy",
+    "deploy:media": "pnpm --filter ./services/media-service run deploy",
+    "deploy:frontend": "pnpm --filter ./apps/web run deploy",
+    "deploy:all": "pnpm run deploy:auth && pnpm run deploy:gateway && pnpm run deploy:pages && pnpm run deploy:workspace && pnpm run deploy:media && pnpm run deploy:frontend"
   },
   "devDependencies": {
     "@better-auth/cli": "1.4.21",
