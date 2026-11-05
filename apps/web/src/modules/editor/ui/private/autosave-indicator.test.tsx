@@ -25,7 +25,7 @@ describe('AutosaveIndicator', () => {
     expect(screen.queryByRole('status')).toBeNull();
 
     rerender(
-      <NextIntlClientProvider locale="ru" messages={TEST_MESSAGES}>
+      <NextIntlClientProvider locale="en" messages={TEST_MESSAGES}>
         <AutosaveIndicator status="saved" />
       </NextIntlClientProvider>,
     );

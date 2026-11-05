@@ -61,7 +61,7 @@ describe('SlashMenu', () => {
     );
 
     rerender(
-      <NextIntlClientProvider locale="ru" messages={TEST_MESSAGES}>
+      <NextIntlClientProvider locale="en" messages={TEST_MESSAGES}>
         <SlashMenu query="h1" onSelect={selectMock()} onClose={closeMock()} />
       </NextIntlClientProvider>,
     );

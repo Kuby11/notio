@@ -12,9 +12,7 @@ import type {
   SignUpInput,
 } from '../src/modules/auth';
 
-/**
- * Shared fixtures for component tests.
- *
+/** Shared fixtures for component tests.
  * Network and container are replaced, while forms and hooks are real:
  * the test checks user behaviour, not a mock.
  */
@@ -73,8 +71,7 @@ export function sessionOf(session: AuthSession | null): Mock<SessionGetter> {
   return vi.fn<SessionGetter>(async () => session);
 }
 
-/**
- * Renders a component inside the query and dependency-injection providers.
+/** Renders a component inside the query and dependency-injection providers.
  * Retries are off: tests wait for a specific outcome, not "try again".
  */
 /** Test messages: a compact subset needed by the rendered UI. */
@@ -193,14 +190,14 @@ export const TEST_MESSAGES = {
       emailExists: 'Аккаунт с такой почтой уже существует',
       signInFailed: 'Не удалось выполнить вход. Попробуйте снова',
       serviceUnavailable: 'Сервис недоступен. Проверьте соединение',
-      verifyEmail: 'Подтвердите почту по ссылке из письма',
       checkSessionFailed: 'Не удалось проверить сессию',
+      verifyEmail: 'Подтвердите почту по ссылке из письма',
       signupSent: 'Мы отправили ссылку',
+      goToSignIn: 'Перейти ко входу',
+      signInWithProvider: 'Войти через {provider}',
+      signUpWithProvider: 'Зарегистрироваться через {provider}',
       INVALID_CREDENTIALS: 'Неверная почта или пароль',
-      EMAIL_NOT_VERIFIED: 'Подтвердите почту по ссылке из письма',
-      EMAIL_TAKEN: 'Аккаунт с такой почтой уже существует',
       WEAK_PASSWORD: 'Пароль слишком короткий или длинный',
-      INVALID_EMAIL: 'Почта выглядит некорректно',
       RATE_LIMITED: 'Слишком много попыток. Попробуйте позже',
       NETWORK_ERROR: 'Сервис недоступен. Проверьте соединение',
       UNKNOWN: 'Не удалось выполнить вход. Попробуйте снова',
@@ -357,7 +354,6 @@ export const TEST_MESSAGES = {
       empty: 'Пока нет данных',
       chartType: 'Тип графика',
       settings: 'Настройки графика',
-      viewSettings: 'Настройки представления',
       settingsDescription: 'Настройте отображение графика.',
       chart: 'График',
       xAxis: 'Ось X',
@@ -378,7 +374,7 @@ export const TEST_MESSAGES = {
       filter: 'Фильтр',
       noFilters: 'Без фильтров',
       copyLink: 'Скопировать ссылку',
-      copied: 'Скопировано',
+      copied: 'Скопчено',
       total: 'Всего',
       sortCountDesc: 'По количеству: больше → меньше',
       sortCountAsc: 'По количеству: меньше → больше',
@@ -710,7 +706,7 @@ export const TEST_MESSAGES = {
 
 export function renderWithIntl(ui: ReactElement) {
   return render(
-    <NextIntlClientProvider locale="ru" messages={TEST_MESSAGES}>
+    <NextIntlClientProvider locale="en" messages={TEST_MESSAGES}>
       {ui}
     </NextIntlClientProvider>,
   );
@@ -726,7 +722,7 @@ export function renderWithProviders(
   });
 
   return render(
-    <NextIntlClientProvider locale="ru" messages={TEST_MESSAGES}>
+    <NextIntlClientProvider locale="en" messages={TEST_MESSAGES}>
       <QueryClientProvider client={queryClient}>
         <ContainerProvider container={createContainer(gateway, overrides)}>{ui}</ContainerProvider>
       </QueryClientProvider>

@@ -7,7 +7,7 @@ import { CONFIRM_COUNTDOWN_SECONDS, ConfirmPhraseDialog } from './confirm-phrase
 
 function renderDialog(onConfirm: () => void) {
   render(
-    <NextIntlClientProvider locale="ru" messages={TEST_MESSAGES}>
+    <NextIntlClientProvider locale="en" messages={TEST_MESSAGES}>
       <ConfirmPhraseDialog
         open
         title="Удалить «Проект»?"
