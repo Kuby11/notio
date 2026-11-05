@@ -198,6 +198,24 @@ describe('регистрация и вход', () => {
     expect(second.status).toBe(409);
   });
 
+  it('пропускает проверку занятости, если почты в теле нет', async () => {
+    const mail: OutboundMail[] = [];
+    const app = createTestApp(mail);
+
+    const noEmail = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, {
+      body: { password: 'correct-horse-battery' },
+      method: 'POST',
+    });
+    const nonStringEmail = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, {
+      body: { email: 42, password: 'correct-horse-battery' },
+    });
+
+    // Both fall through to Better Auth, which rejects the payload itself; the
+    // point is that the availability check does not crash or answer 409.
+    expect(noEmail.status).toBe(400);
+    expect(nonStringEmail.status).toBe(400);
+  });
+
   it('не создаёт сессию до подтверждения почты', async () => {
     const { app, email } = await signUp('unverified');
 

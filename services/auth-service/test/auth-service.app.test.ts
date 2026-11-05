@@ -51,6 +51,15 @@ describe('createAuthServiceApp', () => {
     expect(await response.json()).toEqual({ items: [] });
   });
 
+  it('отдаёт пустой список, когда параметр ids отсутствует', async () => {
+    const { createAuthServiceApp } = await import('../src/app');
+
+    const response = await createAuthServiceApp().request('/internal/users', {}, env);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ items: [] });
+  });
+
   it('не выдаёт детали сбоя наружу, а логирует их', async () => {
     const { createAuthServiceApp } = await import('../src/app');
     const errors: unknown[] = [];
@@ -160,5 +169,26 @@ describe('вторичное хранилище на KV', () => {
     await storage.delete('temporary');
 
     expect(await namespace.get('auth:temporary')).toBeNull();
+  });
+
+  it('ставит значение без явного TTL', async () => {
+    const namespace = env.RATE_LIMIT;
+    const storage = createKvSecondaryStorage(namespace);
+
+    await storage.set('no-ttl', 'payload');
+
+    expect(await namespace.get('auth:no-ttl')).toBe('payload');
+    await namespace.delete('auth:no-ttl');
+  });
+
+  it('начинает счётчик с единицы, если в хранилище лежит мусор', async () => {
+    const namespace = env.RATE_LIMIT;
+    const storage = createKvSecondaryStorage(namespace);
+
+    await namespace.put('auth:broken-counter', 'not-a-number');
+
+    expect(await storage.increment('broken-counter', 60)).toBe(1);
+
+    await namespace.delete('auth:broken-counter');
   });
 });

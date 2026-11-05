@@ -70,6 +70,22 @@ describe('buildAuthOptions', () => {
     expect(options.trustedOrigins).toEqual(['http://localhost:8787']);
   });
 
+  it('работает без переменных лимитов и списка origin', () => {
+    const options = buildAuthOptions(
+      {
+        ...env,
+        TRUSTED_ORIGINS: undefined,
+        RATE_LIMIT_MAX_REQUESTS: undefined,
+        RATE_LIMIT_WINDOW_SECONDS: undefined,
+      },
+      deps(),
+    );
+
+    expect(options.trustedOrigins).toEqual(['http://localhost:8787']);
+    expect(options.rateLimit?.max).toBe(20);
+    expect(options.rateLimit?.window).toBe(60);
+  });
+
   it('берёт лимиты из окружения, а при мусоре — из значений по умолчанию', () => {
     const configured = buildAuthOptions(
       { ...env, RATE_LIMIT_MAX_REQUESTS: '5', RATE_LIMIT_WINDOW_SECONDS: '30' },
@@ -150,6 +166,10 @@ describe('buildAuthOptions', () => {
 describe('createAuth', () => {
   it('переиспользует экземпляр для одного и того же окружения', () => {
     expect(createAuth(env)).toBe(createAuth(env));
+  });
+
+  it('подставляет адрес фронтенда по умолчанию, если он не задан', () => {
+    expect(() => createAuth({ ...env, FRONTEND_URL: undefined })).not.toThrow();
   });
 
   it('собирает отдельный экземпляр при подмене зависимостей', () => {
