@@ -1,67 +1,67 @@
-# ADR 0009. Фронтенд аутентификации: слои, DI и доступ к API по JWT
+# ADR 0009. Frontend authentication: layers, DI and JWT-based API access
 
-- **Статус:** принято (структура каталогов заменена ADR 0010; решения про сессию, ошибки и proxy в силе)
-- **Дата:** 2026-10-18
+- **Status:** accepted (the directory structure was replaced by ADR 0010; the decisions about the
+  session, errors and proxy still stand)
+- **Date:** 2026-10-18
 
-## Контекст
+## Context
 
-`.agents/AGENTS.md` задаёт слоистость фронтенда: domain → application → adapters → ui,
-сборка зависимостей в `core/container.ts`, серверное состояние в TanStack Query,
-токены не хранятся в браузере. Для аутентификации это означает, что компоненты формы
-не должны знать ни про Better Auth, ни про коды его ошибок, а страницы не должны
-сами решать, что показывать при 401.
+`.agents/AGENTS.md` defines the frontend layering: domain → application → adapters → ui, dependency
+assembly in `core/container.ts`, server state in TanStack Query, tokens never stored in the
+browser. For authentication this means form components must know neither Better Auth nor its error
+codes, and pages must not decide on their own what to show on a 401.
 
-Дополнительно: в Next.js 16 файл `middleware.ts` переименован в `proxy.ts`
-(конвенция устарела), поэтому защита маршрутов описана заново.
+Additionally: in Next.js 16 `middleware.ts` was renamed to `proxy.ts` (the convention is
+deprecated), so route protection is described anew.
 
-## Решение
+## Decision
 
-### Фича `features/auth`
+### The `features/auth` feature
 
-| Слой | Что лежит | Пример |
+| Layer | Contents | Example |
 |---|---|---|
-| domain | правила и ошибки, чистый TS | `credentials.ts`, `errors.ts` |
-| application | порты и сценарии | `ports.ts`, `sign-in.ts`, `sign-up.ts`, `sign-out.ts`, `current-session.ts`, `access-token.ts` |
-| adapters | Better Auth + Zod + перевод ошибок | `auth.gateway.api.ts`, `auth.dto.ts`, `auth.error-mapper.ts` |
-| ui | хуки Query и формы | `use-auth.ts`, `login-form.tsx`, `register-form.tsx`, `session-panel.tsx` |
+| domain | rules and errors, pure TS | `credentials.ts`, `errors.ts` |
+| application | ports and use cases | `ports.ts`, `sign-in.ts`, `sign-up.ts`, `sign-out.ts`, `current-session.ts`, `access-token.ts` |
+| adapters | Better Auth + Zod + error translation | `auth.gateway.api.ts`, `auth.dto.ts`, `auth.error-mapper.ts` |
+| ui | Query hooks and forms | `use-auth.ts`, `login-form.tsx`, `register-form.tsx`, `session-panel.tsx` |
 
-Публичный API фичи — `features/auth/index.ts`: наружу отдаются use cases и формы,
-порты и адаптеры остаются внутренними. Компоненты получают готовые сценарии через
-`useContainer()`; прямых импортов адаптеров в компонентах нет.
+The feature's public API is `features/auth/index.ts`: use cases and forms are exported, while ports
+and adapters stay internal. Components get ready-made use cases through `useContainer()`; there are
+no direct adapter imports in components.
 
-### Сессия — TanStack Query, не Zustand
+### Session in TanStack Query, not Zustand
 
-Данные о сессии приходят с сервера и меняются по событию «вышел/вошёл», поэтому
-живут в `useSession()` с фабрикой ключей `authKeys.session()`. Zustand хранит только
-UI-состояние (открытые панели, выделение). Токен не попадает ни в один стор:
-он берётся из use case непосредственно перед запросом.
+Session data comes from the server and changes on "signed out/signed in" events, so it lives in
+`useSession()` with the `authKeys.session()` key factory. Zustand holds only UI state (open panels,
+selection). The token never enters any store: it is taken from the use case immediately before a
+request.
 
-### Ошибки — по коду, а не по тексту
+### Errors by code, not by text
 
-`auth.error-mapper.ts` переводит коды Better Auth (`INVALID_EMAIL_OR_PASSWORD`,
-`EMAIL_NOT_VERIFIED`, `PASSWORD_TOO_SHORT`, …) в доменные коды
-(`INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, …) с русскими текстами. Неизвестный код
-становится `UNKNOWN` с понятным сообщением, а не проглатывается: молча проглоченная
-ошибка входа выглядит как «ничего не произошло».
+`auth.error-mapper.ts` maps Better Auth codes (`INVALID_EMAIL_OR_PASSWORD`, `EMAIL_NOT_VERIFIED`,
+`PASSWORD_TOO_SHORT`, …) to domain codes (`INVALID_CREDENTIALS`, `EMAIL_NOT_VERIFIED`, …) with
+translated messages. An unknown code becomes `UNKNOWN` with a clear message rather than being
+swallowed: a silently swallowed sign-in error looks like "nothing happened".
 
-### Защита маршрутов — `src/proxy.ts`
+### Route protection — `src/proxy.ts`
 
-Proxy проверяет только наличие cookie `notio.session_token` и перенаправляет на
-`/login?next=…`. Это UX, а не защита: настоящая проверка подписи и прав выполняется
-на gateway. Скрыть страницу недостаточно — сервер всё равно не отдаст данные.
+The proxy only checks for the presence of the `notio.session_token` cookie and redirects to
+`/login?next=…`. This is UX, not protection: the actual signature and permission check happens at
+the gateway. Hiding the page is not enough — the server still will not return data.
 
-## Альтернативы
+## Alternatives
 
-- **Хранить JWT в Zustand/localStorage.** Отброшено: токен доступен скриптам страницы.
-- **Хранить сессию в Zustand.** Отброшено: серверное состояние в UI-сторе рассинхронизируется.
-- **Проверять JWT в proxy.** Отброшено: proxy должен решать быстро и без похода в сеть;
-  проверка подписи живёт в gateway, где есть JWKS.
-- **Отдавать коды ошибок Better Auth прямо в UI.** Отброшено: привязывает компоненты к сервису.
+- **Storing the JWT in Zustand/localStorage.** Rejected: the token is reachable by page scripts.
+- **Storing the session in Zustand.** Rejected: server state in a UI store becomes desynchronised.
+- **Verifying the JWT in the proxy.** Rejected: the proxy must decide quickly and without network
+  access; signature verification lives in the gateway, where JWKS is available.
+- **Passing Better Auth error codes straight to the UI.** Rejected: couples components to the
+  service.
 
-## Последствия
+## Consequences
 
-- `apps/web` проверяется обычным `tsc --noEmit`: пакет `next` больше не установлен,
-  объявления `next/*` и типы роутов поставляются vinext (см. ADR 0027).
-- UI покрыт компонентными тестами (Testing Library + jsdom): формы входа и регистрации
-  и панель сессии проверяются через поведение пользователя, сеть и контейнер подменены.
-  Покрытие считается по всем четырём слоям, включая `ui`.
+- `apps/web` is checked with plain `tsc --noEmit`: the `next` package is no longer installed, and
+  `next/*` declarations and route types are provided by vinext (see ADR 0027).
+- The UI is covered by component tests (Testing Library + jsdom): the sign-in, sign-up and session
+  panel are tested through user behaviour, with the network and container stubbed. Coverage is
+  measured across all four layers, including `ui`.

@@ -1,70 +1,66 @@
-# ADR 0007. Сквозная инфраструктура gateway: request-id, CORS, rate limit, логи
+# ADR 0007. Gateway cross-cutting infrastructure: request-id, CORS, rate limit, logs
 
-- **Статус:** принято
-- **Дата:** 2026-10-18
+- **Status:** accepted
+- **Date:** 2026-10-18
 
-## Контекст
+## Context
 
-Gateway — единственная публичная точка входа. Что бы он ни делал, он обязан выполнять
-сквозные правила одинаково для всех маршрутов: идентифицировать запрос для логов,
-не пускать чужие origin, ограничивать частоту запросов и не отдавать лишние заголовки.
-Позже сюда добавится проверка JWT (Этап 2).
+The gateway is the only public entry point. Whatever it does, it must apply cross-cutting rules
+identically to every route: identify the request for logs, reject foreign origins, limit request
+rate and not leak extra headers. JWT verification was added here later (Stage 2).
 
-## Решение
+## Decision
 
-Порядок middleware в `services/gateway/src/app.ts`:
+Middleware order in `services/gateway/src/app.ts`:
 
-1. **request-id** — принимает корректный входящий `x-request-id` или генерирует UUID.
-2. **config** — разбирает vars текущего запроса (Zod), при ошибке падает, а не
-   молча ослабляет защиту.
-3. **security-headers** — CSP, `nosniff`, `X-Frame-Options`, `Referrer-Policy`,
-   HSTS только на https.
-4. **CORS** — allowlist из `CORS_ALLOWED_ORIGINS`, `Vary: Origin`, префлайт 204/403.
-5. **rate limit** — только для `/api/*`, счётчик в KV, окно фиксированное.
-6. **логирование** — JSON-строка на запрос: метод, путь, статус, длительность.
-7. **проксирование** — маршруты сервисов.
+1. **request-id** — accepts a valid incoming `x-request-id` or generates a UUID.
+2. **config** — parses the current request's vars (Zod); on error it fails instead of silently
+   weakening protection.
+3. **security-headers** — CSP, `nosniff`, `X-Frame-Options`, `Referrer-Policy`, HSTS only over
+   https.
+4. **CORS** — allowlist from `CORS_ALLOWED_ORIGINS`, `Vary: Origin`, preflight 204/403.
+5. **rate limit** — `/api/*` only, counter in KV, fixed window.
+6. **logging** — one JSON line per request: method, path, status, duration.
+7. **proxying** — service routes.
 
-### Ключевые детали
+### Key details
 
-- **Внутренние заголовки gateway перезаписывает, а не пересылает.** Клиентский
-  `x-user-id`, `x-request-id` и `x-notio-source` отбрасываются; сервис получает
-  то, что решил сам gateway. Иначе любой, кто достучался до gateway, объявил бы себя
-  другим пользователем.
-- **request-id валидируется по шаблону** `[A-Za-z0-9_-]{1,64}`: иначе через заголовок
-  можно подмешать мусор в логи.
-- **Rate limit по IP из `cf-connecting-ip`**, а не из заголовков клиента; лимит не
-  применяется к `/health`, иначе мониторинг сам себя заблокирует.
-- **Заголовки ставятся после `next()` прямо в `c.res.headers`**: часть маршрутов
-  возвращает готовый `Response` (прокси), и заголовки, заданные через `c.header()`
-  до `next()`, в такие ответы не попадают — API отдавался бы без защиты.
-- **Ответ сервиса проходит белый список заголовков**: наружу уходят только
-  `content-type`, `cache-control`, `retry-after`. `set-cookie` и внутренние
-  заголовки сервиса не пересылаются.
-- **Идентичность — fail closed**: вне `development` gateway не принимает `x-user-id`
-  от клиента (подпись появится с auth-service на Этапе 2), и запись без контекста
-  пользователя отклоняется с 403.
+- **The gateway overwrites internal headers rather than forwarding them.** Client-supplied
+  `x-user-id`, `x-request-id` and `x-notio-source` are discarded; the service receives what the
+  gateway itself decided. Otherwise anyone who reached the gateway could claim to be another user.
+- **request-id is validated against** `[A-Za-z0-9_-]{1,64}`: otherwise junk could be injected
+  into logs through the header.
+- **Rate limiting by IP from `cf-connecting-ip`**, not from client headers; the limit does not
+  apply to `/health`, otherwise monitoring would block itself.
+- **Headers are set after `next()` directly on `c.res.headers`**: some routes return a ready-made
+  `Response` (the proxy), and headers set via `c.header()` before `next()` do not reach such
+  responses — the API would be served unprotected.
+- **The service response passes a header allowlist**: only `content-type`, `cache-control` and
+  `retry-after` go outwards. `set-cookie` and the service's internal headers are not forwarded.
+- **Identity is fail closed**: outside `development` the gateway does not accept `x-user-id` from
+  the client (a signature appears with auth-service in Stage 2), and a write without a user
+  context is rejected with 403.
 
-## Последствия
+## Consequences
 
-**Положительные:**
+**Positive:**
 
-- сквозной request-id связывает логи gateway и сервиса;
-- негативные сценарии (чужой origin, подделка заголовков, лимит, битый сервис)
-  покрыты автотестами;
-- конфигурация проверяется Zod: опечатка в лимите валит старт, а не открывает API.
+- an end-to-end request-id links gateway and service logs;
+- negative scenarios (foreign origin, header spoofing, limit, broken service) are covered by
+  automated tests;
+- configuration is validated by Zod: a typo in the limit fails startup instead of opening the API.
 
-**Отрицательные:**
+**Negative:**
 
-- KV в Workers согласован eventual: параллельные запросы одного клиента могут
-  проскочить счётчик на единицу. Для защиты API достаточно; при необходимости строгого
-  лимита — Durable Object;
-- при недоступности KV лимитер fail-open: недоступность кеша не должна ронять API.
+- KV in Workers is eventually consistent: concurrent requests from one client can slip past the
+  counter by one. That is enough for API protection; strict limits would need a Durable Object;
+- if KV is unavailable the limiter fails open: cache unavailability must not take the API down.
 
-## Альтернативы
+## Alternatives
 
-- **Rate limit в Durable Object** — атомарное скользящее окно, но отдельный класс,
-  миграции и стоимость на каждый запрос.
-- **Cloudflare WAF / Rate Limiting Rules** — снимает код с проекта, но правила живут
-  в панели, а не в репозитории, и их не покрывают тесты.
-- **Reflect Origin в CORS** — недопустимо: вместе с куками даёт кросс-доменный доступ
-  к сессии любому сайту, который пришлёт свой origin.
+- **Rate limit in a Durable Object** — atomic sliding window, but a separate class, migrations and
+  a cost per request.
+- **Cloudflare WAF / Rate Limiting Rules** — removes code from the project, but rules live in the
+  dashboard rather than the repository and are not covered by tests.
+- **Reflecting Origin in CORS** — unacceptable: together with cookies it gives any site that
+  sends its own origin cross-domain access to the session.

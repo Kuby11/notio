@@ -1,63 +1,57 @@
-# ADR 0014. Автосохранение документа с debounce 1000 мс
+# ADR 0014. Autosaving the document with a 1000 ms debounce
 
-- **Статус:** принято
-- **Дата:** 2026-10-23
+- **Status:** accepted
+- **Date:** 2026-10-23
 
-## Контекст
+## Context
 
-Редактор держит весь документ страницы в Tiptap, а база хранит блоки
-отдельными строками `blocks` с fractional indexing. Пока пользователь
-печатает, изменения живут только в ProseMirror: без автосохранения они
-теряются при перезагрузке. Сохранять на каждое нажатие нельзя — это десятки
-запросов в секунду.
+The editor keeps the whole page document in Tiptap, while the database stores blocks as separate
+`blocks` rows with fractional indexing. While the user types, changes live only in ProseMirror:
+without autosave they are lost on reload. Saving on every keystroke is not an option — that is
+dozens of requests per second.
 
-Ограничения API:
+API constraints:
 
-- нет эндпоинта «заменить документ целиком» — только операции над блоками;
-- `POST /blocks` игнорирует `afterBlockId` и добавляет блок в конец страницы;
-- `POST /blocks/:id/move` ставит блок **после** соседа, поставить блок первым
-  одной операцией нельзя;
-- `PATCH /blocks/:id` принимает только `content` (тип выводится из него).
+- there is no "replace the whole document" endpoint — only per-block operations;
+- `POST /blocks` ignores `afterBlockId` and appends the block to the end of the page;
+- `POST /blocks/:id/move` places a block **after** a neighbour, and there is no single operation
+  that makes a block the first one;
+- `PATCH /blocks/:id` accepts only `content` (the type is derived from it).
 
-## Решение
+## Decision
 
-- **Debounce 1000 мс** в facade-хуке `useEditor`: компонент передаёт
-  актуальный JSON документа, хук копит последний снимок и отправляет его
-  через `AUTOSAVE_DELAY_MS` после последнего изменения. Отправка и диффинг
-  не живут в компоненте.
-- **Дифф считается от полного снимка**: `planAutosave` сравнивает блоки из
-  кеша Query с блоками редактора и возвращает удаления, обновления, создания
-  и итоговый порядок. Сравнение содержимого не зависит от порядка ключей.
-- **Порядок восстанавливается перемещениями**: создания выполняются в порядке
-  документа, затем `planMoves` возвращает минимальный набор `move` по соседу
-  сверху. Первый блок не двигается — чтобы он оказался в начале, остальные
-  перемещаются за ним. Так обходится ограничение API.
-- **id новых блоков назначает клиент**: плагин `BlockIdGuard` в
-  `editor-extensions` выдаёт `blockId` узлам без id и разделяет id, которые
-  ProseMirror копирует при разбиении блока. Хук хранит карту «временный id →
-  id из ответа сервиса», поэтому повторное сохранение обновляет блок, а не
-  создаёт дубль.
-- **Снимок сразу становится кешем документа** (`setQueryData`): следующий
-  дифф считается от него, не дожидаясь refetch. Операции применяются
-  последовательно; снимок обновляется и при частичном сбое, чтобы уже
-  выполненные операции не повторялись.
-- **Статус** (`pending`/`saving`/`saved`/`error`) отдаётся из хука; в правом
-  верхнем углу редактора во время сохранения вращается спиннер, ошибка
-  показывается текстом. После ошибки документ не теряется: следующее
-  изменение снова отправит полный дифф.
+- **1000 ms debounce** in the `useEditor` facade hook: the component passes the current document
+  JSON, the hook keeps the latest snapshot and sends it `AUTOSAVE_DELAY_MS` after the last change.
+  Sending and diffing do not live in the component.
+- **The diff is computed from a full snapshot**: `planAutosave` compares blocks from the Query cache
+  with editor blocks and returns deletions, updates, creations and the final order. Content
+  comparison does not depend on key order.
+- **Order is restored with moves**: creations run in document order, then `planMoves` returns the
+  minimal set of `move` operations relative to the neighbour above. The first block is not moved —
+  to put it at the start, the others move behind it. That is how the API limitation is worked
+  around.
+- **The client assigns ids to new blocks**: the `BlockIdGuard` plugin in `editor-extensions` gives
+  `blockId` to nodes without one and separates ids that ProseMirror copies when a block is split.
+  The hook keeps a map "temporary id → id from the service response", so a repeated save updates the
+  block instead of creating a duplicate.
+- **The snapshot immediately becomes the document cache** (`setQueryData`): the next diff is computed
+  from it without waiting for a refetch. Operations are applied sequentially; the snapshot is also
+  updated on a partial failure, so completed operations are not repeated.
+- **Status** (`pending`/`saving`/`saved`/`error`) is exposed from the hook; a spinner rotates in the
+  editor's top-right corner while saving, and an error is shown as text. After an error the document
+  is not lost: the next change sends the full diff again.
 
-## Альтернативы
+## Alternatives
 
-- **Сохранение на каждое изменение.** Просто, но превращает набор текста в
-  поток запросов и упирается в rate limit gateway.
-- **Новый эндпоинт «заменить все блоки».** Чище для клиента, но требует
-  транзакции и версионирования на сервисе; отложено до realtime-этапа.
-- **Yjs/CRDT.** Даст совместное редактирование, но на этом этапе избыточен:
-  документ однопользовательский, а конфликты решаются последней записью.
+- **Saving on every change.** Simple, but turns typing into a stream of requests and hits the
+  gateway rate limit.
+- **A new "replace all blocks" endpoint.** Cleaner for the client, but requires a transaction and
+  versioning on the service; postponed until the realtime stage.
+- **Yjs/CRDT.** Would give collaborative editing, but is overkill at this point: the document is
+  single-user and conflicts are resolved by last write.
 
-## Последствия
+## Consequences
 
-- Подтверждение сохранения приходит через ~1 с после паузы; быстрый уход со
-  страницы внутри окна debounce может потерять последнюю правку.
-- Ошибка сохранения не ретраится сама — повтор произойдёт при следующем
-  изменении документа.
+- Save confirmation arrives about 1 s after a pause; leaving the page quickly within the debounce
+  window can lose the last edit.
+- A failed save is not retried automatically — the retry happens on the next document change.

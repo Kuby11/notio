@@ -1,66 +1,56 @@
-# ADR 0022. Топбар страницы: закреплённая панель, блокировка, время изменения
+# ADR 0022. Page top bar: sticky panel, locking, modification time
 
-- **Статус:** принято
-- **Дата:** 2026-10-25
+- **Status:** accepted
+- **Date:** 2026-10-25
 
-## Контекст
+## Context
 
-Всё метаданные страницы (хлебные крошки, «изменено N назад», избранное,
-меню «три точки») жили в потоке документа и уезжали при прокрутке.
-Попутно вскрылись три проблемы: гидрационный renders error `li` внутри
-`li` (разделитель крошек был вложен в элемент крошки), крошки вели
-workspace — его путь и так виден в сайдбаре, а метка времени показывала
-`page.updatedAt`, который не менялся при правке контента (обновляются
-строки `blocks`, а не страницы). Также понадобились «копировать
-содержимое» и «заблокировать страницу» в меню шапки.
+All page metadata (breadcrumbs, "edited N ago", favourites, the "three dots" menu) lived in the
+document flow and scrolled away. Three problems surfaced along the way: a hydration render error of
+`li` inside `li` (the breadcrumb separator was nested in the breadcrumb item), breadcrumbs linked to
+the workspace — whose path is already visible in the sidebar — and the timestamp showed
+`page.updatedAt`, which did not change when content was edited (`blocks` rows are updated, not
+pages). "Copy content" and "Lock page" were also needed in the header menu.
 
-## Решение
+## Decision
 
-- **Топбар — sticky-панель, прямой ребёнок прокручиваемого `main`.**
-  Sticky ограничен родителем: внутри обёртки колонки `max-w-52rem` панель
-  не «залипла» бы. Отрицательные поля `-mx-6 -mt-6` гасят `p-6` у main —
-  панель во всю ширину и прилегает к верху при прокрутке. Крупный
-  заголовок остаётся в потоке документа, как в Notion. Индикатор
-  автосохранения сдвинут на `top-10`, чтобы не прятаться под панелью.
-- **Крошки: разделитель — сосед `BreadcrumbItem`, а не ребёнок.** База
-  nova рендерит и item, и separator как `li`; вложенность даёт
-  гидрационную ошибку и ломает семантику списка. Workspace убран из цепочки.
-- **Блокировка страницы — серверный флаг `pages.is_locked`** (D1-колонка
-  + `isLocked` в контракте, опциональный для совместимости старых клиентов).
-  Сервис блоков требует записываемость страницы: для мутаций введён
-  `assertPageWritable` (существует + не в корзине + не заблокирована),
-  чтение блоков остаётся разрешённым. Клиент: меню шапки переключает флаг
-  (универсальная мутация `updatePage`), фасад редактора читает тот же
-  ключ `pageKeys.detail`, что и шапка, и вызывает `editor.setEditable(!isLocked)`.
-  Инвалидация `pageKeys.all` обновляет обе подписи сразу. Пилюли таблиц,
-  бабл-меню, slash-меню, ресайз картинки и DragHandle скрываются по
-  `isEditable`; заголовок в шапке — `disabled`.
-- **Время изменения контента:** блоковый сервис после каждой мутации
-  блока обновляет `pages.updatedAt` (репозиторий получил `touch`), а
-  автосохранение клиента патчит кеш `pageKeys.detail` напрямую —
-  инвалилировать все запросы страниц на каждую паузу набора слишком
-  дорого. Детальный запрос опрашивается раз в 30 секунд как страховка.
+- **The top bar is a sticky panel and a direct child of the scrollable `main`.** Sticky is bounded by
+  its parent: inside the `max-w-52rem` column wrapper the panel would not stick. Negative margins
+  `-mx-6 -mt-6` cancel main's `p-6` — the panel spans the full width and hugs the top while
+  scrolling. The large title stays in the document flow, as in Notion. The autosave indicator moved
+  to `top-10` so it is not hidden under the panel.
+- **Breadcrumbs: the separator is a sibling `BreadcrumbItem`, not a child.** The nova base renders
+  both the item and the separator as `li`; nesting produces a hydration error and breaks list
+  semantics. The workspace was removed from the chain.
+- **Page locking is a server-side `pages.is_locked` flag** (a D1 column + `isLocked` in the contract,
+  optional for older client compatibility). The blocks service requires the page to be writable:
+  `assertPageWritable` (exists + not trashed + not locked) was introduced for mutations, while
+  reading blocks remains allowed. Client: the header menu toggles the flag (the generic `updatePage`
+  mutation), the editor facade reads the same `pageKeys.detail` key as the header and calls
+  `editor.setEditable(!isLocked)`. Invalidating `pageKeys.all` updates both labels at once. Table
+  pills, the bubble menu, the slash menu, image resize and DragHandle hide based on `isEditable`; the
+  header title is `disabled`.
+- **Content modification time:** after every block mutation the blocks service updates
+  `pages.updatedAt` (the repository gained `touch`), and the client's autosave patches the
+  `pageKeys.detail` cache directly — invalidating all page queries on every typing pause is too
+  expensive. The detail query is polled every 30 seconds as a safety net.
 
-## Альтернативы
+## Alternatives
 
-- **Копировать содержимое из серверных блоков.** Точнее (структура до
-  последнего сохранения), но шапка жила бы с зависимостью от кеша модуля
-  редактора. Текст из отрисованного DOM (`innerText` блоков через `\n\n`)
-  честно копирует то, что видит пользователь, и не создаёт связей между
-  модулями.
-- **Блокировка только на клиенте (storей/localStorage).** Терялась бы
-  между устройствами и не защищала API; серверная проверка в блоковом
-  сервисе обязательна, иначе lock декоративен.
-- **Отдельное поле `contentUpdatedAt`.** Честнее семантически, но требует
-  нового поля в контракте, миграции и второго источника времени в шапке;
-  «документ изменён» и так включает метаданные страницы.
+- **Copying content from server blocks.** More accurate (structure up to the last save), but the
+  header would depend on the editor module's cache. Text from the rendered DOM (`innerText` of blocks
+  joined by `\n\n`) honestly copies what the user sees and creates no coupling between modules.
+- **Client-only locking (store/localStorage).** Would be lost across devices and would not protect
+  the API; a server-side check in the blocks service is mandatory, otherwise the lock is decorative.
+- **A separate `contentUpdatedAt` field.** Semantically more honest, but requires a new contract
+  field, a migration and a second time source in the header; "the document changed" already includes
+  page metadata.
 
-## Последствия
+## Consequences
 
-- Заблокированная страница читается, но не редактируется ни через UI,
-  ни через API (409 на мутации блоков); создание дочерних страниц и
-  метаданные (избранное, корзина) остаются доступными.
-- `page.updatedAt` теперь меняется от правок контента: списки «недавно
-  изменённые» (если появятся) получат корректный порядок.
-- Дубликат заблокированной страницы создаётся разблокированным
-  (`isLocked` не копируется — колонка берёт дефолт).
+- A locked page can be read but not edited, either through the UI or the API (409 on block
+  mutations); creating child pages and metadata (favourites, trash) remain available.
+- `page.updatedAt` now changes on content edits: "recently modified" lists (if they appear) will get
+  the correct order.
+- A duplicate of a locked page is created unlocked (`isLocked` is not copied — the column takes its
+  default).

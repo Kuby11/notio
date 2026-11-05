@@ -1,50 +1,51 @@
-# ADR 0005. Линтер и форматтер: oxlint + oxfmt вместо ESLint + Prettier
+# ADR 0005. Linter and formatter: oxlint + oxfmt instead of ESLint + Prettier
 
-- **Статус:** принято
-- **Дата:** 2026-10-18
+- **Status:** accepted
+- **Date:** 2026-10-18
 
-## Контекст
+## Context
 
-Классическая связка ESLint + Prettier требует поддержки JavaScript-конфигов, десятков
-зависимостей и type-aware правил, которые дублируют `tsc`. Проекту нужен быстрый линтер и
-форматтер с единым источником правды.
+The classic ESLint + Prettier pairing needs JavaScript config support, dozens of dependencies and
+type-aware rules that duplicate `tsc`. The project needs a fast linter and formatter with a single
+source of truth.
 
-## Решение
+## Decision
 
-- **`oxlint@1.88.0`** — линтер. Один конфиг `.oxlintrc.json` на весь монорепо, встроенные
-  плагины `typescript`, `oxc`, `import`, `unicorn`, `promise`, категории `correctness` и
-  `suspicious`, `denyWarnings: true`, запрет неиспользуемых `oxlint-disable` директив.
-- **`oxfmt@0.73.0`** — форматтер. Конфиг `.oxfmtrc.json`, совместим с настройками Prettier.
-- Линт и формат запускаются из корня (`pnpm lint`, `pnpm format`), а не из каждого пакета:
-  oxlint анализирует проект целиком и строит общий граф модулей.
-- Типовая проверка остаётся за `tsc` (`pnpm typecheck`).
+- **`oxlint@1.88.0`** — the linter. One `.oxlintrc.json` for the whole monorepo, built-in
+  `typescript`, `oxc`, `import`, `unicorn` and `promise` plugins, the `correctness` and
+  `suspicious` categories, `denyWarnings: true`, and unused `oxlint-disable` directives forbidden.
+- **`oxfmt@0.73.0`** — the formatter. Config `.oxfmtrc.json`, compatible with Prettier settings.
+- Lint and format run from the root (`pnpm lint`, `pnpm format`), not from each package: oxlint
+  analyses the project as a whole and builds one module graph.
+- Type checking stays with `tsc` (`pnpm typecheck`).
 
-Правила, прямо выражающие принципы проекта:
+Rules that directly express the project's principles:
 
-| Правило | Принцип |
+| Rule | Principle |
 |---|---|
-| `typescript/no-explicit-any` | никаких `any` |
-| `typescript/ban-ts-comment` | `@ts-expect-error` только с описанием причины |
-| `typescript/consistent-type-imports` | явные type-импорты, не «смешанные» |
-| `typescript/no-unused-vars`, `import/no-duplicates` | чистый код |
-| `eqeqeq`, `no-implicit-coercion` | никаких неявных сравнений и приведений |
+| `typescript/no-explicit-any` | no `any` |
+| `typescript/ban-ts-comment` | `@ts-expect-error` only with a stated reason |
+| `typescript/consistent-type-imports` | explicit type imports, not "mixed" ones |
+| `typescript/no-unused-vars`, `import/no-duplicates` | clean code |
+| `eqeqeq`, `no-implicit-coercion` | no implicit comparisons or coercions |
 
-## Последствия
+## Consequences
 
-**Положительные:**
+**Positive:**
 
-- линт всего монорепо на порядки быстрее ESLint, конфиг — один JSON-файл;
-- нет «гонки» между линтером и форматтером: oxfmt не конфликтует с правилами oxlint;
-- type-aware правила доступны позже (`oxlint-tsgolint`), без миграции на другой линтер.
+- linting the whole monorepo is orders of magnitude faster than ESLint, and the config is one JSON
+  file;
+- no "race" between linter and formatter: oxfmt does not conflict with oxlint rules;
+- type-aware rules are available later (`oxlint-tsgolint`), without migrating to another linter.
 
-**Отрицательные:**
+**Negative:**
 
-- часть редких правил ESLint ещё не поддержана — при необходимости придётся оставить
-  TypeScript-проверку в `tsc`;
-- `oxfmt` моложе Prettier: редкие edge-форматы могут отличаться.
+- some rare ESLint rules are not supported yet — where necessary, TypeScript checking stays in
+  `tsc`;
+- `oxfmt` is younger than Prettier: rare edge-case formatting may differ.
 
-## Альтернативы
+## Alternatives
 
-- **ESLint 10 + typescript-eslint + Prettier** — проверено и знакомо, но медленно, требует
-  `eslint.config.mjs` с JS-конфигами и дублирует типы.
-- **Biome** — единый инструмент «линтер + форматтер», но меньше правил и нет type-aware линтинга.
+- **ESLint 10 + typescript-eslint + Prettier** — proven and familiar, but slow, requires
+  `eslint.config.mjs` with JS configs and duplicates types.
+- **Biome** — a single "linter + formatter" tool, but fewer rules and no type-aware linting.

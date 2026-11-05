@@ -1,77 +1,65 @@
-# ADR 0025. Сворачивание сайдбара: полное исчезновение и кнопка в топбаре
+# ADR 0025. Sidebar collapse: full disappearance and a button in the top bar
 
-- **Статус:** принято
-- **Дата:** 2026-10-28
+- **Status:** accepted
+- **Date:** 2026-10-28
 
-## Контекст
+## Context
 
-Свёрнутый сайдбар раньше превращался в узкий рейл с одной кнопкой
-«развернуть», а сама кнопка сворачивания стояла отдельной строкой над
-поиском. Из этого вышло три проблемы: рейл отнимал 40–48 px у контента и
-выглядел как второй, «полупустой» сайдбар; кнопка сворачивания висела в
-своей строке и визуально не была привязана к правому краю панели; на
-маршруте библиотеки (`/workspaces/:id`) топбара нет, поэтому свёрнутую
-панель можно было вернуть только сочетанием клавиш.
+The collapsed sidebar used to turn into a narrow rail with a single "expand" button, while the
+collapse button itself sat on a separate row above search. Three problems came out of that: the rail
+took 40–48 px from the content and looked like a second, "half-empty" sidebar; the collapse button
+hung on its own row and was not visually tied to the panel's right edge; and the library route
+(`/workspaces/:id`) has no top bar, so a collapsed panel could only be restored with a keyboard
+shortcut.
 
-## Решение
+## Decision
 
-- **Панель исчезает целиком.** `aside` анимируется по ширине
-  (`w-64` → `w-0`, 300 мс, `cubic-bezier(0.32, 0.72, 0, 1)`), внутренняя
-  колонка сохраняет фиксированную ширину `w-64` и клипуется
-  `overflow-hidden` — контент не переливается по мере сжатия, а просто
-  уезжает за край и гаснет по `opacity`. Рамка переехала с `aside` на
-  внутреннюю колонку, поэтому исчезает вместе с шириной. Рейла нет.
-- **Кнопка сворачивания — отдельной строкой над переключателем workspace.**
-  Верх панели: строка только с кнопкой `PanelLeftClose` у правого края, под
-  ней — переключатель workspace на всю ширину, затем поиск. У кнопки тултип
-  с подсказкой `Ctrl + /`.
-- **Кнопка разворачивания — в каркасе, одна на все страницы.**
-  `AppLayout` рендерит `core/ui/sidebar-open-button.tsx` как `fixed
-  top-3 left-3 z-40` поверх левого отступа контента: кнопка видна на любом
-  маршруте оболочки, включая те, у которых нет своей шапки (главная,
-  библиотека). Раньше её рендерила шапка страницы, и на экранах без шапки
-  свёрнутую панель можно было вернуть только сочетанием клавиш. Пока панель
-  свёрнута, `main` держит отступ `pl-12`, а sticky-панель `PageHeader`
-  расширяется на этот отступ (`-ml-12 pl-12`) — кнопка никогда не
-  перекрывает заголовок или крошки, а рамка шапки по-прежнему доходит до
-  края. Кнопка помечена `aria-controls="app-sidebar"` и `aria-expanded`,
-  появляется с `animate-in fade-in-0 zoom-in-95`.
-- **Разметка остаётся смонтированной.** Дерево страниц сохраняет
-  раскрытые узлы, а `Ctrl+K` работает при закрытой панели (диалог поиска
-  живёт вне `aside`). Скрытое содержимое помечено `aria-hidden` и
-  `inert`: Tab не уходит в невидимые ссылки.
-- **Фокус снимается до применения `inert`.** Клик по кнопке сворачивания
-  вызывает `blur()`: иначе браузер блокирует `aria-hidden` у предка
-  элемента в фокусе.
-- **Состояние — в `core/stores/sidebar.store.ts`.** `AppLayout`
-  перемонтируется при навигации, поэтому `collapsed` не может жить в его
-  пропсах; стор переживает переходы. `SIDEBAR_ID` экспортируется оттуда
-  же, чтобы `aria-controls` не разъезжался между компонентами.
+- **The panel disappears entirely.** The `aside` animates its width (`w-64` → `w-0`, 300 ms,
+  `cubic-bezier(0.32, 0.72, 0, 1)`), the inner column keeps a fixed `w-64` width and is clipped by
+  `overflow-hidden` — content does not reflow as it shrinks, it slides past the edge and fades out by
+  `opacity`. The border moved from the `aside` to the inner column, so it disappears together with the
+  width. There is no rail.
+- **The collapse button gets its own row above the workspace switcher.** The top of the panel: a row
+  with only the `PanelLeftClose` button at the right edge, below it the full-width workspace switcher,
+  then search. The button has a tooltip hinting at `Ctrl + /`.
+- **The expand button lives in the shell, one per page.** `AppLayout` renders
+  `core/ui/sidebar-open-button.tsx` as `fixed top-3 left-3 z-40` over the content's left padding: the
+  button is visible on any shell route, including those without their own header (home, library).
+  Previously the page header rendered it, and on screens without a header a collapsed panel could
+  only be restored with the keyboard. While the panel is collapsed, `main` keeps a `pl-12` padding and
+  the sticky `PageHeader` panel grows by that padding (`-ml-12 pl-12`) — the button never covers the
+  title or breadcrumbs, and the header border still reaches the edge. The button is marked
+  `aria-controls="app-sidebar"` and `aria-expanded`, and appears with
+  `animate-in fade-in-0 zoom-in-95`.
+- **The markup stays mounted.** The page tree keeps its expanded nodes, and `Ctrl+K` works with the
+  panel closed (the search dialog lives outside the `aside`). Hidden content is marked `aria-hidden`
+  and `inert`: Tab does not go into invisible links.
+- **Focus is removed before `inert` is applied.** Clicking the collapse button calls `blur()`:
+  otherwise the browser blocks `aria-hidden` on an ancestor of the focused element.
+- **State lives in `core/stores/sidebar.store.ts`.** `AppLayout` remounts on navigation, so `collapsed`
+  cannot live in its props; the store survives transitions. `SIDEBAR_ID` is exported from there too,
+  so `aria-controls` cannot drift between components.
 
-## Альтернативы
+## Alternatives
 
-- **Рейл с иконками (как в VS Code).** Даёт быстрый доступ к разделам без
-  разворачивания, но требует второго набора иконок и подписей, отнимает
-  ширину у документа и дублирует навигацию, которая и так есть в топбаре.
-- **Размонтировать панель при сворачивании.** Дешевле по DOM, но теряются
-  раскрытые узлы дерева и `Ctrl+K`, а анимация закрытия превращается в
-  рывок: содержимое исчезает до того, как схлопнется ширина.
-- **Хранить `collapsed` в состоянии `AppLayout`.** Проще по пропсам, но
-  каркас перемонтируется на каждом переходе — панель разворачивалась бы
-  обратно при клике по любой странице.
-- **Кнопка разворачивания в шапке каждой страницы.** Так было в первой
-  версии: работало в редакторе, но маршруты без шапки оставались без
-  кнопки, а новый маршрут требовал ручной вставки компонента. Плавающая
-  кнопка в каркасе убирает и то, и другое; цена — отступ `pl-12` у
-  контента, пока панель свёрнута.
+- **An icon rail (as in VS Code).** Gives quick access to sections without expanding, but requires a
+  second set of icons and labels, takes width from the document and duplicates navigation that the
+  top bar already provides.
+- **Unmounting the panel on collapse.** Cheaper on the DOM, but loses the tree's expanded nodes and
+  `Ctrl+K`, and the closing animation becomes a jolt: content disappears before the width collapses.
+- **Keeping `collapsed` in `AppLayout` state.** Simpler in terms of props, but the shell remounts on
+  every navigation — the panel would expand again whenever any page is clicked.
+- **The expand button in every page header.** That was the first version: it worked in the editor,
+  but routes without a header were left without a button, and every new route required manually
+  inserting the component. A floating button in the shell removes both problems; the price is the
+  `pl-12` content padding while the panel is collapsed.
 
-## Последствия
+## Consequences
 
-- Свёрнутая панель не занимает ни пикселя; переход анимирован в обе
-  стороны, содержимое гаснет и появляется вместе с шириной.
-- `Ctrl+/` переключает панель на любом экране каркаса, плавающая кнопка в
-  левом отступе — мышиный путь назад; новый маршрут каркаса получает её
-  автоматически.
-- Пока панель свёрнута, контент сдвинут на 12 единиц отступа вправо
-  (`pl-12` вместо `px-6`); страницы, которые сами рисуют sticky-панель во
-  всю ширину, обязаны учесть этот отступ отрицательным margin.
+- A collapsed panel takes no pixels; the transition is animated both ways, and content fades in and
+  out together with the width.
+- `Ctrl+/` toggles the panel on any shell screen, and the floating button in the left padding is the
+  mouse route back; a new shell route gets it automatically.
+- While the panel is collapsed, content is shifted 12 spacing units right (`pl-12` instead of `px-6`);
+  pages that draw their own full-width sticky panel must account for that padding with a negative
+  margin.

@@ -1,67 +1,68 @@
-# ADR 0003. Типы API: Hono RPC + Zod-контракты
+# ADR 0003. API types: Hono RPC + Zod contracts
 
-- **Статус:** принято
-- **Дата:** 2026-10-18
+- **Status:** accepted
+- **Date:** 2026-10-18
 
-## Контекст
+## Context
 
-Нужно end-to-end типизированное взаимодействие фронтенда и бэкенда без дублирования схем и без
-`any` на границе сети.
+We need end-to-end typed interaction between frontend and backend without duplicating schemas
+and without `any` at the network boundary.
 
-## Решение
+## Decision
 
-Два независимых механизма, покрывающие разные задачи:
+Two independent mechanisms covering different concerns:
 
-1. **Hono RPC — типы транспорта.** Gateway экспортирует тип своего приложения:
+1. **Hono RPC — transport types.** The gateway exports the type of its app:
 
    ```ts
    // services/gateway/src/app.ts
    export type GatewayAppType = ReturnType<typeof createGatewayApp>;
    ```
 
-   Фронтенд строит клиент `hc<GatewayAppType>('/api')` и получает типы путей, параметров и
-   ответов из кода самого gateway.
+   The frontend builds an `hc<GatewayAppType>('/api')` client and gets path, parameter and
+   response types straight from the gateway's own code.
 
-2. **Zod в `packages/contracts` — контракт данных.** Любой ответ сервера и любой вход клиента
-   описывается Zod-схемой. Наружу отдаются Zod-схемы из общего пакета, а не «свободные» типы.
-   Валидация выполняется на границе: адаптер фронтенда не доверяет сети, gateway валидирует вход.
+2. **Zod in `packages/contracts` — the data contract.** Every server response and every client
+   input is described by a Zod schema. What is exposed is the Zod schemas from the shared package,
+   not "loose" types. Validation happens at the boundary: the frontend adapter does not trust the
+   network, and the gateway validates input.
 
-### Типы биндингов
+### Binding types
 
-Типы биндингов берутся не из библиотеки, а из конфига: `wrangler types` генерирует
-`worker-configuration.d.ts`, где gateway получает `PAGES_SERVICE: Fetcher`. Локальный интерфейс
-`Bindings` в `src/env.ts` описывает, что сервис ожидает, — если он разойдётся с конфигом,
-упадёт компиляция.
+Binding types come from the config, not from a library: `wrangler types` generates
+`worker-configuration.d.ts`, where the gateway gets `PAGES_SERVICE: Fetcher`. The local `Bindings`
+interface in `src/env.ts` describes what the service expects — if it drifts from the config,
+compilation fails.
 
-**Осознанный компромисс:** Hono 4.13 не экспортирует тип `Fetcher<AppType>`, поэтому вызов
-внутреннего сервиса не типизируется по маршрутам и возвращает обычный `Response`. Форма ответа
-гарантируется Zod-схемой: gateway не доверяет соседу и валидирует его ответ
-(`HealthResponseSchema.safeParse`). Альтернатива — Workers RPC (`Service<RpcEntrypoint>`) с
-типизированными методами; её стоит оценить на Этапе 1, когда появятся реальные операции
-над данными, а не только health-check.
+**A deliberate trade-off:** Hono 4.13 does not export a `Fetcher<AppType>` type, so calling an
+internal service is not typed by route and returns a plain `Response`. The response shape is
+guaranteed by a Zod schema: the gateway does not trust its neighbour and validates its response
+(`HealthResponseSchema.safeParse`). The alternative is Workers RPC (`Service<RpcEntrypoint>`) with
+typed methods; it is worth evaluating at Stage 1, when real data operations appear rather than
+just health checks.
 
-## Ошибки
+## Errors
 
-Единый формат RFC 7807 (`application/problem+json`), собирается хелпером `problem()` из
-`@notio/contracts`. Фронтенд превращает его в типизированные доменные ошибки
-(`NotFoundError`, `ForbiddenError`, ...) и различает их по типу, а не по тексту.
+A single RFC 7807 format (`application/problem+json`), built by the `problem()` helper from
+`@notio/contracts`. The frontend turns it into typed domain errors (`NotFoundError`,
+`ForbiddenError`, ...) and distinguishes them by type, not by message text.
 
-## Последствия
+## Consequences
 
-**Положительные:**
+**Positive:**
 
-- переименование маршрута или поля ломает сборку, а не продакшен;
-- контракт один и тот же для фронтенда, сервиса и тестов.
+- renaming a route or a field breaks the build, not production;
+- the contract is the same for the frontend, the service and the tests.
 
-**Отрицательные:**
+**Negative:**
 
-- типы теряются на границе JSON (нужен Zod, чтобы восстановить их);
-- `Fetcher<AppType>` требует, чтобы тип приложения сервиса был импортируем — это связывает
-  TypeScript-проект сервиса с gateway на уровне типов (осознанный компромисс).
+- types are lost across the JSON boundary (Zod is needed to restore them);
+- `Fetcher<AppType>` requires the service's app type to be importable — this couples the
+  service's TypeScript project to the gateway at the type level (a deliberate trade-off).
 
-## Альтернативы
+## Alternatives
 
-- **OpenAPI + сгенерированный клиент** — даёт REST-контракт и совместимость с внешними
-  клиентами, но теряет связь «маршрут ↔ тип ответа» и добавляет шаг кодогенерации.
-- **Полностью Zod-first (типы выводятся из схем вручную)** — не даёт типизации путей и
-  параметров маршрутов, которые даёт Hono RPC.
+- **OpenAPI + a generated client** — gives a REST contract and compatibility with external
+  clients, but loses the "route ↔ response type" link and adds a code generation step.
+- **Fully Zod-first (types inferred from schemas by hand)** — does not provide the typing of
+  paths and route parameters that Hono RPC gives.

@@ -1,55 +1,55 @@
-# ADR 0002. Межсервисная коммуникация через Service Bindings
+# ADR 0002. Inter-service communication through Service Bindings
 
-- **Статус:** принято
-- **Дата:** 2026-10-18
+- **Status:** accepted
+- **Date:** 2026-10-18
 
-## Контекст
+## Context
 
-Проект состоит из семи микросервисов (gateway, auth, workspace, pages, media, search, realtime).
-Требования: ни один сервис, кроме gateway, не должен быть доступен из интернета; межсервисные
-вызовы не должны требовать публичных URL, OAuth и сетевых задержек.
+The project consists of seven microservices (gateway, auth, workspace, pages, media, search,
+realtime). Requirements: no service other than the gateway may be reachable from the internet,
+and inter-service calls must not require public URLs, OAuth or network latency.
 
-## Решение
+## Decision
 
-Gateway — единственная публичная точка входа. Все сервисы связаны с ним и между собой через
-**Service Bindings** (`wrangler.jsonc` → `services[]`).
+The gateway is the single public entry point. All services are wired to it and to each other
+through **Service Bindings** (`wrangler.jsonc` → `services[]`).
 
 ```jsonc
 // services/gateway/wrangler.jsonc
 "services": [{ "binding": "PAGES_SERVICE", "service": "pages-service" }]
 ```
 
-- Внутренние сервисы имеют `"workers_dev": false` — в интернет они не публикуются.
-- Межсервисного HTTP в коде нет вообще: вызов идёт как `env.PAGES_SERVICE.fetch('/health')`.
-- Контекст пользователя gateway передаёт сервисам в заголовках; сервисы не доверяют этим данным
-  слепо — права проверяются в сервисе-владельце данных (deny-by-default).
+- Internal services set `"workers_dev": false` — they are not published to the internet.
+- There is no inter-service HTTP in the code at all: a call is `env.PAGES_SERVICE.fetch('/health')`.
+- The gateway passes user context to services in headers; services do not blindly trust that
+  data — permissions are checked in the service that owns the data (deny-by-default).
 
-## Локальная разработка
+## Local development
 
-Один процесс Wrangler поднимает несколько воркеров: первый конфиг — основной (доступен по HTTP),
-остальные — вспомогательные, доступные только через Service Binding.
+A single Wrangler process starts several workers: the first config is the main one (reachable
+over HTTP), the rest are auxiliary and reachable only through a Service Binding.
 
 ```bash
 wrangler dev -c ./services/gateway/wrangler.jsonc -c ./services/pages-service/wrangler.jsonc
 ```
 
-## Последствия
+## Consequences
 
-**Положительные:**
+**Positive:**
 
-- нет публичных внутренних эндпоинтов и второго места для аутентификации;
-- нет HTTP-оверхеда и сетевых хопов между сервисами;
-- локально и в проде один и тот же механизм вызова.
+- no public internal endpoints and no second place for authentication;
+- no HTTP overhead or network hops between services;
+- the same call mechanism locally and in production.
 
-**Отрицательные:**
+**Negative:**
 
-- связность: добавление сервиса требует правок в `wrangler.jsonc` всех, кто его вызывает;
-- нельзя вызвать сервис из обычного `curl` — для этого есть `pnpm dev:<service>` или smoke-скрипт;
-- в тестах gateway сервис-заглушка подменяется in-memory реализацией биндинга.
+- coupling: adding a service requires edits to the `wrangler.jsonc` of every caller;
+- a service cannot be called with plain `curl` — use `pnpm dev:<service>` or the smoke script;
+- in gateway tests the service stub is replaced by an in-memory binding implementation.
 
-## Альтернативы
+## Alternatives
 
-- **Внутренние HTTP-эндпоинты с mTLS** — реалистично, но требует публичных DNS-имён,
-  управления сертификатами и дублирует аутентификацию.
-- **Один воркер на все сервисы с внутренним роутером** — проще локально, но теряется смысл
-  микросервисов: нет изоляции баз, деплоя и ресурсов.
+- **Internal HTTP endpoints with mTLS** — realistic, but requires public DNS names, certificate
+  management and duplicates authentication.
+- **One worker for all services with an internal router** — simpler locally, but loses the point
+  of microservices: no isolation of databases, deployments or resources.

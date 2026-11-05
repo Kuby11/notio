@@ -1,54 +1,56 @@
-# ADR 0004. Тесты Workers: Vitest 5 + @cloudflare/vitest-plugin
+# ADR 0004. Worker tests: Vitest 5 + @cloudflare/vitest-plugin
 
-- **Статус:** принято
-- **Дата:** 2026-10-18
+- **Status:** accepted
+- **Date:** 2026-10-18
 
-## Контекст
+## Context
 
-Интеграционные тесты воркеров должны выполняться в настоящем runtime Workers с настоящими
-биндингами (D1, KV, Service Bindings), а не в Node-эмуляции.
+Integration tests for workers must run in the real Workers runtime with real bindings (D1, KV,
+Service Bindings), not in a Node emulation.
 
-## Решение
+## Decision
 
-- **Vitest 5** (`vitest@5.0.5`) — единая версия для всего монорепо.
-- **`@cloudflare/vitest-plugin`** — официальный плагин запуска тестов внутри `workerd`.
-  Именно он пришёл на смену `@cloudflare/vitest-pool-workers`: старый пакет помечен как
-  переименованный и больше не обновляется.
-- Конфиг сервиса: `cloudflareTest({ wrangler: { configPath: './wrangler.jsonc' } })` —
-  биндинги берутся из того же конфига, что и в локальной разработке.
-- `packages/contracts` тестируется обычным Vitest в Node: это чистые схемы без runtime-зависимостей.
+- **Vitest 5** (`vitest@5.0.5`) — a single version for the whole monorepo.
+- **`@cloudflare/vitest-plugin`** — the official plugin for running tests inside `workerd`.
+  It replaces `@cloudflare/vitest-pool-workers`: the old package is marked as renamed and is no
+  longer updated.
+- Service config: `cloudflareTest({ wrangler: { configPath: './wrangler.jsonc' } })` — bindings
+  come from the same config as in local development.
+- `packages/contracts` is tested with plain Vitest in Node: these are pure schemas without
+  runtime dependencies.
 
-### Тестовое окружение биндингов
+### Test environment for bindings
 
-- **pages-service** — реальная конфигурация, реальный локальный D1.
-- **gateway** — конфиг gateway намеренно не подключается: его Service Binding указывает на
-  отдельный воркер, которого в тестовом процессе нет. Поведение сервиса подменяется
-  in-memory реализацией биндинга, что даёт детерминированные сценарии «ok», «5xx»,
-  «битый контракт», «сервис недоступен».
-- **Настоящий** Service Binding (gateway → pages-service в одном `workerd`) проверяется
-  smoke-скриптом `pnpm smoke` против запущенного `pnpm dev:workers`.
+- **pages-service** — the real configuration, a real local D1.
+- **gateway** — the gateway config is deliberately not loaded: its Service Binding points at a
+  separate worker that does not exist in the test process. Service behaviour is replaced by an
+  in-memory binding implementation, which gives deterministic "ok", "5xx", "broken contract" and
+  "service unavailable" scenarios.
+- The **real** Service Binding (gateway → pages-service inside one `workerd`) is checked by the
+  `pnpm smoke` script against a running `pnpm dev:workers`.
 
-### Покрытие
+### Coverage
 
-Порог ≥ 80% (lines/branches/functions/statements) включён в конфиг каждого пакета и в CI
-(`pnpm test:coverage`). Для domain/application слоёв фронтенда порог будет поднят до 90%.
+A threshold of ≥ 80% (lines/branches/functions/statements) is set in every package's config and
+in CI (`pnpm test:coverage`). For the frontend's domain/application layers the threshold will be
+raised to 90%.
 
-## Последствия
+## Consequences
 
-**Положительные:**
+**Positive:**
 
-- тесты ловят runtime-специфичные проблемы (Response, кодировки, лимиты Workers);
-- конфиг биндингов не дублируется: тесты и локальная разработка читают один `wrangler.jsonc`;
-- запуск тестов — десятки миллисекунд вместо секунд.
+- tests catch runtime-specific problems (Response, encodings, Workers limits);
+- the binding config is not duplicated: tests and local development read the same `wrangler.jsonc`;
+- a test run takes tens of milliseconds instead of seconds.
 
-**Отрицательные:**
+**Negative:**
 
-- нужен Node 22 и Linux/macOS/Windows-совместимый `workerd`;
-- конфигурация gateway в тестах отличается от боевой — расхождение закрывает smoke-скрипт.
+- Node 22 and a `workerd` build compatible with Linux/macOS/Windows are required;
+- the gateway configuration in tests differs from production — the smoke script closes that gap.
 
-## Альтернативы
+## Alternatives
 
-- **Node + `unstable_dev` / `wrangler dev` как внешний процесс** — ближе к реальности, но
-  медленно, нет изоляции и неудобно для юнит-тестов.
-- **MSW для моков биндингов** — не покрывает Workers-специфичные API (ExecutionContext,
-  Durable Objects, Hibernation API) и не проверяет типы биндингов.
+- **Node + `unstable_dev` / `wrangler dev` as an external process** — closer to reality, but slow,
+  without isolation and inconvenient for unit tests.
+- **MSW for binding mocks** — does not cover Workers-specific APIs (ExecutionContext, Durable
+  Objects, Hibernation API) and does not check binding types.

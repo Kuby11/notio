@@ -1,208 +1,189 @@
 # notio
 
-Клон Notion как портфолио-проект: микросервисы на Cloudflare Workers, изолированные базы,
-блочный редактор и групповое редактирование в реальном времени на Durable Objects.
+A Notion clone as a portfolio project: microservices on Cloudflare Workers, isolated databases,
+a block editor and real-time collaborative editing on Durable Objects.
 
-Цель проекта — показать уровень middle+/senior: чистую архитектуру, сквозную типизацию,
-продуманное тестирование и безопасность как требование первого класса.
+The goal is to demonstrate a middle+/senior level: clean architecture, end-to-end typing,
+deliberate testing and security as a first-class requirement.
 
-> Текущий статус: **Этап 2 — аутентификация.** Работают gateway с проксированием, rate limit,
-> CORS, сквозным request-id и проверкой JWT по JWKS; auth-service (Better Auth на D1) с
-> регистрацией, подтверждением почты, сессией в cookie и выдачей JWT; pages-service с деревом
-> страниц на D1. На фронтенде — вход и регистрация, защита маршрутов через `proxy.ts`.
+> What works today: the gateway with proxying, rate limiting, CORS, end-to-end request IDs and
+> JWT verification via JWKS; the auth-service (Better Auth on D1) with sign-up, email
+> verification, cookie sessions and JWT issuance; the pages-service with a page tree on D1.
+> On the frontend — sign-in and sign-up, with routes protected through `proxy.ts`.
 
-## Стек
+## Stack
 
-| Область         | Выбор                                                                   |
-| --------------- | ----------------------------------------------------------------------- |
-| Монорепо        | pnpm workspaces + Turborepo                                             |
-| Фронтенд        | vinext (Next.js App Router на Vite), TanStack Query, Zustand, shadcn/ui |
-| Редактор        | Tiptap + Yjs, dnd-kit                                                   |
-| Бэкенд          | Hono на Cloudflare Workers, Service Bindings между сервисами            |
-| Данные          | D1 (database-per-service), Drizzle ORM + drizzle-kit                    |
-| Файлы и очереди | R2, KV, Queues, Cron Triggers                                           |
-| Realtime        | Durable Objects (Hibernation API) + Yjs                                 |
-| Аутентификация  | Better Auth (Drizzle-адаптер, D1)                                       |
-| Тесты           | Vitest 5, @cloudflare/vitest-plugin, Testing Library, Playwright        |
-| Линт и формат   | oxlint + oxfmt                                                          |
-| CI/CD           | GitHub Actions + Wrangler                                               |
+| Area           | Choice                                                                  |
+| -------------- | ----------------------------------------------------------------------- |
+| Monorepo       | pnpm workspaces + Turborepo                                             |
+| Frontend       | vinext (Next.js App Router on Vite), TanStack Query, Zustand, shadcn/ui |
+| Editor         | Tiptap + Yjs, dnd-kit                                                   |
+| Backend        | Hono on Cloudflare Workers, Service Bindings between services           |
+| Data           | D1 (database-per-service), Drizzle ORM + drizzle-kit                    |
+| Files & queues | R2, KV, Queues, Cron Triggers                                           |
+| Realtime       | Durable Objects (Hibernation API) + Yjs                                 |
+| Authentication | Better Auth (Drizzle adapter, D1)                                       |
+| Tests          | Vitest 5, @cloudflare/vitest-plugin, Testing Library, Playwright        |
+| Lint & format  | oxlint + oxfmt                                                          |
+| CI/CD          | GitHub Actions + Wrangler                                               |
 
-## Структура
+## Structure
 
 ```
 notio/
-├─ apps/web/                App Router на vinext (Vite)
+├─ apps/web/                App Router on vinext (Vite)
 ├─ services/
-│  ├─ gateway/              единственная публичная точка входа: роутинг, CORS, rate limit
-│  ├─ pages-service/        страницы и блоки, своя база D1 notio-pages
-│  ├─ auth-service/         аутентификация Better Auth, своя база D1 notio-auth
-│  └─ ...                   workspace, media, search, realtime — по этапам
+│  ├─ gateway/              the single public entry point: routing, CORS, rate limiting
+│  ├─ pages-service/        pages and blocks, its own D1 database notio-pages
+│  ├─ auth-service/         Better Auth authentication, its own D1 database notio-auth
+│  └─ ...                   workspace, media, search, realtime — added later
 ├─ packages/
-│  ├─ contracts/            Zod-схемы API, RFC 7807, коды ошибок, события
-│  ├─ db/                   общие утилиты Drizzle для сервисов
-│  ├─ observability/        структурное логирование
-│  └─ config/               tsconfig-пресеты
-├─ docs/adr/                архитектурные решения
-└─ scripts/                 smoke-проверка сквозного пути запроса
+│  ├─ contracts/            Zod API schemas, RFC 7807, error codes, events
+│  ├─ db/                   shared Drizzle utilities for services
+│  ├─ observability/        structured logging
+│  └─ config/               tsconfig presets
+├─ docs/adr/                architecture decisions
+└─ scripts/                 smoke check of the end-to-end request path
 ```
 
-## Быстрый старт
+## Quick start
 
 ```bash
 pnpm install
-cp .dev.vars.example .dev.vars   # локальный BETTER_AUTH_SECRET
-pnpm db:migrate                  # миграции обеих баз: notio-pages и notio-auth
-pnpm db:seed:pages               # демо-данные (по желанию)
-pnpm dev                         # workers (wrangler) и web (vinext / vite dev)
+cp .dev.vars.example .dev.vars   # local BETTER_AUTH_SECRET
+pnpm db:migrate                  # migrate both databases: notio-pages and notio-auth
+pnpm db:seed:pages               # demo data (optional)
+pnpm dev                         # workers (wrangler) and web (vinext / vite dev)
 ```
 
-Секреты читаются из `.dev.vars` рядом с конфигом сервиса, поэтому файл нужен и в корне,
-и в `services/auth-service/` (второй можно сделать символической ссылкой).
+Secrets are read from the `.dev.vars` next to each service's config, so the file is needed both
+at the root and in `services/auth-service/` (the second one can be a symlink).
 
-- фронтенд: http://localhost:3000
-- индекс API: http://localhost:8787/
+- frontend: http://localhost:3000
+- API index: http://localhost:8787/
 - gateway (liveness): http://localhost:8787/health
-- gateway (readiness, опрашивает сервисы): http://localhost:8787/api/health
-- аутентификация: http://localhost:3000/register и http://localhost:3000/login
-- страницы через gateway: http://localhost:8787/api/pages?workspaceId=… (нужен JWT)
+- gateway (readiness, probes the services): http://localhost:8787/api/health
+- authentication: http://localhost:3000/register and http://localhost:3000/login
+- pages through the gateway: http://localhost:8787/api/pages?workspaceId=… (JWT required)
 
-Полный сквозной путь (клиент → gateway → Service Binding → сервис → D1) проверяется одной
-командой — она сама поднимает backend, применяет миграции и гасит его:
+The full end-to-end path (client → gateway → Service Binding → service → D1) is checked by a
+single command — it starts the backend, applies migrations and shuts it down afterwards:
 
 ```bash
-pnpm smoke              # сам поднимает и останавливает backend
-pnpm smoke -- --verbose # с логами workers
-pnpm smoke -- --reuse   # использовать уже запущенный backend, ничего не гасить
+pnpm smoke              # starts and stops the backend itself
+pnpm smoke -- --verbose # with workers logs
+pnpm smoke -- --reuse   # use an already running backend, shut nothing down
 ```
 
-Свои логи нужны для ссылки подтверждения почты, поэтому по умолчанию smoke всегда
-поднимает свой backend; если на порту уже кто-то отвечает, скрипт это остановит и
-предупредит. `--reuse` пропускает подъём, но тогда подтверждение собирается из
-`.dev.vars` — режим только для локального стенда.
+Its own logs are needed for the email verification link, so by default smoke always starts its
+own backend; if something is already answering on the port, the script stops and warns. `--reuse`
+skips the startup, but then verification is assembled from `.dev.vars` — a local-stand-only mode.
 
-## Аутентификация и доступ к API
+## Authentication and API access
 
-Вход и регистрация — на фронтенде (`/login`, `/register`). Сессия живёт в httpOnly-cookie
-`notio.session_token`, поэтому браузер отправляет её сам. Закрытые маршруты `/api/*`
-(кроме `/api/health` и `/api/auth/*`) требуют JWT:
+Sign-in and sign-up live on the frontend (`/login`, `/register`). The session is kept in the
+httpOnly `notio.session_token` cookie, so the browser sends it automatically. Private `/api/*`
+routes (except `/api/health` and `/api/auth/*`) require a JWT:
 
 ```bash
 WS=00000000-0000-4000-8000-000000000001
 EMAIL="you@notio.test"
 PASS="correct-horse-battery"
 
-# 1. Регистрация: письмо с подтверждением уходит в лог auth-service (в dev).
-#    Повторная регистрация этой же почты вернёт 409 CONFLICT.
+# 1. Sign up: the verification email goes to the auth-service log (in dev).
+#    Signing up again with the same address returns 409 CONFLICT.
 curl -X POST http://localhost:8787/api/auth/sign-up/email \
   -H "content-type: application/json" -H "origin: http://localhost:8787" \
-  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\",\"name\":\"Вы\"}"
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\",\"name\":\"You\"}"
 
-# 2. Подтверждение: ссылка из лога вида /api/auth/verify-email?token=…&callbackURL=%2F
+# 2. Verify: follow the link from the log, shaped like /api/auth/verify-email?token=…&callbackURL=%2F
 curl "http://localhost:8787/api/auth/verify-email?token=<TOKEN>&callbackURL=%2F"
 
-# 3. Вход и получение JWT (cookie сохраняем в файл).
+# 3. Sign in and obtain a JWT (the cookie is saved to a file).
 curl -s -c cookies.txt -X POST http://localhost:8787/api/auth/sign-in/email \
   -H "content-type: application/json" -H "origin: http://localhost:8787" \
   -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}"
 JWT=$(curl -s -b cookies.txt http://localhost:8787/api/auth/token | sed 's/.*"token":"\([^"]*\)".*/\1/')
 
-# 4. Запрос к закрытому API от имени пользователя.
+# 4. Call a private API on behalf of the user.
 curl -H "authorization: Bearer $JWT" \
   "http://localhost:8787/api/pages?workspaceId=$WS"
 
 curl -X POST http://localhost:8787/api/pages \
   -H "content-type: application/json" -H "authorization: Bearer $JWT" \
-  -d "{\"workspaceId\":\"$WS\",\"title\":\"Новая страница\"}"
+  -d "{\"workspaceId\":\"$WS\",\"title\":\"New page\"}"
 ```
 
-Идентичность определяется только из подписанного токена: заголовок `x-actor-id` от клиента
-отбрасывается, gateway подставляет сервису id пользователя из claims. Без токена —
-`401` в формате `application/problem+json`.
+Identity comes only from the signed token: a client-supplied `x-actor-id` header is discarded and
+the gateway passes the user id from the claims to the service. Without a token you get `401` in
+`application/problem+json` format.
 
-### Вход через Google и GitHub
+### Sign in with Google and GitHub
 
-Провайдер включается, только когда заданы обе части ключа в
+A provider is enabled only when both halves of its key are set in
 `services/auth-service/.dev.vars` (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`,
-`GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`). Redirect URI строится от
-`BETTER_AUTH_URL`, то есть callback идёт **через gateway, а не через фронтенд**:
+`GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`). The redirect URI is built from `BETTER_AUTH_URL`,
+so the callback goes **through the gateway, not through the frontend**:
 
 ```
 Google:  http://localhost:8787/api/auth/callback/google
 GitHub:  http://localhost:8787/api/auth/callback/github
 ```
 
-Эти два адреса нужно прописать в консоли провайдера (Google Cloud → OAuth client →
-Authorized redirect URIs; GitHub → OAuth App → Authorization callback URL — там адрес
-один). Частые причины «кнопка не работает»:
+Both addresses must be registered in the provider console (Google Cloud → OAuth client →
+Authorized redirect URIs; GitHub → OAuth App → Authorization callback URL — a single address
+there). Common reasons why "the button does not work":
 
-- **Адрес зарегистрирован на порту 3000.** Callback обслуживает auth-service за gateway,
-  порт 8787. Приложение Google, которое ещё не прошло верификацию (publishing status
-  `Testing`), пускает только аккаунты из списка Test users — остальным отдаёт
+- **The address is registered on port 3000.** The callback is served by the auth-service behind
+  the gateway, port 8787. A Google app that has not passed verification yet (publishing status
+  `Testing`) only admits accounts from the Test users list — everyone else gets
   `Error 403: access_denied`.
-- **Приложение открыто как `127.0.0.1:3000`.** Cookie сессии и `state` живут на хосте
-  gateway (`localhost`), поэтому открывать приложение нужно по тому же имени:
-  `http://localhost:3000`.
-- **Аккаунт уже существует с паролем.** Связывание по почте включено
-  (`accountLinking.trustedProviders` = настроенные провайдеры), но локальная почта должна
-  быть подтверждена — иначе вход через провайдера отклоняется.
+- **The app is opened as `127.0.0.1:3000`.** The session cookie and `state` live on the gateway
+  host (`localhost`), so the app must be opened under the same name: `http://localhost:3000`.
+- **An account with a password already exists.** Email-based linking is enabled
+  (`accountLinking.trustedProviders` = the configured providers), but the local email has to be
+  verified — otherwise provider sign-in is rejected.
 
-Ошибка провайдера возвращает пользователя на страницу входа с `?error=<код>`
-(`access_denied`, `state_mismatch`, `invalid_code`, …), форма показывает причину, а
-auth-service пишет её в лог (`oauth_callback_error`).
+A provider error returns the user to the sign-in page with `?error=<code>`
+(`access_denied`, `state_mismatch`, `invalid_code`, …), the form shows the reason, and the
+auth-service logs it (`oauth_callback_error`).
 
-## API страниц (через gateway)
+## Pages API (through the gateway)
 
-Страницы доступны только с JWT — см. раздел «Аутентификация и доступ к API» выше.
-Публичными остаются `/`, `/health`, `/api/health` и `/api/auth/*`.
+Pages are available only with a JWT — see "Authentication and API access" above.
+`/`, `/health`, `/api/health` and `/api/auth/*` remain public.
 
-## Скрипты
+## Scripts
 
-| Команда                                                 | Что делает                                        |
-| ------------------------------------------------------- | ------------------------------------------------- |
-| `pnpm dev`                                              | Поднимает workers и web вместе                    |
-| `pnpm dev:workers`                                      | Только backend: `wrangler dev` с тремя сервисами  |
-| `pnpm dev:gateway` / `pnpm dev:auth` / `pnpm dev:pages` | Один сервис отдельно                              |
-| `pnpm build`                                            | Сборка воркеров (dry-run bundle) и фронтенда      |
-| `pnpm typecheck`                                        | `tsc` во всех пакетах + генерация типов Workers   |
-| `pnpm lint`                                             | oxlint по всему монорепо                          |
-| `pnpm format` / `pnpm format:check`                     | oxfmt                                             |
-| `pnpm test` / `pnpm test:coverage`                      | Тесты, порог покрытия 80%                         |
-| `pnpm smoke`                                            | Smoke-проверка: auth, JWT, запись в D1, заголовки |
-| `pnpm types`                                            | Генерация `worker-configuration.d.ts`             |
-| `pnpm db:generate`                                      | Новая миграция из схемы Drizzle                   |
-| `pnpm db:migrate` / `pnpm db:seed:pages`                | Миграции обеих баз и демо-данные локально         |
+| Command                                                 | What it does                                     |
+| ------------------------------------------------------- | ------------------------------------------------ |
+| `pnpm dev`                                              | Starts workers and web together                  |
+| `pnpm dev:workers`                                      | Backend only: `wrangler dev` with three services |
+| `pnpm dev:gateway` / `pnpm dev:auth` / `pnpm dev:pages` | A single service on its own                      |
+| `pnpm build`                                            | Builds the workers (dry-run bundle) and frontend |
+| `pnpm typecheck`                                        | `tsc` in every package + Workers type generation |
+| `pnpm lint`                                             | oxlint across the whole monorepo                 |
+| `pnpm format` / `pnpm format:check`                     | oxfmt                                            |
+| `pnpm test` / `pnpm test:coverage`                      | Tests, 80% coverage threshold                    |
+| `pnpm smoke`                                            | Smoke check: auth, JWT, D1 writes, headers       |
+| `pnpm types`                                            | Generates `worker-configuration.d.ts`            |
+| `pnpm db:generate`                                      | New migration from the Drizzle schema            |
+| `pnpm db:migrate` / `pnpm db:seed:pages`                | Migrations for both databases and demo data      |
 
-## Архитектурные решения
+## Architecture decisions
 
-Документы в `docs/adr/`:
+Documents in `docs/adr/`:
 
-1. [Монорепо на pnpm workspaces + Turborepo](docs/adr/0001-monorepo-pnpm-turborepo.md)
-2. [Межсервисная коммуникация через Service Bindings](docs/adr/0002-service-bindings-between-services.md)
-3. [Сквозные типы: Hono RPC + Zod](docs/adr/0003-end-to-end-types-hono-rpc-zod.md)
-4. [Тесты Workers: Vitest 5 + @cloudflare/vitest-plugin](docs/adr/0004-testing-with-vitest-cloudflare-plugin.md)
-5. [Линтер и форматтер: oxlint + oxfmt](docs/adr/0005-oxlint-oxfmt-tooling.md)
-6. [Слой данных: Drizzle, fractional indexing, UUIDv4](docs/adr/0006-data-layer-drizzle-fractional-indexing.md)
-7. [Сквозная инфраструктура gateway](docs/adr/0007-gateway-cross-cutting-middleware.md)
-8. [Аутентификация: Better Auth, сессия в cookie и JWT для gateway](docs/adr/0008-auth-service-better-auth-jwt.md)
-9. [Фронтенд аутентификации: слои, DI и доступ к API по JWT](docs/adr/0009-frontend-auth-layers.md)
+1. [Monorepo on pnpm workspaces + Turborepo](docs/adr/0001-monorepo-pnpm-turborepo.md)
+2. [Inter-service communication through Service Bindings](docs/adr/0002-service-bindings-between-services.md)
+3. [End-to-end types: Hono RPC + Zod](docs/adr/0003-end-to-end-types-hono-rpc-zod.md)
+4. [Worker tests: Vitest 5 + @cloudflare/vitest-plugin](docs/adr/0004-testing-with-vitest-cloudflare-plugin.md)
+5. [Linter and formatter: oxlint + oxfmt](docs/adr/0005-oxlint-oxfmt-tooling.md)
+6. [Data layer: Drizzle, fractional indexing, UUIDv4](docs/adr/0006-data-layer-drizzle-fractional-indexing.md)
+7. [Gateway cross-cutting infrastructure](docs/adr/0007-gateway-cross-cutting-middleware.md)
+8. [Authentication: Better Auth, cookie session and JWT for the gateway](docs/adr/0008-auth-service-better-auth-jwt.md)
+9. [Frontend authentication: layers, DI and JWT-based API access](docs/adr/0009-frontend-auth-layers.md)
 
-Правила архитектуры фронтенда (слои domain → application → adapters → ui) описаны в
-[`.agents/AGENTS.md`](.agents/AGENTS.md), план работ — в
+The frontend architecture rules (domain → application → adapters → ui layers) are described in
+[`.agents/AGENTS.md`](.agents/AGENTS.md), and the work plan in
 [`notion-clone-plan.md`](notion-clone-plan.md).
-
-## Этапы
-
-| Этап | Содержание                                                       | Статус |
-| ---- | ---------------------------------------------------------------- | ------ |
-| 0    | Фундамент: монорепо, линтеры, CI, health-check, Service Binding  | ✅     |
-| 1    | Контракты, роутинг gateway, request-id, rate limit, D1 + Drizzle | ✅     |
-| 2    | Auth на Better Auth, JWT/JWKS, защита роутов                     | ✅     |
-| 3    | Workspaces и роли                                                | ⏳     |
-| 4    | Страницы и дерево на фронтенде                                   | ⏳     |
-| 5    | Блочный редактор                                                 | ⏳     |
-| 6    | Медиа и файлы                                                    | ⏳     |
-| 7    | Поиск                                                            | ⏳     |
-| 8    | Realtime на Durable Objects + Yjs                                | ⏳     |
-| 9    | Аудит безопасности                                               | ⏳     |
-| 10   | OpenAPI, observability, a11y                                     | ⏳     |
-| 11   | Деплой и презентация                                             | ⏳     |

@@ -1,63 +1,54 @@
-# ADR 0011. Редактор: один Tiptap-документ ↔ отдельные строки блоков
+# ADR 0011. Editor: one Tiptap document ↔ separate block rows
 
-- **Статус:** принято
-- **Дата:** 2026-10-20
+- **Status:** accepted
+- **Date:** 2026-10-20
 
-## Контекст
+## Context
 
-Этап 5 требует хранить каждый блок отдельной строкой `blocks` и делать полные
-снапшоты страницы из `BlockContent[]`. Tiptap работает с одним вложенным
-ProseMirror-документом, где списки, цитаты и код — это древовидные узлы, а не
-плоский список блоков.
+Stage 5 requires storing each block as a separate `blocks` row and producing full page snapshots
+from `BlockContent[]`. Tiptap works with a single nested ProseMirror document, where lists,
+blockquotes and code are tree nodes rather than a flat list of blocks.
 
-Нужно совместить обе модели: редактировать страницу одним редактором, но
-сохранять блоки построчно и уметь сопоставить узел редактора со строкой БД
-для автосохранения и выделения.
+Both models have to be combined: edit the page in one editor, but save blocks row by row and be able
+to map an editor node to a database row for autosave and selection.
 
-## Решение
+## Decision
 
-- На страницу создаётся **один** Tiptap-редактор и один ProseMirror-документ.
-- Верхнеуровневые узлы документа соответствуют блокам страницы:
-  `paragraph`, `heading`, `blockquote`, `codeBlock`, `horizontalRule`,
-  `bulletList`/`orderedList` (по элементу `listItem`) и кастомные
+- **One** Tiptap editor and one ProseMirror document are created per page.
+- Top-level document nodes correspond to page blocks: `paragraph`, `heading`, `blockquote`,
+  `codeBlock`, `horizontalRule`, `bulletList`/`orderedList` (one per `listItem`) and the custom
   `image`, `toDo`, `toggle`.
-- Сохранённый `block.id` хранится в attrs `blockId` каждого узла. У нового
-  блока, которого ещё нет в БД, `blockId` равен `null`.
-- Преобразование `Block[] → JSON-документ` и обратно живёт в чистом
-  `utils/block.ts` и не зависит от React и Tiptap. Это позволяет тестировать
-  маппинг без DOM.
-- Соседние элементы списка при гидратации объединяются в один `bulletList`
-  или `orderedList`; при сохранении каждый `listItem` снова становится
-  отдельным блоком.
-- Выделение определяется по ближайшему предку с `blockId`, а не по позиции
-  ProseMirror. Для атомарных узлов (`image`, `divider`) id берётся из
-  `NodeSelection`.
-- Mark-расширения Tiptap (bold, italic, link и т.п.) отключены: текущий
-  `BlockContent` хранит плоскую строку. Включать форматирование, которое
-  нельзя сохранить, — значит молча терять данные пользователя.
+- The persisted `block.id` is stored in each node's `blockId` attr. A new block not yet in the
+  database has `blockId` equal to `null`.
+- Conversion `Block[] → JSON document` and back lives in the pure `utils/block.ts` and does not
+  depend on React or Tiptap. This makes the mapping testable without a DOM.
+- Adjacent list items are merged into one `bulletList` or `orderedList` during hydration; on save,
+  each `listItem` becomes a separate block again.
+- Selection is determined by the nearest ancestor with a `blockId`, not by a ProseMirror position.
+  For atomic nodes (`image`, `divider`) the id comes from `NodeSelection`.
+- Tiptap mark extensions (bold, italic, link, etc.) are disabled: the current `BlockContent` stores
+  a flat string. Enabling formatting that cannot be saved would silently lose the user's data.
 
-## Альтернативы
+## Alternatives
 
-- **Отдельный Tiptap-редактор на каждый блок.** Проще маппинг 1:1, но
-  ломаются сквозная навигация курсором, undo/redo и drag&drop между блоками;
-  на странице с сотней блоков появляется сотня ProseMirror-view.
-- **Хранить JSON Tiptap как один документ.** Противоречит построчным блокам,
-  частичным обновлениям и снапшотам `BlockContent[]`.
-- **BlockNote.** Готовый блочный UI, но меньше контроля над схемой и
-  собственной архитектурой; для портфолио важно показать маппинг и
-  автосохранение самостоятельно.
+- **A separate Tiptap editor per block.** Simpler 1:1 mapping, but breaks cursor navigation across
+  blocks, undo/redo and drag & drop between blocks; a page with a hundred blocks gets a hundred
+  ProseMirror views.
+- **Storing Tiptap JSON as one document.** Contradicts per-row blocks, partial updates and
+  `BlockContent[]` snapshots.
+- **BlockNote.** A ready-made block UI, but less control over the schema and our own architecture;
+  for a portfolio it matters to demonstrate the mapping and autosave ourselves.
 
-## Последствия
+## Consequences
 
-- Rich text (marks) появится только вместе с миграцией `BlockContent` на
-  массив инлайн-узлов; до этого редактор остаётся plain-text по блокам.
-- Вложенность списков при сохранении разворачивается в плоские блоки:
-  контракт `BlockContent` пока не умеет хранить иерархию.
-- Toggle хранит вложенные блоки в `content.children` своей строки. Это
-  единственное исключение из правила «один блок — одна строка»: заголовок и
-  тело переключателя сохраняются атомарно, без отдельных `blockId` у детей.
-  Вложенные списки внутри toggle, как и на верхнем уровне, разворачиваются.
-- Кастомные узлы (`image`, `toDo`, `toggle`) должны меняться синхронно с
-  маппингом и контрактом; это закреплено unit-тестами.
-- В БД по-прежнему лежат только доменные `BlockContent`; JSON Tiptap —
-  временное представление редактора, а не формат хранения.
+- Rich text (marks) will appear only together with migrating `BlockContent` to an array of inline
+  nodes; until then the editor stays plain-text per block.
+- List nesting is flattened into blocks on save: the `BlockContent` contract cannot yet store a
+  hierarchy.
+- Toggle keeps its nested blocks in its own row's `content.children`. This is the only exception to
+  "one block, one row": the toggle's heading and body are saved atomically, without separate
+  `blockId`s on the children. Nested lists inside a toggle are flattened, as at the top level.
+- The custom nodes (`image`, `toDo`, `toggle`) must change together with the mapping and the
+  contract; unit tests pin this down.
+- The database still holds only domain `BlockContent`; Tiptap JSON is the editor's temporary
+  representation, not the storage format.

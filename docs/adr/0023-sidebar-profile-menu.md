@@ -1,46 +1,40 @@
-# ADR 0023. Профиль в сайдбаре: единый popover вместо переключателя workspace
+# ADR 0023. Sidebar profile: a single popover instead of the workspace switcher
 
-- **Статус:** принято
-- **Дата:** 2026-10-25
+- **Status:** accepted
+- **Date:** 2026-10-25
 
-## Контекст
+## Context
 
-Вверху сайдбара был отдельный dropdown «Выберите workspace» (список +
-инлайн-форма создания). Профиль пользователя (имя, почта) нигде не
-показывался, выйти из аккаунта можно было только со страницы входа.
-Потребовались кнопка профиля с popover: карточка пользователя, все
-рабочие пространства, создание нового, настройки и выход.
+At the top of the sidebar there was a separate "Select workspace" dropdown (a list plus an inline
+creation form). The user's profile (name, email) was shown nowhere, and signing out was only possible
+from the sign-in page. A profile button with a popover was needed: a user card, all workspaces,
+creating a new one, settings and sign-out.
 
-## Решение
+## Decision
 
-- **Кнопка профиля заменяет переключатель workspace.** Кнопка показывает
-  аватар-инициалы и имя; список workspace (с галочкой у активного) и
-  форма создания переехали внутрь popover — два контрола для одного
-  списка были бы избыточны. Активное workspace по-прежнему видно по
-  дереву страниц под кнопкой.
-- **Аватар — кружок с инициалами.** Поле image у пользователя в контракте
-  сессии отсутствует; когда появятся изображения, инициалы заменятся
-  компонентом Avatar без смены структуры.
-- **Настройки — read-only диалог профиля** (имя, почта, статус
-  подтверждения). Правка имени тянет за собой update-user в auth-адаптере;
-  отдельного запроса на неё не было, поэтому диалог честно показывает
-  текущее состояние, не изображая редактирование.
-- **Выход — существующая мутация `useAuth().signOut`** (очистка JWT-кеша
-  и кеша запросов) + редирект на `/login`. Ошибка сети не считается
-  выходом: показываем toast, а интерфейс не притворяется разлогиненным.
-- **Попутный фикс автосохранения:** полностью пустой документ PM
-  сериализует как `{type:'doc'}` без ключа `content`; `editorDocumentToBlocks`
-  падал на нём (TypeError), а «пустой» сброс до гидратации стирал бы
-  серверный контент. Разбор допускает отсутствие `content` (легальное
-  «удалили всё»), а `onUpdate` не ставит автосохранение в очередь до
-  завершения гидратации страницы.
+- **The profile button replaces the workspace switcher.** The button shows avatar initials and the
+  name; the workspace list (with a check mark on the active one) and the creation form moved inside
+  the popover — two controls for one list would be redundant. The active workspace is still visible
+  through the page tree below the button.
+- **The avatar is a circle with initials.** The session contract has no image field for the user;
+  once images appear, the initials will be replaced by an Avatar component without changing the
+  structure.
+- **Settings is a read-only profile dialog** (name, email, verification status). Editing the name
+  would pull in an update-user call in the auth adapter; there was no request for it, so the dialog
+  honestly shows the current state without pretending to be editable.
+- **Sign-out uses the existing `useAuth().signOut` mutation** (clearing the JWT cache and the query
+  cache) + a redirect to `/login`. A network error is not treated as signing out: we show a toast, and
+  the interface does not pretend the user is logged out.
+- **An incidental autosave fix:** a completely empty PM document serialises as `{type:'doc'}` without
+  a `content` key; `editorDocumentToBlocks` crashed on it (TypeError), and an "empty" reset before
+  hydration would erase server content. The parser tolerates a missing `content` (a legal "deleted
+  everything"), and `onUpdate` does not queue an autosave until page hydration finishes.
 
-## Последствия
+## Consequences
 
-- Создание workspace из popover редиректит в новое пространство
-  (`router.push` после мутации) — раньше список просто обновлялся.
-- Сайдбар больше не импортирует DropdownMenu для переключателя; профиль
-  живёт в `core/ui/profile-menu.tsx` (core собирает модули — useAuth +
-  useWorkspaces).
-- Реальный выход из аккаунта не покрывается браузерным E2E (сбрасывает
-  сессию стенда), путь `signOut → /login` проверяется юнит-слоем хука.
+- Creating a workspace from the popover redirects into the new space (`router.push` after the
+  mutation) — previously the list simply refreshed.
+- The sidebar no longer imports DropdownMenu for the switcher; the profile lives in
+  `core/ui/profile-menu.tsx` (core assembles modules — useAuth + useWorkspaces).
+- A real sign-out is not covered by browser E2E (it resets the stand's session); the
+  `signOut → /login` path is checked at the hook's unit level.

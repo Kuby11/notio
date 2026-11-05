@@ -1,84 +1,74 @@
-# ADR 0012. Slash-меню и markdown-триггеры в редакторе
+# ADR 0012. Slash menu and markdown triggers in the editor
 
-- **Статус:** принято
-- **Дата:** 2026-10-20
+- **Status:** accepted
+- **Date:** 2026-10-20
 
-## Контекст
+## Context
 
-Нужно повторить привычное поведение Notion: по `/` открывается меню блоков,
-запрос после слэша фильтрует список, стрелки перемещают выбор, `Enter`
-вставляет блок, `Esc` закрывает меню. В меню нужны текст, заголовки 1–4,
-toggle-список, нумерованный, чек- и маркированный списки. Рядом с названием
-блока нужно показать markdown-символ, который создаёт этот блок при наборе.
+We need to reproduce Notion's familiar behaviour: typing `/` opens the block menu, the query after
+the slash filters the list, the arrow keys move the selection, `Enter` inserts the block and `Esc`
+closes the menu. The menu needs text, headings 1–4, a toggle list, numbered, to-do and bulleted
+lists. Next to each block's name we should show the markdown character that creates that block when
+typed.
 
-По документации Notion:
+According to the Notion documentation:
 
-- `/` открывает полное меню блоков, а `/text`, `/plain`, `/bullet`, `/num`,
-  `/todo`, `/toggle`, `/h1` (`/#`), `/h2` (`/##`), `/h3` (`/###`) — это
-  быстрые команды; `Esc` очищает меню.
-- Markdown-триггеры: `-`, `*` или `+` + `Space` для маркированного списка,
-  `1.` + `Space` для нумерованного, `[]` + `Space` для to-do, `#`/`##`/`###`
-  + `Space` для H1–H3, `>` + `Space` для toggle.
-- В верхней части меню Notion показывает самые используемые и недавние блоки.
+- `/` opens the full block menu, while `/text`, `/plain`, `/bullet`, `/num`, `/todo`, `/toggle`, `/h1`
+  (`/#`), `/h2` (`/##`) and `/h3` (`/###`) are quick commands; `Esc` clears the menu.
+- Markdown triggers: `-`, `*` or `+` + `Space` for a bulleted list, `1.` + `Space` for a numbered
+  list, `[]` + `Space` for to-do, `#`/`##`/`###` + `Space` for H1–H3, `>` + `Space` for toggle.
+- At the top of the menu Notion shows the most used and recent blocks.
 
-H4 появился в Notion позже, но в справке для него нет отдельного markdown-
-триггера. Мы трактуем `####` как стандартный Markdown-аналог и поддерживаем
-его наравне с остальными заголовками.
+H4 appeared in Notion later, and the help docs have no separate markdown trigger for it. We treat
+`####` as the standard Markdown equivalent and support it alongside the other headings.
 
-## Решение
+## Decision
 
-- Slash-меню — контролируемый popover, который рендерится рядом с редактором.
-  Его состояние (`open`, `query`, диапазон `/запроса`) живёт в Zustand-сторе
-  модуля, а данные редактора остаются в Tiptap/TanStack Query.
-- Меню открывается, когда `/` стоит в начале текстового блока или после
-  whitespace. Внутри слова и URL, в code block и при непустом выделении меню
-  не открывается.
-- `findSlashTrigger` вычисляет абсолютный диапазон `/запроса`; при выборе
-  команды диапазон удаляется, а текущий блок превращается в выбранный тип.
-  Текст до слэша сохраняется.
-- Фильтрация идёт по названию, английским/русским синонимам и markdown-символу.
-  Сначала точное совпадение (`/h2`, `/##`), затем совпадение с начала, затем
-  вхождение. Без истории использования порядок фиксирован.
-- Клавиатура: `ArrowUp`/`ArrowDown` с переходом по кругу, `Enter` — вставка,
-  `Esc` — закрыть. После `Esc` меню не открывается снова для того же слэша,
-  пока его не удалить. Клик вне меню и прокрутка страницы закрывают popover.
-- Для markdown-триггеров добавлены input rules:
-  - заголовки — встроенные правила Tiptap при `levels: [1, 2, 3, 4]`;
+- The slash menu is a controlled popover rendered next to the editor. Its state (`open`, `query`,
+  the range of `/query`) lives in the module's Zustand store, while the editor data stays in
+  Tiptap/TanStack Query.
+- The menu opens when `/` sits at the start of a text block or after whitespace. Inside a word or
+  URL, inside a code block, or with a non-empty selection the menu does not open.
+- `findSlashTrigger` computes the absolute range of `/query`; choosing a command deletes the range
+  and turns the current block into the chosen type. Text before the slash is preserved.
+- Filtering matches the name, English/Russian synonyms and the markdown character. Exact matches
+  first (`/h2`, `/##`), then prefix matches, then substrings. Without usage history the order is
+  fixed.
+- Keyboard: `ArrowUp`/`ArrowDown` wrap around, `Enter` inserts, `Esc` closes. After `Esc` the menu
+  does not reopen for the same slash until it is deleted. Clicking outside and scrolling the page
+  close the popover.
+- Input rules were added for the markdown triggers:
+  - headings — Tiptap's built-in rules with `levels: [1, 2, 3, 4]`;
   - `[]` + `Space` — to-do;
-  - `>` + `Space` — toggle; правило toggle имеет приоритет выше встроенного
-    blockquote, иначе `>` превращался бы в цитату.
-  - списки `-` и `1.` используют встроенные правила StarterKit.
-- `BlockContentSchema` расширена уровнем заголовка `4`; маппинг и Tiptap
-  `Heading` синхронизированы с этим уровнем.
+  - `>` + `Space` — toggle; the toggle rule has higher priority than the built-in blockquote,
+    otherwise `>` would become a quote;
+  - lists `-` and `1.` use StarterKit's built-in rules.
+- `BlockContentSchema` was extended with heading level `4`; the mapping and the Tiptap `Heading`
+  extension are kept in sync with that level.
 
-## Альтернативы
+## Alternatives
 
-- **`@tiptap/suggestion` + ReactRenderer.** Даёт готовый жизненный цикл
-  триггера, но требует отдельного позиционирования popover и усложняет
-  управление диапазоном/фокусом. Для одного меню на страницу проще хранить
-  диапазон в общем UI-сторе и переиспользовать `Editor`-события.
-- **Показывать только команды, без markdown-подсказок.** Не выполняет
-  требование объяснить, какие символы стоят за блоком, и не даёт пользователю
-  быстрый способ создать блок без меню.
-- **Сортировать по частоте использования.** Пока нет истории команд и
-  синхронизации между устройствами; фиксированный порядок предсказуем и
-  проще тестируется.
+- **`@tiptap/suggestion` + ReactRenderer.** Provides a ready trigger lifecycle, but requires
+  separate popover positioning and complicates range/focus management. For a single menu per page
+  it is simpler to keep the range in the shared UI store and reuse `Editor` events.
+- **Showing only commands, without markdown hints.** Fails the requirement to explain which
+  characters produce a block, and gives the user no fast way to create a block without the menu.
+- **Sorting by usage frequency.** There is no command history or cross-device sync yet; a fixed
+  order is predictable and easier to test.
 
-## Последствия
+## Consequences
 
-- Меню пока содержит только базовые блоки из требования. `image`, `code`,
-  `quote` и `divider` остаются доступны через маппинг, но не выводятся в
-  slash-меню.
-- Нет блока «Недавние» и «Часто используемые»; это можно добавить позже,
-  сохраняя историю в UI-состоянии или на сервере.
-- Toggle стал контейнером: заголовок и дочерние блоки хранятся в его
-  `content.children`; стрелка поворачивается, тело скрывается при `open: false`.
-  Вложенные списки внутри toggle по-прежнему разворачиваются в плоский
-  `BlockContent[]`.
-- Вставка из меню меняет Tiptap-документ; сохранение этих изменений появится
-  вместе с debounce-автосохранением блоков.
+- The menu currently contains only the basic blocks from the requirement. `image`, `code`, `quote`
+  and `divider` remain available through the mapping but are not shown in the slash menu.
+- There are no "Recent" and "Frequently used" sections; these can be added later, keeping history
+  in UI state or on the server.
+- Toggle became a container: its heading and child blocks live in its `content.children`; the arrow
+  rotates and the body hides when `open: false`. Nested lists inside a toggle are still flattened
+  into a plain `BlockContent[]`.
+- Inserting from the menu changes the Tiptap document; saving those changes arrives with debounced
+  block autosave.
 
-## Ссылки
+## References
 
 - [Notion Help — Keyboard shortcuts](https://www.notion.com/help/keyboard-shortcuts)
 - [Notion Help — Intro to writing & editing](https://www.notion.com/help/writing-and-editing-basics)

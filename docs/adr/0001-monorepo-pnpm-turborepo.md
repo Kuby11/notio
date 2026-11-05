@@ -1,49 +1,50 @@
-# ADR 0001. Монорепо на pnpm workspaces + Turborepo
+# ADR 0001. Monorepo on pnpm workspaces + Turborepo
 
-- **Статус:** принято
-- **Дата:** 2026-10-18
+- **Status:** accepted
+- **Date:** 2026-10-18
 
-## Контекст
+## Context
 
-Проект разделён на независимые части: фронтенд на Next.js, микросервисы на Hono/Workers и общие
-пакеты (контракты, конфигурации). Части должны деплоиться независимо, но при этом использовать
-общие Zod-контракты и общие правила оформления кода.
+The project is split into independent parts: a Next.js frontend, Hono/Workers microservices and
+shared packages (contracts, configuration). The parts must deploy independently while still using
+shared Zod contracts and shared code-style rules.
 
-## Решение
+## Decision
 
-Монорепо с pnpm workspaces и Turborepo в качестве оркестратора задач.
+A monorepo with pnpm workspaces and Turborepo as the task orchestrator.
 
 ```
-apps/web                 фронтенд
-services/*               микросервисы на Workers (по одному воркеру на сервис)
-packages/contracts       Zod-схемы API, RFC 7807, типы событий
-packages/config          tsconfig-пресеты и пресеты Vitest
+apps/web                 frontend
+services/*               Workers microservices (one worker per service)
+packages/contracts       Zod API schemas, RFC 7807, event types
+packages/config          tsconfig presets and Vitest presets
 ```
 
-- **JIT-пакеты (just-in-time packages):** `packages/contracts` отдаётся исходниками TypeScript
-  (`exports: { ".": "./src/index.ts" }`), без шага сборки. Next получает `transpilePackages`,
-  Wrangler и Vitest собирают TS сами.
-- **Turborepo** кэширует `build`, `typecheck`, `test` по хэшу входов и зависимостей.
-- **Изоляция баз данных** (database-per-service) достигается тем, что каждый сервис — отдельный
-  воркер со своим `wrangler.jsonc` и своей базой D1. Общих таблиц нет, обмен идёт через API.
+- **JIT packages (just-in-time packages):** `packages/contracts` ships TypeScript sources
+  (`exports: { ".": "./src/index.ts" }`), with no build step. Next gets `transpilePackages`,
+  while Wrangler and Vitest compile TS themselves.
+- **Turborepo** caches `build`, `typecheck` and `test` by hashing inputs and dependencies.
+- **Database isolation** (database-per-service) comes from each service being a separate worker
+  with its own `wrangler.jsonc` and its own D1 database. There are no shared tables; exchange
+  happens through the API.
 
-## Последствия
+## Consequences
 
-**Положительные:**
+**Positive:**
 
-- один `pnpm install`, один `pnpm dev`, один CI-пайплайн на весь проект;
-- контракты меняются в одном месте, оба сервиса и фронтенд видят одно и то же;
-- Turborepo даёт инкрементальные сборки и кеш в CI.
+- one `pnpm install`, one `pnpm dev`, one CI pipeline for the whole project;
+- contracts change in one place, and both services and the frontend see the same thing;
+- Turborepo provides incremental builds and CI caching.
 
-**Отрицательные:**
+**Negative:**
 
-- нужен явный контроль границ: внутренние пакеты не должны «протекать» наружу (проверяется
-  правилом зависимостей из `.agents/AGENTS.md`);
-- `pnpm-lock.yaml` единый — конфликты при параллельной работе над зависимостями.
+- boundaries need explicit control: internal packages must not "leak" outwards (enforced by the
+  dependency rule from `.agents/AGENTS.md`);
+- `pnpm-lock.yaml` is a single file — conflicts when working on dependencies in parallel.
 
-## Альтернативы
+## Alternatives
 
-- **npm workspaces + Nx** — Nx мощнее по графу задач, но тяжелее; Turborepo проще и быстрее
-  для монорепо такого размера.
-- **Отдельные репозитории + версионируемые пакеты в npm** — изолируют команды, но ломают
-  «всё в одном PR» и усложняют сквозной рефакторинг контрактов.
+- **npm workspaces + Nx** — Nx is more powerful around the task graph, but heavier; Turborepo is
+  simpler and faster for a monorepo of this size.
+- **Separate repositories + versioned npm packages** — isolates teams, but breaks "everything in
+  one PR" and makes end-to-end contract refactoring harder.

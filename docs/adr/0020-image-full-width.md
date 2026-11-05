@@ -1,56 +1,47 @@
-# ADR 0020. Ширина изображения: проценты колонки и full-width 16:9
+# ADR 0020. Image width: column percentage and 16:9 full-width
 
-- **Статус:** принято
-- **Дата:** 2026-10-24
+- **Status:** accepted
+- **Date:** 2026-10-24
 
-## Контекст
+## Context
 
-Ширина изображения меняется перетаскиванием боковых ручек. В Notion при
-выходе за текстовую колонку изображение расширяется на всю рабочую область,
-а пользователь запросил для этого режима кадр 16:9. Ограничения:
-`BlockContent` — плоский JSON в строке `blocks` (геометрия обязана
-сериализоваться), а рендер живёт в React-нод-вью внутри колонки
-(`.tiptap { max-width: 52rem }`).
+Image width is changed by dragging the side handles. In Notion, dragging beyond the text column
+expands the image to the full workspace area, and the user asked for a 16:9 frame in that mode.
+Constraints: `BlockContent` is flat JSON in a `blocks` row (geometry must serialise), and rendering
+lives in a React node view inside the column (`tiptap { max-width: 52rem }`).
 
-## Решение
+## Decision
 
-- **Два режима в одном поле контракта.** `width` — процент колонки
-  (10–100); `fullWidth: true` — режим «на всю ширину рабочей области».
-  В full-width `width` сохраняет последний процент: сужение обратно
-  возвращает изображение к нему.
-- **Триггер перехода — курсор за краем колонки**, а не расчётная ширина:
-  ручка могла стартовать не у края колонки, и ширина от дельты никогда не
-  дотянулась бы до порога (проверено в E2E). Логика шага вынесена в чистую
-  функцию `resizeImage` (utils/image-resize, 12 тестов): процент считается
-  от позиции курсора в колонке, левая ручка зеркальна.
-- **Full-bleed без CSS-трюков с vw** (они заезжают под сайдбар): node view
-  измеряет контейнер редактора (`[data-editor-container]`) и колонку
-  (`.ProseMirror`) и задаёт figure ширину контейнера и отрицательный отступ
-  в px. ResizeObserver пересчитывает при ресайзе окна и сайдбара.
-- **Кадр 16:9 в full-width**: `aspect-ratio: 16 / 9` на рамке и
-  `object-fit: cover` на изображении — пропорции картинки не искажаются,
-  лишнее обрезается по центру.
-- **Тултип ручки** показывает процент в колонке и «На всю ширину» в
-  full-width. Стрелки клавиатуры меняют процент шагами по 5.
+- **Two modes in one contract field.** `width` is the percentage of the column (10–100);
+  `fullWidth: true` is the "full workspace width" mode. In full width, `width` keeps the last
+  percentage: shrinking back returns the image to it.
+- **The switch trigger is the cursor beyond the column edge**, not a computed width: the handle may
+  have started away from the column edge, and a width derived from the delta would never reach the
+  threshold (verified in E2E). The step logic is extracted into a pure function `resizeImage`
+  (utils/image-resize, 12 tests): the percentage is computed from the cursor position in the column,
+  and the left handle is mirrored.
+- **Full bleed without CSS vw tricks** (they slide under the sidebar): the node view measures the
+  editor container (`[data-editor-container]`) and the column (`ProseMirror`) and gives the figure the
+  container's width and a negative offset in px. A ResizeObserver recomputes on window and sidebar
+  resizes.
+- **A 16:9 frame in full width**: `aspect-ratio: 16 / 9` on the frame and `object-fit: cover` on the
+  image — the picture's proportions are not distorted, and the excess is cropped from the centre.
+- **The handle's tooltip** shows the percentage within the column and "Full width" in full width.
+  Keyboard arrows change the percentage in steps of 5.
 
-## Альтернативы
+## Alternatives
 
-- **`width: number | 'full'`** вместо отдельного флага: ширина и режим в
-  одном поле, но ломает существующие данные (100 → 'full') и усложняет
-  валидацию.
-- **CSS `100vw` / container queries** для full-bleed: первый заезжает под
-  сайдбар, второй делает контейнер containing block для fixed-элементов и
-  ломает позиционирование меню.
-- **Хранить full-width как width > 100**: ломает контракт процентов и
-  валидацию.
+- **`width: number | 'full'`** instead of a separate flag: width and mode in one field, but it breaks
+  existing data (100 → 'full') and complicates validation.
+- **CSS `100vw` / container queries** for full bleed: the first slides under the sidebar, the second
+  makes the container a containing block for fixed elements and breaks menu positioning.
+- **Storing full width as width > 100**: breaks the percentage contract and its validation.
 
-## Последствия
+## Consequences
 
-- В full-width изображение обрезается до 16:9 — исходные пропорции
-  сохраняются только в процентном режиме.
-- Measurement full-bleed живёт в node view: при переключении режима
-  возможен один кадр без стиля до первого измерения (маскируется тем, что
-  измерение синхронное в эффекте).
-- Клик/курсор вокруг full-width изображения продолжает разрешаться в
-  позицию «перед блоком» патчем posAtCoords (см. историю редактора) —
-  вертикальный диапазон узла совпадает с визуальным.
+- In full width the image is cropped to 16:9 — the original proportions are kept only in percentage
+  mode.
+- Full-bleed measurement lives in the node view: switching the mode can produce one frame without
+  styles before the first measurement (masked by measuring synchronously in an effect).
+- Clicking/the cursor around a full-width image still resolves to the "before the block" position via
+  the posAtCoords patch (see the editor history) — the node's vertical range matches the visual one.

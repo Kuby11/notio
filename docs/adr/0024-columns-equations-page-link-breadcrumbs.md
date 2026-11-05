@@ -1,74 +1,61 @@
-# ADR 0024. Колонки, формулы, ссылка на страницу и хлебные крошки
+# ADR 0024. Columns, equations, page links and breadcrumbs
 
-- **Статус:** принято
-- **Дата:** 2026-10-25
+- **Status:** accepted
+- **Date:** 2026-10-25
 
-## Контекст
+## Context
 
-Пять новых блоков по образцу Notion: колонки (2–5), блочная и строчная
-формулы (LaTeX), ссылка на существующую страницу и хлебные крошки
-документа. Модель блоков до этого знала один контейнер (toggle) и
-хранение « children внутри строки блока» уже было опробовано на нём.
+Five new blocks modelled on Notion: columns (2–5), block and inline equations (LaTeX), a link to an
+existing page, and document breadcrumbs. Until then the block model knew one container (toggle), and
+storing "children inside the block row" had already been tried on it.
 
-## Решение
+## Decision
 
-- **Колонки — второй контейнер: `columns` (2–5 колонок, `children` в
-  каждой).** Дети колонок не владеют строками БД: `ownsBlockRow` смотрит
-  на `parent === 'doc'`, поэтому вложенные параграфы не получают id и
-  сохраняются внутри строки колонок (та же семантика, что у toggle).
-  Хвостовые пустые абзацы колонок не сериализуются. `columnsColumn` —
-  первый contentful React node view: `NodeViewWrapper` + `NodeViewContent`,
-  без `editableReactNodeView` (PM сам управляет contenteditable внутри
-  contentDOM). Flex-размер живёт на обёртке `.react-renderer`, которую
-  Tiptap ставит между PM-узлом и React-компонентом. Контролы «+»/«×» на
-  наведении пересобирают columnsList одной транзакцией с фокусом в новый
-  абзац; минимум 2 колонки — «×» под ограничением контракта.
-- **Формулы — KaTeX (`katex`, HTML-вывод).** Блочная `equation` — атом с
-  `expression` в attrs, клик открывает textarea (Ctrl+Enter/Escape/blur),
-  пустая после вставки открывается сама; ошибка разбора показывается
-  сырым LaTeX. Строчная формула — **новый вариант сегмента rich text**
-  `{math}` (не марка: у формулы нет текста-носителя). `RichText`
-  расширен union-вариантом, `richToPlain` отдаёт выражение как текст;
-  сегменты с math живут во всех rich-полях (включая ячейки таблиц и
-  toggle) бесплатно — конвертация общая.
-- **Ссылка на страницу — `linkToPage` с одним `pageId`.** В отличие от
-  `page` (подстраница) ничего не денормализует: заголовок и иконка
-  подтягиваются запросом при показе, поэтому переименование целевой
-  страницы не ломает блок. Без `pageId` узел не сериализуется, а node
-  view показывает диалог выбора: плоский список страниц пространства
-  (обход до глубины 4) + поиск по названию (shadcn Dialog + Input).
-- **Хлебные крошки — `breadcrumb` без payload.** Путь вычисляется node
-  view подъёмом по `parentId` (та же логика, что у шапки, но через мост).
-  Рендер — shadcn Breadcrumb; разделитель — сосед `BreadcrumbItem`
-  (см. ADR 0022 про li-в-li); переходы — `router.push` из моста.
-- **Мост страниц (`utils/page-link.ts`)** по образцу sub-page: node views
-  рендерятся ReactRenderer'ом вне дерева приложения, поэтому контекст и
-  хуки до них не доходят. Мост назначается **в рендере**, а не в эффекте:
-  node view'ы монтируются раньше эффектов родителя и читают страницу на
-  старте; значения остаются живыми через геттеры (workspaceId/pageId
-  читаются из ref на момент вызова).
-- **Попутный фикс бабл-меню:** кастомный `shouldShow` потерял проверку
-  фокуса — меню висело над выделением, пока пользователь вводил формулу
-  в textarea. Добавлен `currentEditor.isFocused`.
+- **Columns are the second container: `columns` (2–5 columns, `children` in each).** Column children
+  do not own database rows: `ownsBlockRow` looks at `parent === 'doc'`, so nested paragraphs get no id
+  and are saved inside the columns row (the same semantics as toggle). Trailing empty paragraphs in
+  columns are not serialised. `columnsColumn` is the first contentful React node view:
+  `NodeViewWrapper` + `NodeViewContent`, without `editableReactNodeView` (PM manages contenteditable
+  inside the contentDOM itself). The flex size lives on the `.react-renderer` wrapper that Tiptap
+  puts between the PM node and the React component. The "+"/"×" controls on hover rebuild the
+  columnsList in a single transaction with focus in the new paragraph; a minimum of 2 columns — "×"
+  is limited by the contract.
+- **Equations use KaTeX (`katex`, HTML output).** The block `equation` is an atom with `expression` in
+  attrs; a click opens a textarea (Ctrl+Enter/Escape/blur), and an empty one opens itself right after
+  insertion; a parse error shows the raw LaTeX. The inline equation is a **new rich-text segment
+  variant** `{math}` (not a mark: an equation has no carrier text). `RichText` was extended with the
+  union variant; `richToPlain` returns the expression as text; math segments work in all rich fields
+  (including table cells and toggle) for free — the conversion is shared.
+- **A page link is `linkToPage` with a single `pageId`.** Unlike `page` (a subpage) it denormalises
+  nothing: the title and icon are fetched when displaying, so renaming the target page does not break
+  the block. Without a `pageId` the node is not serialised, and the node view shows a picker dialog:
+  a flat list of the space's pages (walking to depth 4) plus search by name (shadcn Dialog + Input).
+- **Breadcrumbs are `breadcrumb` with no payload.** The path is computed by the node view by walking
+  up `parentId` (the same logic as the header, but through the bridge). It renders a shadcn
+  Breadcrumb; the separator is a sibling `BreadcrumbItem` (see ADR 0022 about li-in-li); navigation
+  uses `router.push` from the bridge.
+- **The page bridge (`utils/page-link.ts`)** follows the sub-page pattern: node views are rendered by
+  ReactRenderer outside the app tree, so context and hooks do not reach them. The bridge is assigned
+  **during render**, not in an effect: node views mount before the parent's effects and read the page
+  on start; values stay live through getters (workspaceId/pageId are read from a ref at call time).
+- **An incidental bubble-menu fix:** the custom `shouldShow` lost the focus check — the menu hung over
+  a selection while the user typed an equation in the textarea. `currentEditor.isFocused` was added.
 
-## Альтернативы
+## Alternatives
 
-- **`@tiptap/extension-mathematics`.** Хранит `$…$` как текст с
-  input-правилами — конфликтует с сегментной моделью rich text и даёт
-  редактирование «перепечатай raw», а не клик-попап Notion.
-- **Колонки отдельными блоками с `parentColumnId`.** Порядок и границы
-  колонок рассыпались бы на N строк с fractional indexing; атомарная
-  строка `columns` переиспользует проверенную модель toggle.
-- **Resize колонок перетаскиванием.** Требует хранения ширин и сложной
-  геометрии; отложено — созданные колонки равные, состав меняется
-  кнопками «+»/«×».
+- **`@tiptap/extension-mathematics`.** Stores `$…$` as text with input rules — conflicts with the
+  segment-based rich-text model and gives "retype the raw source" editing rather than Notion's click
+  popup.
+- **Columns as separate blocks with `parentColumnId`.** Column order and boundaries would scatter
+  across N rows with fractional indexing; an atomic `columns` row reuses the proven toggle model.
+- **Dragging to resize columns.** Requires storing widths and complex geometry; postponed — created
+  columns are equal, and the composition changes via the "+"/"×" buttons.
 
-## Последствия
+## Consequences
 
-- Схема контракта расширена 4 типами и вариантом `{math}`; старые
-  клиенты (до деплоя) отклонят новые блоки со статусом 400 — единый
-  релиз фронта и сервисов обязателен (worker'ы перезапускались).
-- Дети колонок не видны автосохранению как отдельные строки: любое
-  изменение внутри колонки переписывает строку колонок целиком (как у
-  toggle) — на текущих размерах документов приемлемо.
-- В перечне slash-команд стало 26 пунктов; тесты количества обновлены.
+- The contract schema gained 4 types and the `{math}` variant; older clients (pre-deployment) reject
+  new blocks with status 400 — a single release of frontend and services is mandatory (the workers
+  were restarted).
+- Column children are not visible to autosave as separate rows: any change inside a column rewrites
+  the whole columns row (as with toggle) — acceptable at current document sizes.
+- The slash command list has grown to 26 items; the count tests were updated.

@@ -1,87 +1,76 @@
-# ADR 0019. Медиа-блоки и файлы в Cloudflare R2
+# ADR 0019. Media blocks and files in Cloudflare R2
 
-- **Статус:** принято
-- **Дата:** 2026-10-24
+- **Status:** accepted
+- **Date:** 2026-10-24
 
-## Контекст
+## Context
 
-Нужны блоки «эмодзи, файл, изображение, видео» с загрузкой локальных файлов
-и вставкой ссылок, лимитами (20 МБ изображение, 50 МБ видео, 20 МБ прочее)
-и тостами об ошибках размера. До сих пор image-блок был заглушкой, а
-media-service не существовал.
+We need "emoji, file, image, video" blocks with local file uploads and link insertion, limits
+(20 MB image, 50 MB video, 20 MB other) and toasts for size errors. Until now the image block was a
+stub and media-service did not exist.
 
-Ограничения и требования:
+Constraints and requirements:
 
-- в интернете есть только gateway, сервисы общаются Service Bindings;
-- произвольные ссылки из контента нельзя рендерить доверчиво — только
-  http/https (HttpUrlSchema уже в контрактах);
-- BlockContent — плоский JSON в строке `blocks`: медиа-блок обязан
-  сериализоваться целиком, иначе автосохранение удалит узел;
-- Workers принимает тела запросов до 100 МБ — прямая multipart-загрузка
-  видео (50 МБ) проходит без presigned URL и S3 API.
+- only the gateway exists on the internet; services talk through Service Bindings;
+- arbitrary links from content cannot be rendered trustingly — http/https only (HttpUrlSchema is
+  already in the contracts);
+- BlockContent is flat JSON in a `blocks` row: a media block must serialise entirely, otherwise
+  autosave deletes the node;
+- Workers accepts request bodies up to 100 MB — a direct multipart video upload (50 MB) works without
+  presigned URLs or the S3 API.
 
-## Решение
+## Decision
 
-- **media-service + R2.** Новый сервис `services/media-service` владеет
-  бакетом (binding `MEDIA`), метаданные живут в `customMetadata` объекта —
-  отдельной базы не нужно. Ключ объекта = UUID файла: id непредсказуем,
-  перечислить бакет снаружи нельзя.
-- **Лимиты и allowlist проверяются дважды.** Контракт даёт
-  `maxUploadSizeForMime` (image/* → 20 МБ, video/* → 50 МБ, прочее →
-  20 МБ) и allowlist MIME; клиент проверяет до отправки и показывает тост,
-  сервис проверяет снова на границе (413 PAYLOAD_TOO_LARGE / 415
-  UNSUPPORTED_MEDIA_TYPE) — доверию клиенту не место.
-- **Загрузка: POST /api/media/files (multipart)** с workspaceId и файлом;
-  gateway проксирует `/api/media` через Service Binding и подставляет
-  подписанного актёра. Ответ — FileMeta по контракту.
-- **Выдача: GET /api/media/files/:id** стримит объект из R2 с
-  `Accept-Ranges`, `Content-Range` (одиночный диапазон — нужна перемотка
-  `<video>`), ETag и `Cache-Control: immutable` (id неизменяем).
-  HEAD отдаёт мету без тела, `?download=1` превращает ответ в сохранение
-  с исходным именем (Content-Disposition, UTF-8).
-- **Блоки хранят источник, а не URL загрузки:** `image`/`video` —
-  `fileId | null` + `url | null` + caption, `file` — плюс `name` и
-  `sizeBytes`, `emoji` — один символ. Схема требует хотя бы один источник
-  (superRefine): пустые заглушки не сериализуются и не сохраняются — тот же
-  приём, что у подстраниц без pageId. Публичный URL файла строит клиент:
+- **media-service + R2.** The new `services/media-service` owns the bucket (`MEDIA` binding), and
+  metadata lives in the object's `customMetadata` — no separate database needed. The object key is
+  the file UUID: the id is unpredictable and the bucket cannot be listed from outside.
+- **Limits and the allowlist are checked twice.** The contract provides `maxUploadSizeForMime`
+  (image/* → 20 MB, video/* → 50 MB, other → 20 MB) and a MIME allowlist; the client checks before
+  sending and shows a toast, and the service checks again at the boundary (413 PAYLOAD_TOO_LARGE /
+  415 UNSUPPORTED_MEDIA_TYPE) — trusting the client has no place here.
+- **Upload: POST /api/media/files (multipart)** with workspaceId and the file; the gateway proxies
+  `/api/media` through a Service Binding and injects the signed actor. The response is FileMeta per
+  the contract.
+- **Serving: GET /api/media/files/:id** streams the object from R2 with `Accept-Ranges`,
+  `Content-Range` (single range — `<video>` needs seeking), ETag and `Cache-Control: immutable` (ids
+  never change). HEAD returns metadata without a body, and `?download=1` turns the response into a
+  download with the original name (Content-Disposition, UTF-8).
+- **Blocks store a source, not an upload URL:** `image`/`video` — `fileId | null` + `url | null` +
+  caption, `file` — plus `name` and `sizeBytes`, `emoji` — a single character. The schema requires at
+  least one source (superRefine): empty placeholders are neither serialised nor saved — the same
+  approach as subpages without a pageId. The public file URL is built by the client:
   `{gateway}/api/media/files/{id}`.
-- **Node view вместо разметки.** Загрузка и плеер требуют интерактива,
-  которого нет у renderHTML: пустой блок показывает карточку («Выбрать
-  файл» / ссылка http(s) с валидацией), заполненный — медиа с подписью.
-  Сеть приходит через WeakMap-мост (media-bridge) из Editor-компонента:
-  расширения не знают про fetch и env. Инпуты гасят события клавиатуры,
-  иначе ProseMirror перехватывал бы ввод.
-- **Тосты** — минимальный `shared/ui/toast` (zustand + один `<Toaster/>`
-  в providers): ошибки лимитов и типов видны при любой точке отказа.
-- **Таблица стала цветной**, как прочие текстовые блоки: color/
-  backgroundColor в content, синк data-атрибутов через TableDomAttrs
-  (TableView плагина resizing attrs узла не применяет).
-- **DragHandle выровнен по центру блока**: placement `left` вместо
-  `left-start`.
+- **A node view instead of markup.** Uploading and the player need interactivity that renderHTML
+  cannot provide: an empty block shows a card ("Choose file" / a validated http(s) link), a filled one
+  shows the media with a caption. The network arrives through a WeakMap bridge (media-bridge) from
+  the Editor component: extensions know nothing about fetch or env. The inputs stop keyboard events,
+  otherwise ProseMirror would intercept typing.
+- **Toasts** — a minimal `shared/ui/toast` (zustand + one `<Toaster/>` in providers): limit and type
+  errors are visible at any failure point.
+- **The table became colourable**, like the other text blocks: color/backgroundColor in content,
+  data-attribute syncing through TableDomAttrs (the resizing plugin's TableView does not apply node
+  attrs).
+- **DragHandle is centred on the block**: placement `left` instead of `left-start`.
 
-## Альтернативы
+## Alternatives
 
-- **Presigned URL к S3 API R2.** Убирает трафик через Worker, но требует
-  ключи S3, отдельный эндпоинт подписи и CROSS-настройки; для 50 МБ
-  прямой загрузки достаточно.
-- **Метаданные в D1.** Дают быстрый поиск по workspace, но дублируют
-  customMetadata R2; вернёмся к базе, когда появятся списки файлов.
-- **MIME-сниффинг по содержимому.** Надёжнее доверия заголовку, но в
-  Workers нет дешёвого детектора; allowlist + размер закрывают сценарий
-  «злая загрузка» на этом этапе.
-- **Кастомные blockId-URL.** Проксирование через gateway сохраняет
-  единый домен (нет CORS) и аутентификацию в одном месте.
+- **Presigned URLs to the R2 S3 API.** Removes traffic through the Worker, but requires S3 keys, a
+  separate signing endpoint and CORS setup; direct upload is enough for 50 MB.
+- **Metadata in D1.** Gives fast workspace search, but duplicates R2's customMetadata; we will return
+  to a database once file lists appear.
+- **MIME sniffing by content.** More reliable than trusting the header, but Workers has no cheap
+  detector; the allowlist plus size closes the "malicious upload" scenario at this stage.
+- **Custom blockId URLs.** Proxying through the gateway keeps a single domain (no CORS) and
+  authentication in one place.
 
-## Последствия
+## Consequences
 
-- Чтение файла (GET/HEAD /api/media/files/:id) публично: `<img>`, `<video>`
-  и ссылки скачивания не умеют отправлять Authorization-заголовок, поэтому
-  доступ держится на непредсказуемости UUID (capability URL, как вложения
-  в Notion) плюс rate limit gateway. Загрузка и всё остальное /api/*
-  требуют токен; пер-файловые права появятся вместе с правами страниц.
-- R2-бакет не настроен в проде: нужен `wrangler r2 bucket create
-  notio-media` и деплой media-service (см. wrangler.jsonc).
-- Видео перематывается одним диапазоном за запрос; множественные Range
-  игнорируются (отдаётся 200 целиком).
-- Эмодзи-блок — фиксированный набор из пикера; поиск/последние эмодзи
-  появятся с rich-текстом.
+- Reading a file (GET/HEAD /api/media/files/:id) is public: `<img>`, `<video>` and download links
+  cannot send an Authorization header, so access relies on UUID unpredictability (a capability URL,
+  like Notion attachments) plus the gateway rate limit. Upload and the rest of `/api/*` require a
+  token; per-file permissions arrive with page permissions.
+- The R2 bucket is not configured for production: `wrangler r2 bucket create notio-media` and a
+  media-service deployment are needed (see wrangler.jsonc).
+- Video seeks with one range per request; multiple Range headers are ignored (the whole object is
+  returned with 200).
+- The emoji block uses a fixed set from the picker; search/recent emoji arrive with rich text.

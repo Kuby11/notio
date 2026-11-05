@@ -1,57 +1,51 @@
-# ADR 0021. Rich text: инлайновое форматирование выделения
+# ADR 0021. Rich text: inline formatting of a selection
 
-- **Статус:** принято
-- **Дата:** 2026-10-24
+- **Status:** accepted
+- **Date:** 2026-10-24
 
-## Контекст
+## Context
 
-Требовалось бабл-меню над выделенным текстом: жирный, курсив,
-зачёркнутый, инлайновый код, ссылка, цвет текста и фон. До сих пор
-`BlockContent` хранил плоский текст — ADR 0011 и заметка в контракте
-откладывали rich text на «Этап 5» (молча терять форматирование при
-сохранении было нельзя).
+A bubble menu above selected text was required: bold, italic, strikethrough, inline code, link, text
+colour and background. Until then `BlockContent` stored flat text — ADR 0011 and a note in the
+contract postponed rich text to "Stage 5" (silently losing formatting on save was not acceptable).
 
-## Решение
+## Decision
 
-- **Модель: `RichText = string | InlineSegment[]`.** Сегмент — кусок
-  текста с марками (`bold/italic/strike/code/link/color/backgroundColor`).
-  Строковый вариант остаётся валидным контрактом для унаследованных данных;
-  маппинг редактора при сохранении всегда пишет массивы, поэтому база
-  нормализуется при первом изменении каждой страницы. Таблица хранит
-  ячейки как `RichText[][]`, toggle — заголовок и рекурсивные children.
-- **Исключения остаются плоскими:** код-блок (марки там не живут), подписи
-  image/video (атрибуты узла, редактируются обычным input), имя файла.
-- **Цвета — именованные пресеты**, не hex: кастомные марки `textColor`/
-  `textBg` рендерят `data-text-color`/`data-text-bg`, палитру и тёмную
-  тему обслуживает CSS (единый источник с ADR 0017). Официальные
-  Color/BackgroundColor пишут произвольный hex в style и ломают темы.
-- **Сравнение автосохранения канонизирует текст:** `contentEquals`
-  нормализует обе стороны к сегментам перед сравнением — иначе первое
-  сохранение после миграции переписывало бы каждый блок (строка ≠ массив).
-- **Бабл-меню — официальный BubbleMenu** из `@tiptap/react/menus` с
-  `shouldShow`: непустое выделение в одном текстблоке, не код-блок.
-  Кнопки — команды StarterKit-марок; ссылка через `extendMarkRange` +
-  `setLink` с валидацией `HttpUrlSchema` (http/https только); цвета через
-  палитру пресетов (повторный клик по тому же цвету снимает марку).
+- **Model: `RichText = string | InlineSegment[]`.** A segment is a piece of text with marks
+  (`bold/italic/strike/code/link/color/backgroundColor`). The string variant remains a valid contract
+  for legacy data; the editor mapping always writes arrays on save, so the database is normalised on
+  each page's first change. A table stores cells as `RichText[][]`, and toggle stores its heading and
+  recursive children.
+- **Exceptions stay flat:** code blocks (marks do not live there), image/video captions (node attrs,
+  edited with a plain input), file name.
+- **Colours are named presets**, not hex: the custom `textColor`/`textBg` marks render
+  `data-text-color`/`data-text-bg`, and the palette and dark theme are served by CSS (one source with
+  ADR 0017). The official Color/BackgroundColor write arbitrary hex into style and break the themes.
+- **Autosave comparison canonicalises text:** `contentEquals` normalises both sides to segments before
+  comparing — otherwise the first save after the migration would rewrite every block (string ≠
+  array).
+- **The bubble menu is the official BubbleMenu** from `@tiptap/react/menus` with `shouldShow`: a
+  non-empty selection inside one textblock, not a code block. Its buttons are StarterKit mark
+  commands; links go through `extendMarkRange` + `setLink` with `HttpUrlSchema` validation
+  (http/https only); colours use the preset palette (clicking the same colour again removes the
+  mark).
 
-## Альтернативы
+## Alternatives
 
-- **Плоский текст + параллельный массив диапазонов марок.** Сохранял бы
-  строку в контракте, но дублировал бы текст и рассинхронизировался при
-  каждом редактировании.
-- **Сразу массивы без строкового варианта.** Ломал бы существующие данные
-  и смок-скрипт; строковый вариант делает миграцию ленивой.
-- **Официальные Color/BackgroundColor.** Hex в инлайн-стиле vs темы.
-- **underline.** Нет в контракте намеренно: без записи в модель он
-  терялся бы; добавляется позже вместе со схемой.
+- **Flat text plus a parallel array of mark ranges.** Would keep a string in the contract, but
+  duplicates the text and desynchronises on every edit.
+- **Arrays right away with no string variant.** Would break existing data and the smoke script; the
+  string variant makes the migration lazy.
+- **The official Color/BackgroundColor.** Hex in an inline style versus themes.
+- **underline.** Deliberately absent from the contract: without a record in the model it would be
+  lost; it is added later together with the schema.
 
-## Последствия
+## Consequences
 
-- Текстовые поля контракта стали `RichText`; потребители плоского текста
-  (поиск, превью) используют `richToPlain`.
-- `contentEquals` канонизирует строки и сегменты — сравнение больше не
-  строгое по JSON, зато миграция не порождает ложных обновлений.
-- Ссылки в тексте открываются только вне редактирования (openOnClick
-  выключен); клик по ним в режиме чтения появится вместе с read-only
-  режимом.
-- Внутри код-блока бабл-меню скрыто — плоский текст там и в модели.
+- The contract's text fields became `RichText`; consumers of plain text (search, previews) use
+  `richToPlain`.
+- `contentEquals` canonicalises strings and segments — comparison is no longer strict on JSON, but
+  the migration produces no false updates.
+- Links in text open only outside editing (openOnClick is off); clicking them in reading mode arrives
+  with read-only mode.
+- Inside a code block the bubble menu is hidden — plain text there matches the model.
