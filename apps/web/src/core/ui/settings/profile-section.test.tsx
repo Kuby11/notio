@@ -44,10 +44,10 @@ describe('секция профиля', () => {
       gateway,
     );
 
-    const input = await screen.findByLabelText('Имя');
+    const input = await screen.findByLabelText('Full name');
     await user.clear(input);
     await user.type(input, 'Ваня');
-    await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
       expect(gateway.updateUser).toHaveBeenCalledWith({ name: 'Ваня' });
@@ -55,7 +55,7 @@ describe('секция профиля', () => {
 
     expect(await screen.findByDisplayValue('Ваня')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(await screen.findByText('Профиль обновлён')).toBeInTheDocument();
+    expect(await screen.findByText('Profile updated')).toBeInTheDocument();
   });
 
   it('показывает ошибку, если сохранить профиль не удалось', async () => {
@@ -75,13 +75,15 @@ describe('секция профиля', () => {
       gateway,
     );
 
-    const input = await screen.findByLabelText('Имя');
+    const input = await screen.findByLabelText('Full name');
     await user.clear(input);
     await user.type(input, 'Ваня');
-    await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Сервис недоступен');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Service is unreachable. Check your connection',
+    );
     // The field keeps what the user typed: nothing was stored.
-    expect(screen.getByLabelText('Имя')).toHaveValue('Ваня');
+    expect(screen.getByLabelText('Full name')).toHaveValue('Ваня');
   });
 });

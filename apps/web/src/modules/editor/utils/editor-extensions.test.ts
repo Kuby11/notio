@@ -257,7 +257,7 @@ function commandOf(id: string): SlashCommand {
   return command;
 }
 
-function editorWithParagraph(text = 'Текст'): Editor {
+function editorWithParagraph(text = 'Text'): Editor {
   const current = createEditor();
 
   current.commands.setContent({
@@ -376,11 +376,11 @@ describe('SubPageBlock', () => {
     const link = current.view.dom.querySelector('a[data-block-type="page"]');
 
     expect(link?.getAttribute('data-page-id')).toBeNull();
-    expect(link?.textContent).toContain('Создание страницы…');
+    expect(link?.textContent).toContain('Creating page…');
   });
 });
 
-describe('Таблица', () => {
+describe('Table', () => {
   it('обводит ячейку с курсором', () => {
     const current = createEditor();
 

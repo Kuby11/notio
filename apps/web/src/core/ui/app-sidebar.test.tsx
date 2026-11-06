@@ -65,11 +65,11 @@ describe('AppSidebar', () => {
 
     renderWithProviders(<AppSidebar workspaceId={WORKSPACE_ID} />, gateway);
 
-    await user.click(screen.getByRole('button', { name: 'Избранное' }));
+    await user.click(screen.getByRole('button', { name: 'Favorites' }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('Избранное')).toBeInTheDocument();
-    expect(await within(dialog).findByText('Пока нет избранных страниц')).toBeInTheDocument();
+    expect(within(dialog).getByText('Favorites')).toBeInTheDocument();
+    expect(await within(dialog).findByText('No favorite pages yet')).toBeInTheDocument();
 
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -82,11 +82,11 @@ describe('AppSidebar', () => {
 
     renderWithProviders(<AppSidebar workspaceId={WORKSPACE_ID} />, gateway);
 
-    await user.click(screen.getByRole('button', { name: 'Корзина' }));
+    await user.click(screen.getByRole('button', { name: 'Trash' }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('Корзина')).toBeInTheDocument();
-    expect(await within(dialog).findByText('Корзина пуста')).toBeInTheDocument();
+    expect(within(dialog).getByText('Trash')).toBeInTheDocument();
+    expect(await within(dialog).findByText('Trash is empty')).toBeInTheDocument();
   });
 
   it('открывает поиск по страницам по submit и передаёт введённый запрос', async () => {
@@ -96,14 +96,14 @@ describe('AppSidebar', () => {
 
     renderWithProviders(<AppSidebar workspaceId={WORKSPACE_ID} />, gateway);
 
-    const input = screen.getByRole('searchbox', { name: 'Поиск…' });
+    const input = screen.getByRole('searchbox', { name: 'Search…' });
     await user.type(input, 'Дор');
     await user.keyboard('{Enter}');
 
     const dialog = await screen.findByRole('dialog');
     // The submitted text seeds the query inside the modal.
     await waitFor(() =>
-      expect(within(dialog).getByRole('textbox', { name: 'Поиск страниц…' })).toHaveValue('Дор'),
+      expect(within(dialog).getByRole('textbox', { name: 'Search pages…' })).toHaveValue('Дор'),
     );
   });
 
@@ -114,7 +114,7 @@ describe('AppSidebar', () => {
 
     renderWithProviders(<AppSidebar workspaceId={WORKSPACE_ID} />, gateway);
 
-    await user.click(screen.getByRole('button', { name: 'Закрыть боковую панель' }));
+    await user.click(screen.getByRole('button', { name: 'Close sidebar' }));
 
     expect(useSidebarStore.getState().collapsed).toBe(true);
 
@@ -146,7 +146,7 @@ describe('AppSidebar', () => {
     await user.keyboard('{Control>}/{/Control}');
 
     expect(useSidebarStore.getState().collapsed).toBe(false);
-    expect(screen.getByRole('searchbox', { name: 'Поиск…' })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Search…' })).toBeInTheDocument();
   });
 
   it('открывает поиск по Ctrl + K и с свёрнутой панелью', async () => {
@@ -161,7 +161,7 @@ describe('AppSidebar', () => {
     await user.keyboard('{Control>}k{/Control}');
 
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByRole('textbox', { name: 'Поиск страниц…' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('textbox', { name: 'Search pages…' })).toBeInTheDocument();
   });
 
   it('показывает библиотеку в меню профиля перед настройками', async () => {
@@ -174,8 +174,8 @@ describe('AppSidebar', () => {
     await user.click(await screen.findByRole('button', { name: /Аня/ }));
 
     const menu = await screen.findByRole('dialog');
-    const library = within(menu).getByRole('button', { name: 'Библиотека' });
-    const settings = within(menu).getByRole('button', { name: 'Настройки' });
+    const library = within(menu).getByRole('button', { name: 'Library' });
+    const settings = within(menu).getByRole('button', { name: 'Settings' });
 
     // Library comes right before Settings in the popover.
     expect(

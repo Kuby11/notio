@@ -27,12 +27,12 @@ describe('LoginForm', () => {
     const gateway = gatewayStub();
     renderWithProviders(<LoginForm />, gateway);
 
-    await user.type(screen.getByLabelText('Почта'), 'не-почта');
+    await user.type(screen.getByLabelText('Email'), 'не-почта');
     // Leave the password empty: the form must show both errors at once.
-    await user.click(screen.getByRole('button', { name: 'Войти' }));
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByText('Почта выглядит некорректно')).toBeInTheDocument();
-    expect(screen.getByText('Укажите пароль')).toBeInTheDocument();
+    expect(await screen.findByText("This email doesn't look right")).toBeInTheDocument();
+    expect(screen.getByText('Enter a password')).toBeInTheDocument();
     expect(gateway.signIn).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
   });
@@ -42,9 +42,9 @@ describe('LoginForm', () => {
     const gateway = gatewayStub();
     renderWithProviders(<LoginForm />, gateway);
 
-    await user.type(screen.getByLabelText('Почта'), '  User@Notio.Dev ');
-    await user.type(screen.getByLabelText('Пароль'), 'correct-horse-battery');
-    await user.click(screen.getByRole('button', { name: 'Войти' }));
+    await user.type(screen.getByLabelText('Email'), '  User@Notio.Dev ');
+    await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/'));
 
@@ -59,17 +59,17 @@ describe('LoginForm', () => {
     const user = userEvent.setup();
     const gateway = gatewayStub({
       signIn: failsWith(
-        new AuthError('EMAIL_NOT_VERIFIED', 'Подтвердите почту по ссылке из письма'),
+        new AuthError('EMAIL_NOT_VERIFIED', 'Confirm your email via the link we sent'),
       ),
     });
     renderWithProviders(<LoginForm />, gateway);
 
-    await user.type(screen.getByLabelText('Почта'), 'user@notio.dev');
-    await user.type(screen.getByLabelText('Пароль'), 'correct-horse-battery');
-    await user.click(screen.getByRole('button', { name: 'Войти' }));
+    await user.type(screen.getByLabelText('Email'), 'user@notio.dev');
+    await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Подтвердите почту по ссылке из письма',
+      'Confirm your email via the link we sent',
     );
     expect(push).not.toHaveBeenCalled();
   });
@@ -77,7 +77,7 @@ describe('LoginForm', () => {
   it('остаётся доступной с клавиатуры: подписи полей связаны с вводом', async () => {
     renderWithProviders(<LoginForm />, gatewayStub());
 
-    expect(screen.getByLabelText('Почта')).toHaveAttribute('type', 'email');
-    expect(screen.getByLabelText('Пароль')).toHaveAttribute('autocomplete', 'current-password');
+    expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email');
+    expect(screen.getByLabelText('Password')).toHaveAttribute('autocomplete', 'current-password');
   });
 });

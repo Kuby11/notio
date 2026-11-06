@@ -72,37 +72,37 @@ describe('ChartSettingsSheet', () => {
   it('shows X and Y settings for cartesian charts', () => {
     renderSheet('chart_vertical');
 
-    expect(screen.getByText('Настройки представления')).toBeInTheDocument();
-    expect(screen.getByText('Ось X')).toBeInTheDocument();
-    expect(screen.getByText('Ось Y')).toBeInTheDocument();
-    expect(screen.getByText('Стиль')).toBeInTheDocument();
+    expect(screen.getByText('View settings')).toBeInTheDocument();
+    expect(screen.getByText('X axis')).toBeInTheDocument();
+    expect(screen.getByText('Y axis')).toBeInTheDocument();
+    expect(screen.getByText('Style')).toBeInTheDocument();
   });
 
   it('shows only data settings for donut charts', () => {
     renderSheet('chart_donut');
 
-    expect(screen.getByText('Данные')).toBeInTheDocument();
-    expect(screen.getByText('Группировка')).toBeInTheDocument();
-    expect(screen.queryByText('Ось X')).not.toBeInTheDocument();
-    expect(screen.queryByText('Ось Y')).not.toBeInTheDocument();
-    expect(screen.queryByText('Стиль')).not.toBeInTheDocument();
+    expect(screen.getByText('Data')).toBeInTheDocument();
+    expect(screen.getByText('Group by')).toBeInTheDocument();
+    expect(screen.queryByText('X axis')).not.toBeInTheDocument();
+    expect(screen.queryByText('Y axis')).not.toBeInTheDocument();
+    expect(screen.queryByText('Style')).not.toBeInTheDocument();
   });
 
   it('shows only data settings for number charts', () => {
     renderSheet('chart_number');
 
-    expect(screen.getByText('Данные')).toBeInTheDocument();
-    expect(screen.getByText('Что показывать')).toBeInTheDocument();
-    expect(screen.queryByText('Ось X')).not.toBeInTheDocument();
-    expect(screen.queryByText('Ось Y')).not.toBeInTheDocument();
-    expect(screen.queryByText('Группировка')).not.toBeInTheDocument();
+    expect(screen.getByText('Data')).toBeInTheDocument();
+    expect(screen.getByText('What to show')).toBeInTheDocument();
+    expect(screen.queryByText('X axis')).not.toBeInTheDocument();
+    expect(screen.queryByText('Y axis')).not.toBeInTheDocument();
+    expect(screen.queryByText('Group by')).not.toBeInTheDocument();
   });
 
   it('updates the chart grouping from the X axis control', async () => {
     const user = userEvent.setup();
     const { onUpdateView } = renderSheet('chart_vertical');
 
-    const groupControl = screen.getAllByText('Что показывать')[0];
+    const groupControl = screen.getAllByText('What to show')[0];
 
     if (!groupControl) {
       throw new Error('X axis property control not found');
@@ -119,7 +119,7 @@ describe('ChartSettingsSheet', () => {
   it('renames the chart on blur', async () => {
     const user = userEvent.setup();
     const { onUpdateView } = renderSheet('chart_vertical');
-    const input = screen.getByRole('textbox', { name: 'Название графика' });
+    const input = screen.getByRole('textbox', { name: 'Chart name' });
 
     await user.clear(input);
     await user.type(input, 'Revenue');
@@ -132,8 +132,8 @@ describe('ChartSettingsSheet', () => {
     const user = userEvent.setup();
     const { onUpdateView } = renderSheet('chart_vertical');
 
-    await user.click(screen.getByRole('button', { name: /Фильтр/ }));
-    await user.click(screen.getByText('Выберите свойство'));
+    await user.click(screen.getByRole('button', { name: /Filter/ }));
+    await user.click(screen.getByText('Choose property'));
     await user.click(await screen.findByRole('menuitem', { name: 'Status' }));
 
     expect(onUpdateView).toHaveBeenCalledWith({
@@ -144,7 +144,7 @@ describe('ChartSettingsSheet', () => {
   it('uses a numeric property with an aggregation for the chart value', async () => {
     const user = userEvent.setup();
     const { onUpdateView } = renderSheet('chart_vertical');
-    const valueControl = screen.getAllByText('Что показывать')[1];
+    const valueControl = screen.getAllByText('What to show')[1];
 
     if (!valueControl) {
       throw new Error('Y axis value control not found');

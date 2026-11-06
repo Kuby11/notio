@@ -12,14 +12,14 @@ describe('RegisterForm', () => {
     const gateway = gatewayStub();
     renderWithProviders(<RegisterForm />, gateway);
 
-    await user.type(screen.getByLabelText('Имя'), 'А');
-    await user.type(screen.getByLabelText('Почта'), 'не-почта');
-    await user.type(screen.getByLabelText('Пароль'), 'коротко');
-    await user.click(screen.getByRole('button', { name: 'Создать аккаунт' }));
+    await user.type(screen.getByLabelText('Name'), 'А');
+    await user.type(screen.getByLabelText('Email'), 'не-почта');
+    await user.type(screen.getByLabelText('Password'), 'коротко');
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
 
-    expect(await screen.findByText('Имя не короче 2 символов')).toBeInTheDocument();
-    expect(screen.getByText('Почта выглядит некорректно')).toBeInTheDocument();
-    expect(screen.getByText('Пароль не короче 12 символов')).toBeInTheDocument();
+    expect(await screen.findByText('Name must be at least 2 characters')).toBeInTheDocument();
+    expect(screen.getByText("This email doesn't look right")).toBeInTheDocument();
+    expect(screen.getByText('Password must be at least 12 characters')).toBeInTheDocument();
     expect(gateway.signUp).not.toHaveBeenCalled();
   });
 
@@ -28,14 +28,16 @@ describe('RegisterForm', () => {
     const gateway = gatewayStub();
     renderWithProviders(<RegisterForm />, gateway);
 
-    await user.type(screen.getByLabelText('Имя'), 'Аня');
-    await user.type(screen.getByLabelText('Почта'), 'User@Notio.Dev');
-    await user.type(screen.getByLabelText('Пароль'), 'correct-horse-battery');
-    await user.click(screen.getByRole('button', { name: 'Создать аккаунт' }));
+    await user.type(screen.getByLabelText('Name'), 'Anna');
+    await user.type(screen.getByLabelText('Email'), 'User@Notio.Dev');
+    await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Мы отправили ссылку');
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'We sent a confirmation link to user@notio.dev. Open it, then sign in.',
+    );
     expect(gateway.signUp).toHaveBeenCalledWith({
-      name: 'Аня',
+      name: 'Anna',
       email: 'user@notio.dev',
       password: 'correct-horse-battery',
     });
@@ -44,17 +46,19 @@ describe('RegisterForm', () => {
   it('показывает отказ сервира о занятом email', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub({
-      signUp: failsWith(new AuthError('EMAIL_TAKEN', 'Аккаунт с такой почтой уже существует')),
+      signUp: failsWith(new AuthError('EMAIL_TAKEN', 'An account with this email already exists')),
     });
     renderWithProviders(<RegisterForm />, gateway);
 
-    await user.type(screen.getByLabelText('Имя'), 'Аня');
-    await user.type(screen.getByLabelText('Почта'), 'user@notio.dev');
-    await user.type(screen.getByLabelText('Пароль'), 'correct-horse-battery');
-    await user.click(screen.getByRole('button', { name: 'Создать аккаунт' }));
+    await user.type(screen.getByLabelText('Name'), 'Anna');
+    await user.type(screen.getByLabelText('Email'), 'user@notio.dev');
+    await user.type(screen.getByLabelText('Password'), 'correct-horse-battery');
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
 
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent('Аккаунт с такой почтой уже существует'),
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'An account with this email already exists',
+      ),
     );
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });

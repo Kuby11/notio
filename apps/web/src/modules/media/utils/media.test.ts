@@ -55,17 +55,17 @@ describe('mediaKindOfMime / formatBytes / mediaFileUrl', () => {
   });
 
   it('форматирует размеры', () => {
-    expect(formatBytes(900)).toBe('900 Б');
-    expect(formatBytes(2048)).toBe('2 КБ');
-    expect(formatBytes(5 * 1024 * 1024)).toBe('5 МБ');
+    expect(formatBytes(900)).toBe('900 B');
+    expect(formatBytes(2048)).toBe('2 KB');
+    expect(formatBytes(5 * 1024 * 1024)).toBe('5 MB');
   });
 
   it('берёт подписи единиц из локали', () => {
-    const units = { byte: 'B', kilobyte: 'KB', megabyte: 'MB' };
+    const units = { byte: 'Б', kilobyte: 'КБ', megabyte: 'МБ' };
 
-    expect(formatBytes(900, units)).toBe('900 B');
-    expect(formatBytes(2048, units)).toBe('2 KB');
-    expect(formatBytes(5 * 1024 * 1024, units)).toBe('5 MB');
+    expect(formatBytes(900, units)).toBe('900 Б');
+    expect(formatBytes(2048, units)).toBe('2 КБ');
+    expect(formatBytes(5 * 1024 * 1024, units)).toBe('5 МБ');
   });
 
   it('строит URL файла в gateway', () => {

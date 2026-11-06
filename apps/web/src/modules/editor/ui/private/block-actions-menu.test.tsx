@@ -60,18 +60,18 @@ describe('BlockActionsMenu', () => {
   it('показывает четыре действия блока', () => {
     renderMenu();
 
-    expect(screen.getByRole('menu', { name: 'Действия с блоком' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Превратить в' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Цвет' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Дублировать' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Удалить' })).toBeInTheDocument();
+    expect(screen.getByRole('menu', { name: 'Block actions' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Turn into' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Color' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Duplicate' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });
 
   it('вызывает удаление и дублирование', () => {
     const { onDelete, onDuplicate } = renderMenu();
 
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Удалить' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Дублировать' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
 
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onDuplicate).toHaveBeenCalledTimes(1);
@@ -80,18 +80,18 @@ describe('BlockActionsMenu', () => {
   it('открывает список превращения и применяет выбранный тип', () => {
     const { onTurnInto } = renderMenu();
 
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Превратить в' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Turn into' }));
 
-    expect(screen.getByRole('group', { name: 'Превратить в' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /Заголовок 1/ })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /Цитата/ })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Turn into' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Heading 1/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Quote/ })).toBeInTheDocument();
 
     // The current type is marked with a check.
-    const current = screen.getByRole('menuitem', { name: /Текст/ });
+    const current = screen.getByRole('menuitem', { name: /Text/ });
 
     expect(current.querySelector('svg')).not.toBeNull();
 
-    fireEvent.click(screen.getByRole('menuitem', { name: /Цитата/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Quote/ }));
 
     expect(onTurnInto).toHaveBeenCalledTimes(1);
     expect(onTurnInto.mock.calls[0]?.[0]).toMatchObject({ kind: 'quote' });
@@ -100,10 +100,10 @@ describe('BlockActionsMenu', () => {
   it('открывает цвета и выбирает пресет текста и фона', () => {
     const { onSetColor, onSetBackground } = renderMenu();
 
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Цвет' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Color' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Текст: Красный' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Фон: Синий' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Text color: Red' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Background: Blue' }));
 
     expect(onSetColor).toHaveBeenCalledWith('red');
     expect(onSetBackground).toHaveBeenCalledWith('blue');
@@ -112,8 +112,8 @@ describe('BlockActionsMenu', () => {
   it('показывает замену и скачивание для медиа-блока', () => {
     const { onReplace, onDownload } = renderMenu({ canReplace: true, canDownload: true });
 
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Заменить' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Скачать' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Replace' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Download' }));
 
     expect(onReplace).toHaveBeenCalledTimes(1);
     expect(onDownload).toHaveBeenCalledTimes(1);
@@ -122,15 +122,15 @@ describe('BlockActionsMenu', () => {
   it('без медиа-источника замены и скачивания нет', () => {
     renderMenu();
 
-    expect(screen.queryByRole('menuitem', { name: 'Заменить' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: 'Скачать' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Replace' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Download' })).not.toBeInTheDocument();
   });
 
   it('скрывает превращение и цвет для неподдерживаемых блоков', () => {
     renderMenu({ canTurnInto: false, canColor: false });
 
-    expect(screen.queryByRole('menuitem', { name: 'Превратить в' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: 'Цвет' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Turn into' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Color' })).not.toBeInTheDocument();
   });
 
   it('закрывается по Escape', async () => {

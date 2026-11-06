@@ -90,21 +90,21 @@ const BLOCKS: Block[] = [
   block('b4', { type: 'bulletedListItem', content: 'Пункт 2' }),
   block('b5', { type: 'numberedListItem', content: 'Шаг 1' }),
   block('b6', { type: 'toDo', checked: true, content: 'Сделать' }),
-  block('b7', { type: 'quote', content: 'Цитата' }),
+  block('b7', { type: 'quote', content: 'Quote' }),
   block('b8', { type: 'code', language: 'ts', content: 'const x = 1;' }),
   block('b9', { type: 'divider' }),
   block('b10', {
     type: 'image',
     fileId: '00000000-0000-4000-8000-000000000010',
     url: null,
-    caption: 'Подпись',
+    caption: 'Caption',
   }),
   block('b11', { type: 'toggle', content: 'Переключатель' }),
   block('b12', {
     type: 'table',
     headerRow: true,
     rows: [
-      ['Имя', 'Значение'],
+      ['Name', 'Value'],
       ['Один', '1'],
       ['Два', '2'],
     ],
@@ -221,7 +221,7 @@ describe('blocksToEditorDocument', () => {
   });
 
   it('поддерживает заголовок четвёртого уровня', () => {
-    const heading = block('b1', { type: 'heading', level: 4, content: 'Заголовок 4' });
+    const heading = block('b1', { type: 'heading', level: 4, content: 'Heading 4' });
     const document = blocksToEditorDocument([heading]);
 
     expect(document.content[0]).toMatchObject({
@@ -229,7 +229,7 @@ describe('blocksToEditorDocument', () => {
       attrs: { blockId: 'b1', level: 4 },
     });
     expect(editorDocumentToBlocks(document)).toEqual([
-      { id: 'b1', content: { ...heading.content, content: asSegments('Заголовок 4') } },
+      { id: 'b1', content: { ...heading.content, content: asSegments('Heading 4') } },
     ]);
   });
 
@@ -238,7 +238,7 @@ describe('blocksToEditorDocument', () => {
       type: 'table',
       headerRow: true,
       rows: [
-        ['Имя', 'Значение'],
+        ['Name', 'Value'],
         ['Один', '1'],
       ],
     });
@@ -275,7 +275,7 @@ describe('blocksToEditorDocument', () => {
       type: 'table',
       headerRow: true,
       rows: [
-        ['Имя', 'Значение'],
+        ['Name', 'Value'],
         ['Один', '1'],
       ],
       colWidths: [180, null],
@@ -638,7 +638,7 @@ describe('editorDocumentToBlocks', () => {
 
   it('переносит цвета текста и фона через attrs узлов', () => {
     const blocks = [
-      block('b1', { type: 'paragraph', content: 'Текст', color: 'red', backgroundColor: 'blue' }),
+      block('b1', { type: 'paragraph', content: 'Text', color: 'red', backgroundColor: 'blue' }),
       block('b2', { type: 'bulletedListItem', content: 'Пункт', color: 'green' }),
       block('b3', { type: 'toggle', content: 'Toggle', backgroundColor: 'yellow' }),
     ];

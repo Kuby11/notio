@@ -18,7 +18,7 @@ function createTableEditor(): Editor {
   current.commands.setContent({
     type: 'doc',
     content: [
-      { type: 'paragraph', content: [{ type: 'text', text: 'До' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'Before' }] },
       {
         type: 'table',
         content: [

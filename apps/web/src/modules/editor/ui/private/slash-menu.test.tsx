@@ -18,41 +18,37 @@ describe('SlashMenu', () => {
   it('показывает все базовые блоки и их markdown-символы', () => {
     renderWithIntl(<SlashMenu query="" onSelect={selectMock()} onClose={closeMock()} />);
 
-    const menu = screen.getByRole('listbox', { name: 'Вставить блок' });
+    const menu = screen.getByRole('listbox', { name: 'Insert block' });
 
     expect(within(menu).getAllByRole('option')).toHaveLength(33);
-    expect(within(menu).getByRole('option', { name: /Текст/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Заголовок 4/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Text/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Heading 4/ })).toBeInTheDocument();
     expect(within(menu).getByText('####')).toBeInTheDocument();
 
-    const numbered = within(menu).getByRole('option', { name: /Нумерованный список/ });
+    const numbered = within(menu).getByRole('option', { name: /Numbered list/ });
     expect(within(numbered).getByText('1.', { selector: 'kbd' })).toBeInTheDocument();
     expect(within(menu).getByText('[]')).toBeInTheDocument();
     expect(within(menu).getByText('>')).toBeInTheDocument();
 
     // New blocks: quote, divider, table, sub-page, code.
-    const quote = within(menu).getByRole('option', { name: /Цитата/ });
+    const quote = within(menu).getByRole('option', { name: /Quote/ });
     expect(within(quote).getByText('"', { selector: 'kbd' })).toBeInTheDocument();
-    const divider = within(menu).getByRole('option', { name: /Разделитель/ });
+    const divider = within(menu).getByRole('option', { name: /Divider/ });
     expect(within(divider).getByText('---', { selector: 'kbd' })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Таблица/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Страница/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Код/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Изображение/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Видео/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Файл/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Эмодзи/ })).toBeInTheDocument();
-    expect(
-      within(menu).getByRole('option', { name: /Встроенная база данных/ }),
-    ).toBeInTheDocument();
-    expect(
-      within(menu).getByRole('option', { name: /База данных отдельной страницей/ }),
-    ).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Горизонтальный график/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Вертикальный график/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Кольцевой график/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Линейный график/ })).toBeInTheDocument();
-    expect(within(menu).getByRole('option', { name: /Числовой график/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Table/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Page/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Code/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Image/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Video/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /File/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Emoji/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Inline database/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Full page database/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Horizontal chart/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Vertical chart/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Donut chart/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Line chart/ })).toBeInTheDocument();
+    expect(within(menu).getByRole('option', { name: /Number chart/ })).toBeInTheDocument();
   });
 
   it('фильтрует команды по запросу', () => {
@@ -61,16 +57,16 @@ describe('SlashMenu', () => {
     );
 
     rerender(
-      <NextIntlClientProvider locale="en" messages={TEST_MESSAGES}>
+      <NextIntlClientProvider locale="ru" messages={TEST_MESSAGES}>
         <SlashMenu query="h1" onSelect={selectMock()} onClose={closeMock()} />
       </NextIntlClientProvider>,
     );
 
-    const menu = screen.getByRole('listbox', { name: 'Вставить блок' });
+    const menu = screen.getByRole('listbox', { name: 'Insert block' });
     const options = within(menu).getAllByRole('option');
 
     expect(options).toHaveLength(1);
-    expect(options[0]).toHaveAccessibleName(/Заголовок 1/);
+    expect(options[0]).toHaveAccessibleName(/Heading 1/);
   });
 
   it('выбирает команду стрелками и Enter', () => {
@@ -88,7 +84,7 @@ describe('SlashMenu', () => {
     const onSelect = selectMock();
     renderWithIntl(<SlashMenu query="" onSelect={onSelect} onClose={closeMock()} />);
 
-    fireEvent.click(screen.getByRole('option', { name: /Toggle-список/ }));
+    fireEvent.click(screen.getByRole('option', { name: /Toggle list/ }));
 
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect.mock.calls[0]?.[0]).toMatchObject({ id: 'toggle' });
@@ -98,7 +94,7 @@ describe('SlashMenu', () => {
     const onSelect = selectMock();
     renderWithIntl(<SlashMenu query="" onSelect={onSelect} onClose={closeMock()} />);
 
-    const option = screen.getByRole('option', { name: /Список задач/ });
+    const option = screen.getByRole('option', { name: /To-do list/ });
     fireEvent.pointerDown(option, { button: 0 });
     fireEvent.click(option);
 

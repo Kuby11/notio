@@ -81,9 +81,7 @@ describe('DatabasesTree', () => {
 
     expect(screen.queryByRole('link', { name: 'Table' })).not.toBeInTheDocument();
 
-    await user.click(
-      await screen.findByRole('button', { name: 'Развернуть «Expandable database»' }),
-    );
+    await user.click(await screen.findByRole('button', { name: 'Expand “Expandable database”' }));
 
     const table = await screen.findByRole('link', { name: 'Table' });
 
@@ -106,13 +104,13 @@ describe('DatabasesTree', () => {
       databases,
     });
 
-    await user.click(await screen.findByRole('button', { name: 'Удалить «Deletable database»' }));
+    await user.click(await screen.findByRole('button', { name: 'Delete “Deletable database”' }));
 
     const dialog = await screen.findByRole('dialog');
 
-    expect(within(dialog).getByText('Удалить базу данных?')).toBeInTheDocument();
+    expect(within(dialog).getByText('Delete database?')).toBeInTheDocument();
 
-    await user.click(within(dialog).getByRole('button', { name: 'Удалить базу данных' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Delete database' }));
 
     await waitFor(() => {
       expect(screen.queryByRole('link', { name: /Deletable database/ })).not.toBeInTheDocument();

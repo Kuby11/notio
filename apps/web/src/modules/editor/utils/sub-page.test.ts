@@ -75,7 +75,7 @@ describe('insertSubPageAtSlash', () => {
 
     current.commands.setContent({
       type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Текст' }] }],
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Text' }] }],
     });
     current.commands.setTextSelection(6);
 
@@ -83,7 +83,7 @@ describe('insertSubPageAtSlash', () => {
 
     const types = (current.getJSON().content ?? []).map((node) => node.type);
     expect(types).toEqual(['paragraph', 'subPage', 'paragraph']);
-    expect(current.state.doc.textContent).toContain('Текст');
+    expect(current.state.doc.textContent).toContain('Text');
   });
 });
 

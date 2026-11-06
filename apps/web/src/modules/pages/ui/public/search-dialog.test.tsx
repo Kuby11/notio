@@ -104,7 +104,7 @@ describe('SearchDialog', () => {
 
     renderDialog({ initialQuery: 'Несуществующая' });
 
-    expect(await screen.findByText('Страницы не найдены')).toBeInTheDocument();
+    expect(await screen.findByText('No pages found')).toBeInTheDocument();
   });
 
   it('не ищет с пустым запросом и показывает подсказку', async () => {
@@ -112,9 +112,7 @@ describe('SearchDialog', () => {
 
     renderDialog({ initialQuery: '' });
 
-    expect(
-      screen.getByText('Введите название страницы, чтобы найти её в пространстве'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Type a page title to search this workspace')).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -123,11 +121,11 @@ describe('SearchDialog', () => {
 
     renderDialog({ initialQuery: 'Дор' });
 
-    expect(await screen.findByRole('button', { name: 'Страницы' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Чаты' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Только заголовок' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Автор' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'В' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Pages' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Chats' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Title only' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Created by' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'In' })).toBeDisabled();
   });
 
   it('подсказывает ошибку, когда поиск не загрузился', async () => {
@@ -139,7 +137,7 @@ describe('SearchDialog', () => {
     renderDialog({ initialQuery: 'Дор' });
 
     await waitFor(() => {
-      expect(screen.getByText('Не удалось загрузить результаты поиска')).toBeInTheDocument();
+      expect(screen.getByText('Could not load search results')).toBeInTheDocument();
     });
   });
 });

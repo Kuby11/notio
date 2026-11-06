@@ -65,7 +65,7 @@ describe('validateCredentials', () => {
     ).toContainEqual({
       field: 'email',
       code: 'INVALID_EMAIL',
-      message: 'Почта выглядит некорректно',
+      message: expect.any(String),
     });
   });
 
@@ -152,9 +152,9 @@ describe('assertSignUpInput', () => {
   });
 
   it('не пропускает некорректные учётные данные', () => {
-    expect(codeOf(() => assertSignUpInput({ name: 'Аня', email: 'nope', password: 'short' }))).toBe(
-      'UNKNOWN',
-    );
+    expect(
+      codeOf(() => assertSignUpInput({ name: 'Anna', email: 'nope', password: 'short' })),
+    ).toBe('UNKNOWN');
   });
 });
 

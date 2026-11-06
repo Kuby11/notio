@@ -9,14 +9,14 @@ describe('AutosaveIndicator', () => {
   it('показывает вращающийся индикатор, пока изменение ждёт debounce', () => {
     const { container } = renderWithIntl(<AutosaveIndicator status="pending" />);
 
-    expect(screen.getByRole('status', { name: 'Сохранение документа' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Saving document' })).toBeInTheDocument();
     expect(container.querySelector('.animate-spin')).not.toBeNull();
   });
 
   it('показывает индикатор во время запроса сохранения', () => {
     renderWithIntl(<AutosaveIndicator status="saving" />);
 
-    expect(screen.getByRole('status', { name: 'Сохранение документа' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Saving document' })).toBeInTheDocument();
   });
 
   it('скрывает индикатор, когда сохранять нечего', () => {

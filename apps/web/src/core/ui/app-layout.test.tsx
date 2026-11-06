@@ -59,9 +59,7 @@ describe('AppLayout', () => {
       gatewayStub(),
     );
 
-    expect(
-      screen.queryByRole('button', { name: 'Открыть боковую панель' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open sidebar' })).not.toBeInTheDocument();
   });
 
   it('даёт любой странице оболочки кнопку разворачивания и место под неё', async () => {
@@ -76,7 +74,7 @@ describe('AppLayout', () => {
     );
 
     // One control in the shell, not per page: the content routes do not render it.
-    const open = screen.getByRole('button', { name: 'Открыть боковую панель' });
+    const open = screen.getByRole('button', { name: 'Open sidebar' });
 
     // The content keeps a gutter so the floating button cannot cover it.
     expect(screen.getByRole('main')).toHaveClass('pl-12');

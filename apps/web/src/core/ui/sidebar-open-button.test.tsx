@@ -15,9 +15,7 @@ describe('SidebarOpenButton', () => {
   it('не занимает место в топбаре, пока панель развёрнута', () => {
     renderWithIntl(<SidebarOpenButton />);
 
-    expect(
-      screen.queryByRole('button', { name: 'Открыть боковую панель' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open sidebar' })).not.toBeInTheDocument();
   });
 
   it('разворачивает свёрнутую панель', async () => {
@@ -26,7 +24,7 @@ describe('SidebarOpenButton', () => {
 
     renderWithIntl(<SidebarOpenButton />);
 
-    const button = screen.getByRole('button', { name: 'Открыть боковую панель' });
+    const button = screen.getByRole('button', { name: 'Open sidebar' });
 
     // The control points at the panel it expands.
     expect(button).toHaveAttribute('aria-controls', 'app-sidebar');

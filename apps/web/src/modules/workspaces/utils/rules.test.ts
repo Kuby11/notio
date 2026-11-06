@@ -40,9 +40,9 @@ describe('capabilitiesOf', () => {
 
 describe('roleLabel', () => {
   it('возвращает русское название роли', () => {
-    expect(roleLabel('owner')).toBe('Владелец');
-    expect(roleLabel('editor')).toBe('Редактор');
-    expect(roleLabel('viewer')).toBe('Наблюдатель');
+    expect(roleLabel('owner')).toBe('Owner');
+    expect(roleLabel('editor')).toBe('Editor');
+    expect(roleLabel('viewer')).toBe('Viewer');
   });
 });
 

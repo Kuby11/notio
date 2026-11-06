@@ -47,34 +47,32 @@ describe('ViewTabs', () => {
     const user = userEvent.setup();
     const props = renderTabs();
 
-    await user.click(screen.getByRole('button', { name: 'Добавить представление' }));
+    await user.click(screen.getByRole('button', { name: 'Add view' }));
 
-    expect(
-      await screen.findByRole('button', { name: 'Горизонтальный график' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Вертикальный график' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Кольцевой график' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Линейный график' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Числовой график' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Horizontal chart' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vertical chart' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Donut chart' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Line chart' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Number chart' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Горизонтальный график' }));
+    await user.click(screen.getByRole('button', { name: 'Horizontal chart' }));
 
-    expect(props.onAddView).toHaveBeenCalledWith('chart_horizontal', 'Горизонтальный график');
+    expect(props.onAddView).toHaveBeenCalledWith('chart_horizontal', 'Horizontal chart');
   });
 
   it('добавляет списочное, галерейное и календарное представления', async () => {
     const user = userEvent.setup();
     const props = renderTabs();
 
-    await user.click(screen.getByRole('button', { name: 'Добавить представление' }));
+    await user.click(screen.getByRole('button', { name: 'Add view' }));
 
-    expect(await screen.findByRole('button', { name: 'Список' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Галерея' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Календарь' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'List' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Gallery' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Calendar' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Календарь' }));
+    await user.click(screen.getByRole('button', { name: 'Calendar' }));
 
-    expect(props.onAddView).toHaveBeenCalledWith('calendar', 'Календарь');
+    expect(props.onAddView).toHaveBeenCalledWith('calendar', 'Calendar');
   });
 
   it('переименовывает представление из меню вкладки', async () => {
@@ -82,13 +80,13 @@ describe('ViewTabs', () => {
     const props = renderTabs();
 
     await user.click(screen.getByRole('tab', { name: /Table/ }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Переименовать представление' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Rename view' }));
 
-    const input = await screen.findByRole('textbox', { name: 'Название представления' });
+    const input = await screen.findByRole('textbox', { name: 'View name' });
 
     await user.clear(input);
     await user.type(input, 'Tasks');
-    await user.click(screen.getByRole('button', { name: 'Сохранить' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(props.onRenameView).toHaveBeenCalledWith(TABLE.id, 'Tasks');
   });
@@ -98,15 +96,15 @@ describe('ViewTabs', () => {
     const props = renderTabs();
 
     await user.click(screen.getByRole('tab', { name: /Table/ }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Дублировать представление' }));
-    expect(props.onDuplicateView).toHaveBeenCalledWith(TABLE, 'Table (копия)');
+    await user.click(await screen.findByRole('menuitem', { name: 'Duplicate view' }));
+    expect(props.onDuplicateView).toHaveBeenCalledWith(TABLE, 'Table copy');
 
     await user.click(screen.getByRole('tab', { name: /Table/ }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Удалить представление' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Delete view' }));
 
     const dialog = await screen.findByRole('dialog');
 
-    await user.click(within(dialog).getByRole('button', { name: 'Удалить представление' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Delete view' }));
 
     expect(props.onDeleteView).toHaveBeenCalledWith(TABLE.id);
   });

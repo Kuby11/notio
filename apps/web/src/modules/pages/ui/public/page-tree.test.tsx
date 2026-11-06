@@ -101,7 +101,7 @@ describe('PageTree', () => {
     );
 
     await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Развернуть «Leaf»' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('button', { name: 'Expand “Leaf”' })).not.toBeInTheDocument(),
     );
 
     expect(fetchCalls).toBe(1);
@@ -110,14 +110,14 @@ describe('PageTree', () => {
     await user.hover(rootLink);
     expect(fetchCalls).toBe(1);
 
-    await user.click(screen.getByRole('button', { name: 'Развернуть «Root»' }));
+    await user.click(screen.getByRole('button', { name: 'Expand “Root”' }));
 
     expect(await screen.findByRole('link', { name: /Nested/ })).toHaveAttribute(
       'href',
       `/workspaces/${WORKSPACE_ID}/${CHILD_ID}`,
     );
     expect(fetchCalls).toBe(2);
-    expect(screen.getByRole('button', { name: 'Свернуть «Root»' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Collapse “Root”' })).toBeInTheDocument();
   });
 
   it('создаёт корневую страницу по кнопке в конце списка', async () => {
@@ -129,7 +129,7 @@ describe('PageTree', () => {
 
     await screen.findByRole('link', { name: /Root/ });
 
-    await user.click(screen.getByRole('button', { name: 'Создать страницу' }));
+    await user.click(screen.getByRole('button', { name: 'Add new' }));
 
     await waitFor(() =>
       expect(routerPush).toHaveBeenCalledWith(`/workspaces/${WORKSPACE_ID}/${CREATED_ID}`),
@@ -145,12 +145,12 @@ describe('PageTree', () => {
 
     await screen.findByRole('link', { name: /Root/ });
 
-    expect(screen.getAllByRole('button', { name: 'Создать страницу' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Add new' })).toHaveLength(1);
 
-    await user.click(screen.getByRole('button', { name: 'Развернуть «Root»' }));
+    await user.click(screen.getByRole('button', { name: 'Expand “Root”' }));
     await screen.findByRole('link', { name: /Nested/ });
 
-    expect(screen.getAllByRole('button', { name: 'Создать страницу' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Add new' })).toHaveLength(1);
   });
 
   it('показывает базы данных рядом с их страницей, даже без дочерних страниц', async () => {
@@ -176,7 +176,7 @@ describe('PageTree', () => {
     await screen.findByRole('link', { name: /Leaf/ });
 
     // Leaf has no child pages: only the database row makes it expandable.
-    await user.click(screen.getByRole('button', { name: 'Развернуть «Leaf»' }));
+    await user.click(screen.getByRole('button', { name: 'Expand “Leaf”' }));
 
     const extra = await screen.findByTestId('leaf-database');
 

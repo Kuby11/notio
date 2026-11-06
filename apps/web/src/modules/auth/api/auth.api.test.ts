@@ -35,7 +35,7 @@ function json(body: unknown, status = 200): Response {
 const USER = {
   id: 'user-1',
   email: 'user@notio.dev',
-  name: 'Аня',
+  name: 'Anna',
   emailVerified: true,
 };
 
@@ -49,7 +49,7 @@ describe('адаптер аутентификации', () => {
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
     await expect(
-      gateway.signUp({ name: 'Аня', email: 'user@notio.dev', password: 'correct-horse-battery' }),
+      gateway.signUp({ name: 'Anna', email: 'user@notio.dev', password: 'correct-horse-battery' }),
     ).resolves.toBeUndefined();
   });
 
@@ -58,7 +58,7 @@ describe('адаптер аутентификации', () => {
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
     await expect(
-      gateway.signUp({ name: 'Аня', email: 'user@notio.dev', password: 'correct-horse-battery' }),
+      gateway.signUp({ name: 'Anna', email: 'user@notio.dev', password: 'correct-horse-battery' }),
     ).rejects.toThrow();
   });
 
@@ -97,7 +97,7 @@ describe('адаптер аутентификации', () => {
         {
           status: 409,
           code: 'CONFLICT',
-          detail: 'Аккаунт с такой почтой уже существует',
+          detail: 'An account with this email already exists',
           requestId: 'req-1',
         },
         409,
@@ -106,7 +106,7 @@ describe('адаптер аутентификации', () => {
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
     await expect(
-      gateway.signUp({ name: 'Аня', email: 'user@notio.dev', password: 'correct-horse-battery' }),
+      gateway.signUp({ name: 'Anna', email: 'user@notio.dev', password: 'correct-horse-battery' }),
     ).rejects.toMatchObject({ code: 'EMAIL_TAKEN' });
   });
 

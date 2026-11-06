@@ -22,14 +22,16 @@ describe('LoginForm: возврат после OAuth', () => {
     renderWithProviders(<LoginForm providerError="access_denied" />, gatewayStub());
 
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Провайдер отклонил вход. Разрешите доступ и попробуйте снова',
+      'The provider declined the sign-in. Allow access and try again',
     );
   });
 
   it('истёкшую попытку показывает как истечение, а не как отказ', () => {
     renderWithProviders(<LoginForm providerError="state_mismatch" />, gatewayStub());
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Попытка входа истекла');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'The sign-in attempt expired. Please try again',
+    );
   });
 
   it('без ?error= сообщения нет', () => {

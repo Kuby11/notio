@@ -69,23 +69,23 @@ const BLOCKS: Block[] = [
   block(HEADING_ID, 'a1', { type: 'heading', level: 2, content: 'Заголовок' }),
   block(BULLET_ID, 'a2', { type: 'bulletedListItem', content: 'Пункт списка' }),
   block(TODO_ID, 'a3', { type: 'toDo', checked: false, content: 'Задача' }),
-  block(QUOTE_ID, 'a4', { type: 'quote', content: 'Цитата' }),
+  block(QUOTE_ID, 'a4', { type: 'quote', content: 'Quote' }),
   block(CODE_ID, 'a5', { type: 'code', language: 'ts', content: 'const x = 1;' }),
   block(DIVIDER_ID, 'a6', { type: 'divider' }),
-  block(IMAGE_ID, 'a7', { type: 'image', fileId: FILE_ID, url: null, caption: 'Подпись' }),
+  block(IMAGE_ID, 'a7', { type: 'image', fileId: FILE_ID, url: null, caption: 'Caption' }),
   block(TOGGLE_ID, 'a8', { type: 'toggle', content: 'Переключатель' }),
   block(TABLE_ID, 'a9', {
     type: 'table',
     headerRow: true,
     rows: [
-      ['Имя', 'Значение'],
+      ['Name', 'Value'],
       ['Один', '1'],
     ],
   }),
   block(SUB_PAGE_BLOCK_ID, 'a10', {
     type: 'page',
     pageId: SUB_PAGE_ID,
-    title: 'Дочерняя страница',
+    title: 'Child page',
     icon: '📄',
   }),
 ];
@@ -113,16 +113,16 @@ describe('Editor', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Заголовок' })).toBeInTheDocument();
     expect(screen.getByText('Пункт списка')).toBeInTheDocument();
     expect(screen.getByText('Задача')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: 'Отметить задачу' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Check' })).not.toBeChecked();
     expect(screen.getByText('Задача').closest('[data-block-id]')).toHaveAttribute(
       'data-block-id',
       TODO_ID,
     );
-    expect(screen.getByText('Цитата')).toBeInTheDocument();
+    expect(screen.getByText('Quote')).toBeInTheDocument();
     expect(screen.getByText('const x = 1;')).toBeInTheDocument();
     // The image caption is an input inside the node view.
-    expect(screen.getByDisplayValue('Подпись')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Подпись' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Caption')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Caption' })).toBeInTheDocument();
     expect(screen.getByText('Переключатель')).toBeInTheDocument();
     expect(document.querySelector(`hr[data-block-id="${DIVIDER_ID}"]`)).not.toBeNull();
 
@@ -130,14 +130,14 @@ describe('Editor', () => {
     const table = document.querySelector(`table[data-block-id="${TABLE_ID}"]`);
     expect(table).not.toBeNull();
     expect(table?.querySelectorAll('th')).toHaveLength(2);
-    expect(screen.getByText('Имя')).toBeInTheDocument();
+    expect(screen.getByText('Name')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
 
     // Sub-page: a link with the page id and the title.
     expect(
       document.querySelector(`a[data-block-type="page"][data-page-id="${SUB_PAGE_ID}"]`),
     ).not.toBeNull();
-    expect(screen.getByText('Дочерняя страница')).toBeInTheDocument();
+    expect(screen.getByText('Child page')).toBeInTheDocument();
 
     expect(screen.getByText('Первый абзац').closest('[data-block-id]')).toHaveAttribute(
       'data-block-id',
@@ -168,7 +168,7 @@ describe('Editor', () => {
       databases: createFakeDatabaseRepository(),
     });
 
-    const collapse = await screen.findByRole('button', { name: 'Свернуть переключатель' });
+    const collapse = await screen.findByRole('button', { name: 'Collapse toggle' });
     const details = screen.getByText('Переключатель').closest('[data-type="details"]');
     const content = details?.querySelector('[data-type="detailsContent"]');
 
@@ -180,14 +180,14 @@ describe('Editor', () => {
 
     fireEvent.click(collapse);
 
-    const expand = await screen.findByRole('button', { name: 'Развернуть переключатель' });
+    const expand = await screen.findByRole('button', { name: 'Expand toggle' });
     await waitFor(() => expect(details).not.toHaveClass('is-open'));
     expect(expand).toHaveAttribute('aria-expanded', 'false');
     expect(content).toHaveAttribute('hidden');
 
     fireEvent.click(expand);
 
-    const reopened = await screen.findByRole('button', { name: 'Свернуть переключатель' });
+    const reopened = await screen.findByRole('button', { name: 'Collapse toggle' });
     await waitFor(() => expect(details).toHaveClass('is-open'));
     expect(reopened).toHaveAttribute('aria-expanded', 'true');
     expect(content).not.toHaveAttribute('hidden');
@@ -202,18 +202,18 @@ describe('Editor', () => {
       databases: createFakeDatabaseRepository(),
     });
 
-    const checkbox = await screen.findByRole('checkbox', { name: 'Отметить задачу' });
+    const checkbox = await screen.findByRole('checkbox', { name: 'Check' });
     fireEvent.click(checkbox);
 
     await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: 'Снять отметку' })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: 'Uncheck' })).toBeChecked();
       expect(screen.getByText('Задача').closest('li')).toHaveAttribute('data-checked', 'true');
     });
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Снять отметку' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Uncheck' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: 'Отметить задачу' })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: 'Check' })).not.toBeChecked();
       expect(screen.getByText('Задача').closest('li')).toHaveAttribute('data-checked', 'false');
     });
   });
@@ -227,10 +227,10 @@ describe('Editor', () => {
       databases: createFakeDatabaseRepository(),
     });
 
-    await screen.findByRole('checkbox', { name: 'Отметить задачу' });
+    await screen.findByRole('checkbox', { name: 'Check' });
     await waitFor(() => {
       const emptyBlock = document.querySelector('.ProseMirror li [data-placeholder]');
-      expect(emptyBlock).toHaveAttribute('data-placeholder', 'Нажмите / для команд');
+      expect(emptyBlock).toHaveAttribute('data-placeholder', 'Press / for commands');
     });
   });
 
@@ -246,7 +246,7 @@ describe('Editor', () => {
     await screen.findByRole('textbox');
     await waitFor(() => {
       const emptyBlock = document.querySelector('.ProseMirror [data-placeholder]');
-      expect(emptyBlock).toHaveAttribute('data-placeholder', 'Нажмите / для команд');
+      expect(emptyBlock).toHaveAttribute('data-placeholder', 'Press / for commands');
     });
   });
 
@@ -257,7 +257,7 @@ describe('Editor', () => {
       block(SUB_PAGE_BLOCK_ID, 'a0', {
         type: 'page',
         pageId: SUB_PAGE_ID,
-        title: 'Дочерняя страница',
+        title: 'Child page',
         icon: '📄',
       }),
     ]);
@@ -266,7 +266,7 @@ describe('Editor', () => {
       databases: createFakeDatabaseRepository(),
     });
 
-    const link = await screen.findByRole('link', { name: 'Дочерняя страница' });
+    const link = await screen.findByRole('link', { name: 'Child page' });
 
     fireEvent.click(link);
 
@@ -314,9 +314,9 @@ describe('Editor', () => {
     const link = screen.getByRole('link', { name: /doc.pdf/ });
 
     expect(link).toHaveAttribute('href', 'https://example.com/doc.pdf');
-    expect(screen.getByText('2 КБ')).toBeInTheDocument();
+    expect(screen.getByText('2 KB')).toBeInTheDocument();
 
-    expect(screen.getByRole('button', { name: '🚀' })).toHaveAttribute('title', 'Сменить эмодзи');
+    expect(screen.getByRole('button', { name: '🚀' })).toHaveAttribute('title', 'Change emoji');
   });
 
   it('slash-меню открывается по «/» и переживает ререндер', async () => {
@@ -343,7 +343,7 @@ describe('Editor', () => {
       // Regression: an inline object in DragHandle's computePositionConfig forced the
       // plugin to re-register on every rerender (the autosave status
       // changes on each keystroke), and EditorState was recreated, killing the menu.
-      const menu = await screen.findByRole('listbox', { name: 'Вставить блок' });
+      const menu = await screen.findByRole('listbox', { name: 'Insert block' });
 
       expect(await screen.findAllByRole('option')).toHaveLength(33);
       await waitFor(() => expect(menu).toBeInTheDocument());
@@ -372,14 +372,14 @@ describe('Editor', () => {
       await user.click(editable);
       await user.type(editable, '/database');
 
-      const menu = await screen.findByRole('listbox', { name: 'Вставить блок' });
+      const menu = await screen.findByRole('listbox', { name: 'Insert block' });
 
-      expect(within(menu).getByRole('option', { name: /База данных/ })).toBeInTheDocument();
+      expect(within(menu).getByRole('option', { name: /Full page database/ })).toBeInTheDocument();
 
       await user.keyboard('{Enter}');
 
       // The database row is created by the editor bridge; the node view renders it.
-      expect(await screen.findByText('Новая база данных')).toBeInTheDocument();
+      expect(await screen.findByText('Untitled database')).toBeInTheDocument();
       expect(document.querySelector('[data-block-type="database"]')).not.toBeNull();
     } finally {
       document.elementFromPoint = originalElementFromPoint;
@@ -406,14 +406,14 @@ describe('Editor', () => {
       await user.click(editable);
       await user.type(editable, '/line');
 
-      const menu = await screen.findByRole('listbox', { name: 'Вставить блок' });
+      const menu = await screen.findByRole('listbox', { name: 'Insert block' });
 
       // fireEvent avoids the editor’s global mousemove bridge, which dispatches
       // a MouseEvent that jsdom cannot construct after the menu closes.
-      fireEvent.click(within(menu).getByRole('option', { name: /Линейный график/ }));
+      fireEvent.click(within(menu).getByRole('option', { name: /Line chart/ }));
 
       // The chart view is selected by viewId on the new database block.
-      expect(await screen.findByRole('button', { name: 'Тип графика' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Chart type' })).toBeInTheDocument();
       expect(document.querySelector('[data-block-type="database"]')).not.toBeNull();
     } finally {
       document.elementFromPoint = originalElementFromPoint;
@@ -467,7 +467,7 @@ describe('Editor', () => {
                 type: 'file',
                 fileId: FILE_ID,
                 url: null,
-                name: 'Изображение',
+                name: 'Image',
                 sizeBytes: null,
               }),
             ],
@@ -484,7 +484,7 @@ describe('Editor', () => {
 
     // After HEAD: name from content-disposition, size from content-length.
     expect(await screen.findByText('banner.png')).toBeInTheDocument();
-    expect(await screen.findByText('1.2 МБ')).toBeInTheDocument();
+    expect(await screen.findByText('1.2 MB')).toBeInTheDocument();
   });
 
   it('гидратирует цвета блока в data-атрибуты', async () => {
@@ -523,7 +523,7 @@ describe('Editor', () => {
     await screen.findByRole('textbox');
     await waitFor(() => {
       const emptyBlock = document.querySelector('.ProseMirror li [data-placeholder]');
-      expect(emptyBlock).toHaveAttribute('data-placeholder', 'Нажмите / для команд');
+      expect(emptyBlock).toHaveAttribute('data-placeholder', 'Press / for commands');
       expect(emptyBlock?.closest('li')?.querySelector('.notio-list-marker')).not.toBeNull();
     });
   });

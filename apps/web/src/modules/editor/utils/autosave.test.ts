@@ -38,7 +38,7 @@ describe('contentEquals', () => {
 
   it('видит изменения в содержимом и вложенных блоках', () => {
     expect(
-      contentEquals({ type: 'paragraph', content: 'А' }, { type: 'paragraph', content: 'Б' }),
+      contentEquals({ type: 'paragraph', content: 'А' }, { type: 'paragraph', content: 'B' }),
     ).toBe(false);
     expect(
       contentEquals(

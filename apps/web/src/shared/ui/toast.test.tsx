@@ -14,7 +14,7 @@ describe('Toaster', () => {
 
     expect(item).toHaveTextContent('Файл больше лимита 20 МБ');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Закрыть уведомление' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
 
     await waitFor(() => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();

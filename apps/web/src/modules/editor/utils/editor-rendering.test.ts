@@ -65,7 +65,7 @@ describe('media blocks: renderHTML fallbacks', () => {
 
     expect(html).toContain('src="https://example.com/a.png"');
     expect(html).toContain('data-full-width="true"');
-    expect(html).toContain('alt="Изображение"');
+    expect(html).toContain('alt="Image"');
     expect(html).not.toContain('width: 80%');
   });
 
@@ -75,7 +75,7 @@ describe('media blocks: renderHTML fallbacks', () => {
     const html = current.getHTML();
 
     expect(html).toContain('data-full-width="false"');
-    expect(html).toContain('<span>Изображение</span>');
+    expect(html).toContain('<span>Image</span>');
     expect(html).not.toContain('<img');
   });
 
@@ -93,10 +93,10 @@ describe('media blocks: renderHTML fallbacks', () => {
     });
     expect(linked.getHTML()).toContain('data-block-type="video"');
     expect(linked.getHTML()).toContain('src="https://example.com/v.mp4"');
-    expect(linked.getHTML()).toContain('alt="Видео"');
+    expect(linked.getHTML()).toContain('alt="Video"');
 
     const empty = createEditor({ type: 'doc', content: [{ type: 'video' }] });
-    expect(empty.getHTML()).toContain('<span>Видео</span>');
+    expect(empty.getHTML()).toContain('<span>Video</span>');
   });
 
   it('renders a file row with its name and falls back to a default', () => {
@@ -109,7 +109,7 @@ describe('media blocks: renderHTML fallbacks', () => {
 
     const unnamed = createEditor({ type: 'doc', content: [{ type: 'file' }] });
     expect(unnamed.getHTML()).toContain('notio-file-name');
-    expect(unnamed.getHTML()).toContain('Файл');
+    expect(unnamed.getHTML()).toContain('File');
   });
 
   it('renders an emoji block with a default', () => {
@@ -145,14 +145,14 @@ describe('page, database and breadcrumb blocks: renderHTML', () => {
       type: 'doc',
       content: [{ type: 'subPage', attrs: { pageId: 'page-1', title: '' } }],
     });
-    expect(untitled.getHTML()).toContain('Без названия');
+    expect(untitled.getHTML()).toContain('Untitled');
     expect(untitled.getHTML()).toContain('📄');
 
     const pending = createEditor({
       type: 'doc',
       content: [{ type: 'subPage', attrs: { pageId: null, title: '' } }],
     });
-    expect(pending.getHTML()).toContain('Создание страницы…');
+    expect(pending.getHTML()).toContain('Creating page…');
     expect(pending.getHTML()).not.toContain('data-page-id');
   });
 
@@ -179,11 +179,11 @@ describe('page, database and breadcrumb blocks: renderHTML', () => {
     });
     expect(linked.getHTML()).toContain('data-block-type="linkToPage"');
     expect(linked.getHTML()).toContain('data-page-id="page-2"');
-    expect(linked.getHTML()).toContain('Страница');
+    expect(linked.getHTML()).toContain('Page');
 
     const empty = createEditor({ type: 'doc', content: [{ type: 'pageLink' }] });
     expect(empty.getHTML()).toContain('data-page-id=""');
-    expect(empty.getHTML()).toContain('Выбрать страницу…');
+    expect(empty.getHTML()).toContain('Pick a page…');
   });
 
   it('renders an inline database with and without ids, and a database link', () => {
@@ -199,7 +199,7 @@ describe('page, database and breadcrumb blocks: renderHTML', () => {
     expect(html).toContain('data-database-id="db-1"');
     expect(html).toContain('data-view-id="view-1"');
     expect(html).toContain('data-block-type="databaseLink"');
-    expect(html).toContain('База данных');
+    expect(html).toContain('Database');
 
     const empty = createEditor({ type: 'doc', content: [{ type: 'databaseBlock' }] });
     expect(empty.getHTML()).not.toContain('data-database-id');

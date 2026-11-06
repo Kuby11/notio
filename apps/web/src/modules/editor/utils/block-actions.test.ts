@@ -90,7 +90,7 @@ describe('turnIntoBlock', () => {
       content: [
         {
           type: 'listItem',
-          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Шаг' }] }],
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Step' }] }],
         },
       ],
     });
@@ -98,7 +98,7 @@ describe('turnIntoBlock', () => {
     turnIntoBlock(editor, blockAt(editor, 1), optionOf('quote'));
 
     expect(blockTypeNames(editor)).toEqual(['blockquote']);
-    expect(editor.state.doc.textContent).toBe('Шаг');
+    expect(editor.state.doc.textContent).toBe('Step');
   });
 
   it('превращает toggle в текст, разворачивая дочерние блоки', () => {
@@ -109,7 +109,7 @@ describe('turnIntoBlock', () => {
         { type: 'detailsSummary', content: [{ type: 'text', text: 'Заголовок' }] },
         {
           type: 'detailsContent',
-          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Ребёнок' }] }],
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Child' }] }],
         },
       ],
     });
@@ -117,7 +117,7 @@ describe('turnIntoBlock', () => {
     turnIntoBlock(editor, firstBlock(editor), optionOf('text'));
 
     expect(blockTypeNames(editor)).toEqual(['paragraph', 'paragraph']);
-    expect(editor.state.doc.textContent).toBe('ЗаголовокРебёнок');
+    expect(editor.state.doc.textContent).toBe('ЗаголовокChild');
   });
 
   it('превращает абзац в код и обратно без потери текста', () => {
@@ -161,7 +161,7 @@ describe('currentTurnIntoOptionId / canTurnInto / canColorBlock', () => {
       content: [
         {
           type: 'listItem',
-          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Пункт' }] }],
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Item' }] }],
         },
       ],
     });
@@ -189,12 +189,12 @@ describe('медиа-действия блока', () => {
       attrs: {
         fileId: '00000000-0000-4000-8000-000000000010',
         url: null,
-        caption: 'Подпись',
+        caption: 'Caption',
         width: 50,
       },
     });
 
-    const fileOption = { id: 'file', label: 'Файл', icon: '📎', kind: 'file' } as const;
+    const fileOption = { id: 'file', label: 'File', icon: '📎', kind: 'file' } as const;
     const moved = turnIntoBlock(editor, firstBlock(editor), fileOption);
 
     expect(moved).toBe(true);
@@ -203,7 +203,7 @@ describe('медиа-действия блока', () => {
 
     expect(file?.type.name).toBe('file');
     expect(file?.attrs['fileId']).toBe('00000000-0000-4000-8000-000000000010');
-    expect(file?.attrs['name']).toBe('Подпись');
+    expect(file?.attrs['name']).toBe('Caption');
     expect(canUseMediaActions(file!)).toBe(true);
   });
 
@@ -214,7 +214,7 @@ describe('медиа-действия блока', () => {
     });
 
     expect(turnIntoOptionsFor(editor.state.doc.firstChild!)).toEqual([
-      { id: 'file', label: 'Файл', icon: '📎', kind: 'file' },
+      { id: 'file', label: 'File', icon: '📎', kind: 'file' },
     ]);
   });
 
@@ -258,7 +258,7 @@ describe('deleteBlockAt', () => {
   });
 
   it('оставляет пустой абзац при удалении последнего блока', () => {
-    editor = createEditor({ type: 'paragraph', content: [{ type: 'text', text: 'Один' }] });
+    editor = createEditor({ type: 'paragraph', content: [{ type: 'text', text: 'One' }] });
 
     deleteBlockAt(editor, firstBlock(editor));
 
@@ -269,12 +269,12 @@ describe('deleteBlockAt', () => {
 
 describe('duplicateBlockAt', () => {
   it('дублирует блок и назначает копии новый blockId', () => {
-    editor = createEditor({ type: 'paragraph', content: [{ type: 'text', text: 'Текст' }] });
+    editor = createEditor({ type: 'paragraph', content: [{ type: 'text', text: 'Text' }] });
 
     duplicateBlockAt(editor, firstBlock(editor));
 
     expect(blockTypeNames(editor)).toEqual(['paragraph', 'paragraph']);
-    expect(editor.state.doc.textContent).toBe('ТекстТекст');
+    expect(editor.state.doc.textContent).toBe('TextText');
 
     const ids: unknown[] = [];
 
@@ -288,7 +288,7 @@ describe('duplicateBlockAt', () => {
 
 describe('setBlockColors', () => {
   it('ставит и сбрасывает цвета блока', () => {
-    editor = createEditor({ type: 'paragraph', content: [{ type: 'text', text: 'Текст' }] });
+    editor = createEditor({ type: 'paragraph', content: [{ type: 'text', text: 'Text' }] });
 
     const block = firstBlock(editor);
 

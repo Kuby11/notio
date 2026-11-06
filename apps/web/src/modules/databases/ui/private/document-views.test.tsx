@@ -96,7 +96,7 @@ describe('document database views', () => {
     expect(screen.getByText('Ship the calendar view')).toBeInTheDocument();
     expect(screen.getByText('Done')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Создать' }));
+    await user.click(screen.getByRole('button', { name: 'New' }));
 
     expect(onAddRow).toHaveBeenCalledTimes(1);
   });
@@ -119,7 +119,7 @@ describe('document database views', () => {
 
     expect(screen.getByText(currentMonth)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Следующий месяц' }));
+    await user.click(screen.getByRole('button', { name: 'Next month' }));
 
     expect(screen.getByText(nextMonth)).toBeInTheDocument();
   });
@@ -133,8 +133,6 @@ describe('document database views', () => {
       />,
     );
 
-    expect(
-      screen.getByText('Добавьте свойство даты, чтобы использовать календарь.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Add a date property to use the calendar view.')).toBeInTheDocument();
   });
 });

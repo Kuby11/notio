@@ -13,7 +13,7 @@ function renderDialog(onConfirm: () => void) {
         title="Удалить «Проект»?"
         description="Действие необратимо"
         phrase="Проект"
-        confirmLabel="Удалить"
+        confirmLabel="Delete"
         countdownLabel={(seconds) => `Удаление через ${seconds} с`}
         onOpenChange={() => undefined}
         onConfirm={onConfirm}
@@ -45,25 +45,25 @@ describe('диалог подтверждения по фразе', () => {
     expect(confirm).toBeDisabled();
     expect(confirm).toHaveTextContent(`Удаление через ${CONFIRM_COUNTDOWN_SECONDS} с`);
 
-    fireEvent.change(screen.getByLabelText('Введите «Проект» для подтверждения'), {
+    fireEvent.change(screen.getByLabelText('Type “Проект” to confirm'), {
       target: { value: 'Проект' },
     });
 
     await advance(CONFIRM_COUNTDOWN_SECONDS);
 
-    expect(screen.getByRole('button', { name: 'Удалить' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
   });
 
   it('не разблокируется, пока фраза не совпала', async () => {
     renderDialog(() => undefined);
 
-    fireEvent.change(screen.getByLabelText('Введите «Проект» для подтверждения'), {
+    fireEvent.change(screen.getByLabelText('Type “Проект” to confirm'), {
       target: { value: 'другое' },
     });
 
     await advance(CONFIRM_COUNTDOWN_SECONDS);
 
-    expect(screen.getByRole('button', { name: 'Удалить' })).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('Текст не совпадает');
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('The text does not match');
   });
 });

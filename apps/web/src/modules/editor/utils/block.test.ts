@@ -19,13 +19,13 @@ describe('registerBlock / getBlockDefinition', () => {
   it('регистрирует тип и возвращает его определение', () => {
     registerBlock({
       type: 'paragraph',
-      label: 'Текст',
+      label: 'Text',
       icon: '¶',
       create: () => ({ type: 'paragraph', content: '' }),
       toText: (content) => (content.type === 'paragraph' ? richToPlain(content.content) : ''),
     });
 
-    expect(getBlockDefinition('paragraph')?.label).toBe('Текст');
+    expect(getBlockDefinition('paragraph')?.label).toBe('Text');
     expect(listBlockDefinitions().map((definition) => definition.type)).toContain('paragraph');
   });
 
@@ -50,7 +50,7 @@ describe('serializeDocument / deserializeDocument', () => {
         pageId: 'p1',
         type: 'paragraph',
         position: 'a0',
-        content: { type: 'paragraph', content: 'Текст' },
+        content: { type: 'paragraph', content: 'Text' },
         createdAt: '2026-10-18T00:00:00.000Z',
         updatedAt: '2026-10-18T00:00:00.000Z',
       },
@@ -60,7 +60,7 @@ describe('serializeDocument / deserializeDocument', () => {
     const restored = deserializeDocument(json);
 
     expect(restored).toHaveLength(1);
-    expect(restored[0]?.content).toEqual({ type: 'paragraph', content: 'Текст' });
+    expect(restored[0]?.content).toEqual({ type: 'paragraph', content: 'Text' });
   });
 
   it('мигрирует старые строковые блоки в paragraph', () => {
@@ -104,9 +104,9 @@ function block(id: string, type: Block['type'], content: Block['content']): Bloc
 
 describe('blockToText / contentToText', () => {
   it('текст незарегистрированного типа берётся из content', () => {
-    const quote = block('b1', 'quote', { type: 'quote', content: 'Цитата' });
+    const quote = block('b1', 'quote', { type: 'quote', content: 'Quote' });
 
-    expect(blockToText(quote)).toBe('Цитата');
+    expect(blockToText(quote)).toBe('Quote');
   });
 
   it('у блока без текстового содержимого текста нет', () => {

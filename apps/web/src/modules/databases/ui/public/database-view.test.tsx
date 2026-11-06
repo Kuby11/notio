@@ -20,11 +20,11 @@ describe('DatabaseView properties', () => {
 
     expect(await screen.findByText('Project Tasks')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Новое свойство' }));
-    await user.click(await screen.findByRole('button', { name: 'Число' }));
+    await user.click(screen.getByRole('button', { name: 'New property' }));
+    await user.click(await screen.findByRole('button', { name: 'Number' }));
 
     await waitFor(() => {
-      expect(screen.getAllByRole('button', { name: 'Число' })).toHaveLength(1);
+      expect(screen.getAllByRole('button', { name: 'Number' })).toHaveLength(1);
     });
   });
 
@@ -41,7 +41,7 @@ describe('DatabaseView properties', () => {
 
     await user.click(screen.getByRole('button', { name: 'Status' }));
 
-    const input = screen.getByRole('textbox', { name: 'Название свойства' });
+    const input = screen.getByRole('textbox', { name: 'Property name' });
 
     await user.clear(input);
     await user.type(input, 'Stage{Enter}');
@@ -53,14 +53,14 @@ describe('DatabaseView properties', () => {
     // The rename popover is still open: close it before opening it again.
     await user.keyboard('{Escape}');
     await user.click(screen.getByRole('button', { name: 'Stage' }));
-    await user.click(screen.getByRole('button', { name: 'Скрыть свойство' }));
+    await user.click(screen.getByRole('button', { name: 'Hide property' }));
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Stage' })).not.toBeInTheDocument();
     });
 
     // Hidden properties are restored from the "new property" popover.
-    await user.click(screen.getByRole('button', { name: 'Новое свойство' }));
+    await user.click(screen.getByRole('button', { name: 'New property' }));
     await user.click(await screen.findByRole('button', { name: 'Stage' }));
 
     await waitFor(() => {
