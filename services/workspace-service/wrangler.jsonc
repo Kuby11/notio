@@ -31,7 +31,7 @@
     {
       "binding": "DB",
       "database_name": "notio-workspace",
-      "database_id": "00000000-0000-0000-0000-000000000003",
+      "database_id": "72d737bf-1326-413a-a867-f3709abe3987",
       "migrations_dir": "migrations",
     },
   ],

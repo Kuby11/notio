@@ -18,7 +18,7 @@
       "database_name": "notio-pages",
       // Placeholder: replaced by the real id from `wrangler d1 create notio-pages`.
       // Locally (wrangler dev / vitest) the value is ignored — a local SQLite copy runs.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "145e3972-ffc7-456e-b59d-abadd82a97c1",
       "migrations_dir": "migrations",
     },
   ],

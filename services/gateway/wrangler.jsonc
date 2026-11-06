@@ -11,7 +11,7 @@
     "ENVIRONMENT": "development",
     "SERVICE_VERSION": "0.1.0",
     "LOG_LEVEL": "info",
-    "CORS_ALLOWED_ORIGINS": "http://localhost:3000",
+    "CORS_ALLOWED_ORIGINS": "https://notio-web.saab112468.workers.dev",
     "RATE_LIMIT_MAX_REQUESTS": "120",
     "RATE_LIMIT_WINDOW_SECONDS": "60",
     "AUTH_JWKS_CACHE_TTL_SECONDS": "300",
@@ -19,7 +19,7 @@
   "kv_namespaces": [
     {
       "binding": "RATE_LIMIT",
-      "id": "0000000000000000000000000000000f",
+      "id": "883421eab31d4f1ab2ff35eb131e3072",
     },
   ],
   "services": [

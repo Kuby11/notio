@@ -3,8 +3,7 @@
 A Notion clone as a portfolio project: microservices on Cloudflare Workers, isolated databases,
 a block editor and real-time collaborative editing on Durable Objects.
 
-The goal is to demonstrate a middle+/senior level: clean architecture, end-to-end typing,
-deliberate testing and security as a first-class requirement.
+The goal is to demonstrate a skills for creating complex apps
 
 > What works today: the gateway with proxying, rate limiting, CORS, end-to-end request IDs and
 > JWT verification via JWKS; the auth-service (Better Auth on D1) with sign-up, email
