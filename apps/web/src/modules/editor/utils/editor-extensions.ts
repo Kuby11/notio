@@ -193,7 +193,7 @@ const UI_TASK_TEXTS: Record<string, [string, string]> = {
 };
 
 function uiTaskLabel(checked: boolean): string {
-  const lang = document.documentElement.lang === 'en' ? 'en' : 'ru';
+  const lang = document.documentElement.lang === 'ru' ? 'ru' : 'en';
 
   return UI_TASK_TEXTS[lang]![checked ? 0 : 1]!;
 }
@@ -204,7 +204,7 @@ const UI_TOGGLE_TEXTS: Record<string, [string, string]> = {
 };
 
 function uiToggleLabel(expand: boolean): string {
-  const lang = document.documentElement.lang === 'en' ? 'en' : 'ru';
+  const lang = document.documentElement.lang === 'ru' ? 'ru' : 'en';
 
   return UI_TOGGLE_TEXTS[lang]![expand ? 1 : 0]!;
 }
@@ -216,17 +216,29 @@ const UI_TEXTS: Record<string, Record<string, string>> = {
     pickPage: 'Выбрать страницу…',
     breadcrumb: 'Хлебные крошки документа',
     database: 'База данных',
+    untitled: 'Без названия',
+    creatingPage: 'Создание страницы…',
+    image: 'Изображение',
+    video: 'Видео',
+    file: 'Файл',
+    downloadName: 'Файл',
   },
   en: {
     page: 'Page',
     pickPage: 'Pick a page…',
     breadcrumb: 'Document breadcrumbs',
     database: 'Database',
+    untitled: 'Untitled',
+    creatingPage: 'Creating page…',
+    image: 'Image',
+    video: 'Video',
+    file: 'File',
+    downloadName: 'File',
   },
 };
 
 function uiText(key: string): string {
-  const lang = document.documentElement.lang === 'en' ? 'en' : 'ru';
+  const lang = document.documentElement.lang === 'ru' ? 'ru' : 'en';
 
   return UI_TEXTS[lang]![key]!;
 }
@@ -238,7 +250,7 @@ const PLACEHOLDER_TEXTS: Record<string, string> = {
 };
 
 function placeholderText(): string {
-  return PLACEHOLDER_TEXTS[document.documentElement.lang] ?? PLACEHOLDER_TEXTS['ru']!;
+  return PLACEHOLDER_TEXTS[document.documentElement.lang] ?? PLACEHOLDER_TEXTS['en']!;
 }
 
 /** Whether a textblock is empty: no text and no atoms like hardBreak. */
@@ -581,7 +593,7 @@ const ImageBlock = Node.create({
     return [{ tag: 'figure[data-block-type="image"]' }];
   },
   renderHTML({ node, HTMLAttributes }) {
-    return mediaFigureHTML('image', node, HTMLAttributes, 'Изображение');
+    return mediaFigureHTML('image', node, HTMLAttributes, uiText('image'));
   },
   addNodeView() {
     return editableReactNodeView(ImageView);
@@ -607,7 +619,7 @@ const VideoBlock = Node.create({
     return [{ tag: 'figure[data-block-type="video"]' }];
   },
   renderHTML({ node, HTMLAttributes }) {
-    return mediaFigureHTML('video', node, HTMLAttributes, 'Видео');
+    return mediaFigureHTML('video', node, HTMLAttributes, uiText('video'));
   },
   addNodeView() {
     return editableReactNodeView(VideoView);
@@ -627,8 +639,8 @@ const FileBlock = Node.create({
       fileId: mediaDataAttribute('data-file-id'),
       url: mediaDataAttribute('data-url'),
       name: {
-        default: 'Файл',
-        parseHTML: (element: HTMLElement) => element.getAttribute('data-name') ?? 'Файл',
+        default: 'File',
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-name') ?? uiText('file'),
         renderHTML: (attributes: Record<string, unknown>) =>
           attributes['name'] ? { 'data-name': String(attributes['name']) } : {},
       },
@@ -639,7 +651,7 @@ const FileBlock = Node.create({
     return [{ tag: 'div[data-block-type="file"]' }];
   },
   renderHTML({ node, HTMLAttributes }) {
-    const name = typeof node.attrs['name'] === 'string' ? node.attrs['name'] : 'Файл';
+    const name = typeof node.attrs['name'] === 'string' ? node.attrs['name'] : uiText('file');
 
     return [
       'div',
@@ -761,17 +773,7 @@ const SubPageBlock = Node.create({
         ? node.attrs['icon']
         : '📄';
     // Locale from <html lang>: renderHTML lives outside the React context.
-    const isEnglish = document.documentElement.lang === 'en';
-
-    const label =
-      title ||
-      (pageId
-        ? isEnglish
-          ? 'Untitled'
-          : 'Без названия'
-        : isEnglish
-          ? 'Creating page…'
-          : 'Создание страницы…');
+    const label = title || uiText(pageId ? 'untitled' : 'creatingPage');
 
     return [
       'a',

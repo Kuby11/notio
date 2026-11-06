@@ -10,9 +10,9 @@ import type { WorkspaceRole } from '@notio/contracts';
 export const INVITABLE_ROLES = ['editor', 'viewer'] as const satisfies readonly WorkspaceRole[];
 
 const ROLE_LABELS: Readonly<Record<WorkspaceRole, string>> = {
-  owner: 'Владелец',
-  editor: 'Редактор',
-  viewer: 'Наблюдатель',
+  owner: 'Owner',
+  editor: 'Editor',
+  viewer: 'Viewer',
 };
 
 /** Actions available to the current role in the UI. */

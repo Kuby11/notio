@@ -517,7 +517,7 @@ export function VideoView({ node, editor, updateAttributes }: ReactNodeViewProps
 }
 
 /** Placeholder names: they can be replaced by the real name from the HEAD response. */
-const GENERIC_FILE_NAMES = new Set(['Файл', 'Изображение']);
+const GENERIC_FILE_NAMES = new Set(['Файл', 'Изображение', 'File', 'Image']);
 
 /** File name from the content-disposition header (filename*=UTF-8''…). */
 function fileNameFromDisposition(header: string | null): string | null {

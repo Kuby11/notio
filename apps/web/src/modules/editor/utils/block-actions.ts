@@ -68,7 +68,7 @@ export function canTurnInto(node: ProseMirrorNode): boolean {
 /** Turn-into targets depend on the block: an image offers only the file. */
 export function turnIntoOptionsFor(node: ProseMirrorNode): readonly TurnIntoOption[] {
   if (node.type.name === 'image') {
-    return [{ id: 'file', label: 'Файл', icon: '📎', kind: 'file' }];
+    return [{ id: 'file', label: 'File', icon: '📎', kind: 'file' }];
   }
 
   return TURN_INTO_OPTIONS;

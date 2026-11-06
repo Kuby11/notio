@@ -47,7 +47,7 @@ export interface MediaSizeUnits {
   megabyte: string;
 }
 
-const DEFAULT_SIZE_UNITS: MediaSizeUnits = { byte: 'Б', kilobyte: 'КБ', megabyte: 'МБ' };
+const DEFAULT_SIZE_UNITS: MediaSizeUnits = { byte: 'B', kilobyte: 'KB', megabyte: 'MB' };
 
 /** Human-readable size: KB/MB. */
 export function formatBytes(bytes: number, units: MediaSizeUnits = DEFAULT_SIZE_UNITS): string {
