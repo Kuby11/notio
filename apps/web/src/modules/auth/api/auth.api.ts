@@ -65,8 +65,7 @@ export interface AuthGatewayOptions {
 
 export function createBetterAuthGateway(options: AuthGatewayOptions): AuthGateway {
   const client = createAuthClient({
-    // Пустая строка = тот же origin (клиент строит относительные пути).
-    baseURL: options.baseUrl || undefined,
+    baseURL: options.baseUrl,
     basePath: '/api/auth',
     plugins: [jwtClient()],
     // The session lives in a cookie: without credentials it would never reach the gateway.

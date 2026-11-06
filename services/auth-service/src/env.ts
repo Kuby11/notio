@@ -15,6 +15,8 @@ export interface Bindings {
   BETTER_AUTH_URL: string;
   /** Frontend address: after sign-in and email confirmation the user lands there, not on the gateway. */
   FRONTEND_URL?: string;
+  /** Общий родительский домен web+gateway для cookie сессии (prod). */
+  COOKIE_DOMAIN?: string;
   BETTER_AUTH_SECRET: string;
   RATE_LIMIT_MAX_REQUESTS?: string;
   RATE_LIMIT_WINDOW_SECONDS?: string;

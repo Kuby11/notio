@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { env } from '../shared/configs/env';
 import {
   createAuthModule,
   createAuthModuleWithGateway,
@@ -55,7 +56,7 @@ export function createAppContainer(): Container {
   // роут-хендлером): cookie сессии садится на хост приложения, а не на хост
   // gateway — иначе на деплое web и gateway разнесены по поддоменам
   // workers.dev, и сессия не видна приложению (см. app/api/auth).
-  return createContainerWithAuth(createAuthModule({ baseUrl: '' }));
+  return createContainerWithAuth(createAuthModule({ baseUrl: env.NEXT_PUBLIC_GATEWAY_URL }));
 }
 
 function createContainerWithAuth(auth: AuthModule, overrides: ContainerOverrides = {}): Container {

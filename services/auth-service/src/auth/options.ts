@@ -229,6 +229,19 @@ export function buildAuthOptions(env: Bindings, deps: AuthDependencies): BetterA
     advanced: {
       useSecureCookies: env.ENVIRONMENT === 'production',
       cookiePrefix: 'notio',
+      // Web и gateway — sibling hosts (workers.dev subdomains): cookie сессии
+      // должна ставиться на их общий родительский домен, иначе она остаётся на
+      // хосте gateway, и proxy.ts на web-воркере никогда не видит
+      // аутентифицированную навигацию. COOKIE_DOMAIN задаёт этот домен; в dev
+      // оба хоста — localhost (cookie не зависит от порта), домен не нужен.
+      ...(env.COOKIE_DOMAIN
+        ? {
+            crossSubDomainCookies: {
+              enabled: true,
+              domain: env.COOKIE_DOMAIN,
+            },
+          }
+        : {}),
       database: {
         // User and session ids are UUIDs: internal services
         // accept ids only as UUIDs from the shared contract.
