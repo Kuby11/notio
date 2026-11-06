@@ -36,7 +36,8 @@ function contentSecurityPolicy(): string {
     `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
-    `img-src 'self' data: blob: ${gateway}`.trim(),
+    // OAuth-провайдеры отдают аватары со своих CDN — они нужны в img-src.
+    `img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com ${gateway}`.trim(),
     `media-src 'self' blob: ${gateway}`.trim(),
     `connect-src 'self' ${gateway} ${websocket}`.trim(),
     "worker-src 'self' blob:",
