@@ -11,7 +11,9 @@ import { NextResponse, type NextRequest } from 'next/server';
  * happen on the gateway. Hiding a page here is UX, not security.
  */
 
-const SESSION_COOKIE = 'notio.session_token';
+// Production cookies carry the __Secure- prefix (better-auth adds it when
+// useSecureCookies is on); dev issues the bare name. Both are accepted.
+const SESSION_COOKIES = ['notio.session_token', '__Secure-notio.session_token'] as const;
 const PUBLIC_PREFIXES = ['/login', '/register', '/api/auth'] as const;
 
 function isPublicPath(pathname: string): boolean {
@@ -25,7 +27,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const hasSession = request.cookies.has(SESSION_COOKIE);
+  const hasSession = SESSION_COOKIES.some((name) => request.cookies.has(name));
 
   if (!hasSession) {
     const loginUrl = new URL('/login', request.url);
