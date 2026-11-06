@@ -12,7 +12,6 @@ import { createEditorModule, type EditorModule } from '../modules/editor';
 import { createMediaModule, type MediaModule } from '../modules/media';
 import { createPagesModule, type PagesModule } from '../modules/pages';
 import { createWorkspacesModule, type WorkspacesModule } from '../modules/workspaces';
-import { env } from '../shared/configs/env';
 
 /**
  * Composition root: the only place where the modules meet each other.
@@ -52,7 +51,11 @@ export function createContainer(
 
 /** Builds the production container over the HTTP gateway. */
 export function createAppContainer(): Container {
-  return createContainerWithAuth(createAuthModule({ baseUrl: env.NEXT_PUBLIC_GATEWAY_URL }));
+  // Auth-клиент ходит в свой же origin (/api/auth проксируется на gateway
+  // роут-хендлером): cookie сессии садится на хост приложения, а не на хост
+  // gateway — иначе на деплое web и gateway разнесены по поддоменам
+  // workers.dev, и сессия не видна приложению (см. app/api/auth).
+  return createContainerWithAuth(createAuthModule({ baseUrl: '' }));
 }
 
 function createContainerWithAuth(auth: AuthModule, overrides: ContainerOverrides = {}): Container {
