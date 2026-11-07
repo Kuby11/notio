@@ -6,7 +6,7 @@ describe('checkUploadable', () => {
   it('пропускает файл в рамках лимита', () => {
     const file = new File([new Uint8Array([1])], 'pic.png', { type: 'image/png' });
 
-    expect(checkUploadable(file)).toEqual({
+    expect(checkUploadable(file, 'image')).toEqual({
       ok: true,
       reason: null,
       mimeType: 'image/png',
@@ -19,7 +19,7 @@ describe('checkUploadable', () => {
 
     Object.defineProperty(file, 'size', { value: MAX_IMAGE_UPLOAD_BYTES + 1 });
 
-    const check = checkUploadable(file);
+    const check = checkUploadable(file, 'image');
 
     expect(check.ok).toBe(false);
     expect(check.reason).toBe('size');
@@ -31,7 +31,7 @@ describe('checkUploadable', () => {
 
     Object.defineProperty(file, 'size', { value: MAX_VIDEO_UPLOAD_BYTES });
 
-    expect(checkUploadable(file).ok).toBe(true);
+    expect(checkUploadable(file, 'video').ok).toBe(true);
   });
 
   it('отклоняет неразрешённый тип', () => {
@@ -39,7 +39,7 @@ describe('checkUploadable', () => {
       type: 'application/x-msdownload',
     });
 
-    const check = checkUploadable(file);
+    const check = checkUploadable(file, 'image');
 
     expect(check.ok).toBe(false);
     expect(check.reason).toBe('type');

@@ -395,7 +395,7 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
     }
 
     setMediaBridge(editor, {
-      uploadFile: (file) => uploadMediaRef.current(workspaceId, file),
+      uploadFile: (file, kind) => uploadMediaRef.current(workspaceId, file, kind),
       fileUrl: (fileId, download) => mediaFileUrl(fileId, env.NEXT_PUBLIC_GATEWAY_URL, download),
     });
   }, [editor, workspaceId]);

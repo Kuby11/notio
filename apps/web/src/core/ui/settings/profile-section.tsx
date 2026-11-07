@@ -77,7 +77,7 @@ export function ProfileSection({ workspaceId }: { workspaceId: string }) {
     try {
       // The avatar is an ordinary media file: a public capability link goes
       // into user.image and lives as long as the object in R2.
-      const meta = await upload(workspaceId, file);
+      const meta = await upload(workspaceId, file, 'image');
 
       // The upload hook already reported its own failure.
       if (!meta) {

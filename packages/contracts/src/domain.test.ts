@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PAGE_EVENT_TYPES, PageEventSchema } from './events';
-import {
-  ALLOWED_UPLOAD_MIME_TYPES,
-  FileMetaSchema,
-  isAllowedMimeType,
-  MAX_UPLOAD_SIZE_BYTES,
-} from './file';
+import { FileMetaSchema } from './file';
 import {
   BooleanQuerySchema,
   PageFavoritesQuerySchema,
@@ -129,13 +124,6 @@ describe('FileMetaSchema', () => {
 
   it('отклоняет отрицательный размер', () => {
     expect(() => FileMetaSchema.parse({ ...file, sizeBytes: -1 })).toThrow();
-  });
-
-  it('пускает только типы из allowlist и ограничивает размер', () => {
-    expect(isAllowedMimeType('image/png')).toBe(true);
-    expect(isAllowedMimeType('application/x-msdownload')).toBe(false);
-    expect(ALLOWED_UPLOAD_MIME_TYPES).toContain('application/pdf');
-    expect(MAX_UPLOAD_SIZE_BYTES).toBeGreaterThan(0);
   });
 });
 

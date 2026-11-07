@@ -9,7 +9,7 @@ import type { FileMeta } from '@notio/contracts';
  */
 export interface MediaBridge {
   /** Uploads a file; the bridge shows error toasts, null means failure. */
-  uploadFile: (file: File) => Promise<FileMeta | null>;
+  uploadFile: (file: File, kind: 'image' | 'video' | 'file') => Promise<FileMeta | null>;
   /** Public URL of the file on the gateway. */
   fileUrl: (fileId: string, download?: boolean) => string;
 }

@@ -1,27 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ALLOWED_UPLOAD_MIME_TYPES,
+  FALLBACK_MIME_TYPE,
   FileMetaSchema,
   MAX_FILE_UPLOAD_BYTES,
   MAX_IMAGE_UPLOAD_BYTES,
   MAX_UPLOAD_SIZE_BYTES,
   MAX_VIDEO_UPLOAD_BYTES,
   formatUploadLimit,
-  isAllowedMimeType,
   maxUploadSizeForMime,
+  normalizeUploadMimeType,
 } from './file';
 import { newId } from './ids';
 
-describe('Upload allowlist and limits', () => {
-  it('accepts every allowlisted MIME type and rejects everything else', () => {
-    for (const mimeType of ALLOWED_UPLOAD_MIME_TYPES) {
-      expect(isAllowedMimeType(mimeType)).toBe(true);
-    }
-
-    expect(isAllowedMimeType('application/x-msdownload')).toBe(false);
-    expect(isAllowedMimeType('image/tiff')).toBe(false);
-    expect(isAllowedMimeType('')).toBe(false);
-    expect(isAllowedMimeType('IMAGE/PNG')).toBe(false);
+describe('Upload limits', () => {
+  it('normalises an unknown browser MIME to the generic binary type', () => {
+    expect(normalizeUploadMimeType('')).toBe(FALLBACK_MIME_TYPE);
+    expect(normalizeUploadMimeType('application/pdf')).toBe('application/pdf');
   });
 
   it('picks the limit by media family', () => {

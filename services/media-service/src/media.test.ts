@@ -59,15 +59,13 @@ describe('media-service /media/files', () => {
     expect(response.headers.get('accept-ranges')).toBe('bytes');
   });
 
-  it('отклоняет файл с неразрешённым MIME-типом', async () => {
-    const file = new File([new Uint8Array([1])], 'boot.exe', {
-      type: 'application/x-msdownload',
-    });
+  it('принимает файл с неизвестным браузеру MIME-типом как бинарный', async () => {
+    const file = new File([new Uint8Array([1])], 'boot.exe', { type: '' });
 
     const response = await app.request(uploadRequest(file), {}, env);
 
-    expect(response.status).toBe(415);
-    expect(await response.json()).toMatchObject({ code: 'UNSUPPORTED_MEDIA_TYPE' });
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ mimeType: 'application/octet-stream' });
   });
 
   it('отклоняет изображение больше 20 МБ', async () => {

@@ -1,4 +1,4 @@
-import { isAllowedMimeType, maxUploadSizeForMime } from '@notio/contracts';
+import { maxUploadSizeForMime } from '@notio/contracts';
 
 /** What is uploaded: image, video or an arbitrary file. */
 export type MediaKind = 'image' | 'video' | 'file';
@@ -25,19 +25,30 @@ export interface MediaCheck {
   limitBytes: number | null;
 }
 
-/** Client-side check before upload: size and MIME type. */
-export function checkUploadable(file: File): MediaCheck {
-  if (!isAllowedMimeType(file.type)) {
-    return { ok: false, reason: 'type', mimeType: file.type, limitBytes: null };
+/** Client-side check before upload: type against the block kind, then size.
+ *
+ * The image block needs an image, the video block a video; the file block
+ * accepts ANY type — an unknown browser MIME is normalised to the generic
+ * binary type, and a video uploaded through it still gets the video limit.
+ */
+export function checkUploadable(file: File, kind: MediaKind): MediaCheck {
+  const mimeType = file.type;
+
+  if (kind === 'image' && !mimeType.startsWith('image/')) {
+    return { ok: false, reason: 'type', mimeType, limitBytes: null };
   }
 
-  const limit = maxUploadSizeForMime(file.type);
+  if (kind === 'video' && !mimeType.startsWith('video/')) {
+    return { ok: false, reason: 'type', mimeType, limitBytes: null };
+  }
+
+  const limit = maxUploadSizeForMime(mimeType);
 
   if (file.size > limit) {
-    return { ok: false, reason: 'size', mimeType: file.type, limitBytes: limit };
+    return { ok: false, reason: 'size', mimeType, limitBytes: limit };
   }
 
-  return { ok: true, reason: null, mimeType: file.type, limitBytes: null };
+  return { ok: true, reason: null, mimeType, limitBytes: null };
 }
 
 /** Size unit labels: supplied by the current locale's dictionary. */

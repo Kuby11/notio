@@ -1,6 +1,11 @@
-import { isAllowedMimeType, maxUploadSizeForMime, newId, type FileMeta } from '@notio/contracts';
+import {
+  maxUploadSizeForMime,
+  newId,
+  normalizeUploadMimeType,
+  type FileMeta,
+} from '@notio/contracts';
 import type { Bindings } from '../env';
-import { NotFoundError, PayloadTooLargeError, UnsupportedMediaTypeError } from '../errors';
+import { NotFoundError, PayloadTooLargeError } from '../errors';
 
 /** The time source is injected so tests do not depend on the system clock. */
 export type Clock = () => Date;
@@ -31,11 +36,11 @@ export class MediaService {
     sizeBytes: number;
     body: ReadableStream<Uint8Array> | ArrayBuffer;
   }): Promise<FileMeta> {
-    if (!isAllowedMimeType(input.mimeType)) {
-      throw new UnsupportedMediaTypeError(`Тип ${input.mimeType} не поддерживается`);
-    }
-
-    const limit = maxUploadSizeForMime(input.mimeType);
+    // The file block accepts any type: an unknown browser MIME is stored as
+    // the generic binary type. Type restrictions live client-side, where the
+    // block kind (image / video / file) is known.
+    const mimeType = normalizeUploadMimeType(input.mimeType);
+    const limit = maxUploadSizeForMime(mimeType);
 
     if (input.sizeBytes > limit) {
       throw new PayloadTooLargeError(`Файл больше лимита ${Math.round(limit / (1024 * 1024))} МБ`);
@@ -44,7 +49,7 @@ export class MediaService {
     const id = newId();
 
     await this.bucket.put(id, input.body, {
-      httpMetadata: { contentType: input.mimeType },
+      httpMetadata: { contentType: mimeType },
       customMetadata: {
         fileName: input.fileName.slice(0, 255),
         workspaceId: input.workspaceId,
@@ -57,7 +62,7 @@ export class MediaService {
       workspaceId: input.workspaceId,
       key: id,
       fileName: input.fileName.slice(0, 255),
-      mimeType: input.mimeType,
+      mimeType,
       sizeBytes: input.sizeBytes,
       createdAt: this.now(),
     };

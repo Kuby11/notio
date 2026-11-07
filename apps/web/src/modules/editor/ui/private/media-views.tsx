@@ -151,13 +151,14 @@ function mediaStateOf(node: ReactNodeViewProps['node']): MediaState {
 function useMediaUpload(
   editor: ReactNodeViewProps['editor'],
   updateAttributes: ReactNodeViewProps['updateAttributes'],
+  kind: 'image' | 'video' | 'file',
 ) {
   const [busy, setBusy] = useState(false);
 
   async function uploadFile(file: File): Promise<boolean> {
     setBusy(true);
 
-    const meta = await mediaBridge(editor).uploadFile(file);
+    const meta = await mediaBridge(editor).uploadFile(file, kind);
 
     setBusy(false);
 
@@ -213,7 +214,7 @@ export function ImageView({ node, editor, updateAttributes }: ReactNodeViewProps
   const width = typeof node.attrs['width'] === 'number' ? node.attrs['width'] : null;
   const fullWidth = node.attrs['fullWidth'] === true;
   const replacing = node.attrs['replacing'] === true;
-  const { busy, uploadFile } = useMediaUpload(editor, updateAttributes);
+  const { busy, uploadFile } = useMediaUpload(editor, updateAttributes, 'image');
   const src = fileId ? mediaBridge(editor).fileUrl(fileId) : url;
   const [lightboxOpen, setLightboxOpen] = useState(false);
   // While dragging the handle: the side, the pinned edge (px from the column) and
@@ -482,7 +483,7 @@ export function VideoView({ node, editor, updateAttributes }: ReactNodeViewProps
   const t = useTranslations('editor.media');
   const { fileId, url } = mediaStateOf(node);
   const caption = typeof node.attrs['caption'] === 'string' ? node.attrs['caption'] : '';
-  const { busy, uploadFile } = useMediaUpload(editor, updateAttributes);
+  const { busy, uploadFile } = useMediaUpload(editor, updateAttributes, 'image');
   const src = fileId ? mediaBridge(editor).fileUrl(fileId) : url;
 
   if (!src) {
@@ -546,7 +547,7 @@ export function FileView({ node, editor, updateAttributes }: ReactNodeViewProps)
   const { fileId, url } = mediaStateOf(node);
   const name = typeof node.attrs['name'] === 'string' ? node.attrs['name'] : t('file');
   const sizeBytes = typeof node.attrs['sizeBytes'] === 'number' ? node.attrs['sizeBytes'] : null;
-  const { busy, uploadFile } = useMediaUpload(editor, updateAttributes);
+  const { busy, uploadFile } = useMediaUpload(editor, updateAttributes, 'image');
   const bridge = mediaBridge(editor);
 
   function handleUpload(file: File): void {

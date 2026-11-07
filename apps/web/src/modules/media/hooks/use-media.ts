@@ -20,8 +20,12 @@ export function useMedia() {
   const { media } = useContainer();
 
   const upload = useCallback(
-    async (workspaceId: string, file: File): Promise<FileMeta | null> => {
-      const check = checkUploadable(file);
+    async (
+      workspaceId: string,
+      file: File,
+      kind: 'image' | 'video' | 'file' = 'file',
+    ): Promise<FileMeta | null> => {
+      const check = checkUploadable(file, kind);
 
       if (!check.ok) {
         const message =

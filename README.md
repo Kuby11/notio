@@ -3,7 +3,7 @@
 A Notion clone as a portfolio project: microservices on Cloudflare Workers, isolated databases,
 a block editor and real-time collaborative editing on Durable Objects.
 
-The goal is to demonstrate a skills for creating complex apps
+The goal is to demonstrate having skills for creating complex apps
 
 > What works today: the gateway with proxying, rate limiting, CORS, end-to-end request IDs and
 > JWT verification via JWKS; the auth-service (Better Auth on D1) with sign-up, email
@@ -182,7 +182,3 @@ Documents in `docs/adr/`:
 7. [Gateway cross-cutting infrastructure](docs/adr/0007-gateway-cross-cutting-middleware.md)
 8. [Authentication: Better Auth, cookie session and JWT for the gateway](docs/adr/0008-auth-service-better-auth-jwt.md)
 9. [Frontend authentication: layers, DI and JWT-based API access](docs/adr/0009-frontend-auth-layers.md)
-
-The frontend architecture rules (domain → application → adapters → ui layers) are described in
-[`.agents/AGENTS.md`](.agents/AGENTS.md), and the work plan in
-[`notion-clone-plan.md`](notion-clone-plan.md).
