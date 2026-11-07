@@ -46,6 +46,26 @@ export const PROXY_TARGETS = [
     service: 'workspace-service',
   },
   {
+    // Databases belong to workspace-service: tables, rows and views live in
+    // the same D1 database and the same permission model.
+    prefix: '/api/databases',
+    serviceRoot: '/databases',
+    binding: 'WORKSPACE_SERVICE',
+    service: 'workspace-service',
+  },
+  {
+    prefix: '/api/database-rows',
+    serviceRoot: '/database-rows',
+    binding: 'WORKSPACE_SERVICE',
+    service: 'workspace-service',
+  },
+  {
+    prefix: '/api/database-views',
+    serviceRoot: '/database-views',
+    binding: 'WORKSPACE_SERVICE',
+    service: 'workspace-service',
+  },
+  {
     prefix: '/api/media',
     serviceRoot: '/media',
     binding: 'MEDIA_SERVICE',

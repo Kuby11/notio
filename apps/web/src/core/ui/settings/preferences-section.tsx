@@ -25,6 +25,12 @@ import { Switch } from '@/shared/ui/switch';
 import { THEME_CHOICES, applyTheme } from '../theme';
 import { SettingsGroup, SettingsRow, SettingsSelect } from './settings-layout';
 
+/** Flag per locale: shown next to the language name in the picker. */
+const LOCALE_FLAGS: Record<string, string> = {
+  ru: '🇷🇺',
+  en: '🇬🇧',
+};
+
 /**
  * Preferences: everything a user tunes about the interface — theme, language,
  * time zone, number and date formats, and the page a workspace opens on.
@@ -77,9 +83,11 @@ export function PreferencesSection() {
     value: choice,
     label: t(`theme.${choice}`),
   }));
+  // Flags travel with the option label: the Select renders the label both in
+  // the trigger and in the list, so the flag marks the choice in both places.
   const languageOptions = LOCALES.map((code) => ({
     value: code,
-    label: t(`language.${code}`),
+    label: `${LOCALE_FLAGS[code] ?? ''} ${t(`language.${code}`)}`.trim(),
   }));
   const zoneOptions = zones.map((zone) => {
     const offset = timeZoneOffsetLabel(zone);

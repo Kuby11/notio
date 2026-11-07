@@ -127,9 +127,27 @@ export function AppSidebar({ workspaceId }: AppSidebarProps) {
             collapsed ? 'opacity-0' : 'opacity-100',
           )}
         >
-          {/* Collapse toggle on its own row, right-aligned to the panel edge:
-              the workspace switcher keeps the full width below it. */}
-          <div className="flex justify-end px-2 pt-2">
+          {/* The search field and the collapse toggle share one row: the toggle
+              is right-aligned to the panel edge, not floating above the form. */}
+          <form
+            className="flex items-center gap-1 px-2 pt-2 pb-2"
+            onSubmit={submitSearch}
+            role="search"
+          >
+            <div className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-neutral-200 bg-neutral-100/60 px-2 focus-within:border-neutral-300 focus-within:bg-white dark:border-neutral-800 dark:bg-neutral-900/60 dark:focus-within:border-neutral-700 dark:focus-within:bg-neutral-900">
+              <Search className="size-4 shrink-0 text-neutral-400" aria-hidden="true" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={t('searchPlaceholder')}
+                aria-label={t('searchPlaceholder')}
+                className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-400"
+              />
+              <kbd className="pointer-events-none shrink-0 rounded border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400 dark:border-neutral-700 dark:bg-neutral-800">
+                {modKey} K
+              </kbd>
+            </div>
             <Tooltip>
               <TooltipTrigger
                 render={
@@ -145,7 +163,7 @@ export function AppSidebar({ workspaceId }: AppSidebarProps) {
                     aria-controls={SIDEBAR_ID}
                     aria-expanded={!collapsed}
                     aria-label={t('closeSidebar')}
-                    className="text-neutral-500 dark:text-neutral-400"
+                    className="text-neutral-500 shrink-0 dark:text-neutral-400"
                   />
                 }
               >
@@ -158,24 +176,6 @@ export function AppSidebar({ workspaceId }: AppSidebarProps) {
                 </kbd>
               </TooltipContent>
             </Tooltip>
-          </div>
-
-          {/* Search sits under the header row; the kbd chip hints Ctrl+K. */}
-          <form className="px-2 pb-2" onSubmit={submitSearch} role="search">
-            <div className="flex h-8 items-center gap-2 rounded-md border border-neutral-200 bg-neutral-100/60 px-2 focus-within:border-neutral-300 focus-within:bg-white dark:border-neutral-800 dark:bg-neutral-900/60 dark:focus-within:border-neutral-700 dark:focus-within:bg-neutral-900">
-              <Search className="size-4 shrink-0 text-neutral-400" aria-hidden="true" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={t('searchPlaceholder')}
-                aria-label={t('searchPlaceholder')}
-                className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-neutral-400"
-              />
-              <kbd className="pointer-events-none shrink-0 rounded border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400 dark:border-neutral-700 dark:bg-neutral-800">
-                {modKey} K
-              </kbd>
-            </div>
           </form>
 
           <nav className="flex-1 overflow-y-auto px-2 pb-4" aria-label={t('pages')}>

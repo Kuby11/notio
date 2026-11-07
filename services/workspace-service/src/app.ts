@@ -2,6 +2,7 @@ import { INTERNAL_HEADERS, problem } from '@notio/contracts';
 import { Hono } from 'hono';
 import type { AppEnv, Bindings } from './env';
 import { isAppError } from './errors';
+import { createDatabaseRoutes } from './routes/databases';
 import { createHealthRoutes, SERVICE_NAME } from './routes/health';
 import { createWorkspaceRoutes } from './routes/workspaces';
 import { ARCHIVE_RETENTION_DAYS, createWorkspaceService } from './services/workspace.service';
@@ -11,6 +12,8 @@ export function createWorkspaceServiceApp(): Hono<AppEnv> {
 
   app.route('/', createHealthRoutes());
   app.route('/', createWorkspaceRoutes());
+  app.route('/', createDatabaseRoutes());
+  app.route('/', createDatabaseRoutes());
 
   app.notFound((c) =>
     problem({

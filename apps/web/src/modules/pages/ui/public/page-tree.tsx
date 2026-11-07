@@ -193,7 +193,12 @@ function PageTreeNode({
               : 'text-neutral-700 dark:text-neutral-300',
           )}
         >
-          <span aria-hidden="true">{page.icon ?? '📄'}</span>
+          <span
+            aria-hidden="true"
+            className="flex size-4 shrink-0 items-center justify-center text-sm leading-none"
+          >
+            {page.icon ?? '📄'}
+          </span>
           <span className="truncate">{title}</span>
           {page.isFavorite ? <span aria-label={t('favorites')}>★</span> : null}
         </Link>
