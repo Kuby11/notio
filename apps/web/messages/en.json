@@ -776,5 +776,14 @@
       "pink": "Pink",
       "red": "Red"
     }
+  },
+  "onboarding": {
+    "pageTitle": "Welcome 👋",
+    "heading": "Welcome to notio 👋",
+    "intro": "This is your first page — write anything here, everything is saved automatically.",
+    "tipSlash": "Press “/” on an empty line to add a block: text, list, table, database.",
+    "todoSidebar": "Create pages in the sidebar on the left",
+    "todoDatabase": "Try a database: type “/” and pick “Database”",
+    "todoSettings": "Set up language and theme in profile → “Settings”"
   }
 }
