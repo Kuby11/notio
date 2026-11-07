@@ -117,7 +117,7 @@ export function PageActionsMenu({
             </button>
           }
         />
-        <DropdownMenuContent align={align} className="w-64!">
+        <DropdownMenuContent align={align} className="w-48!">
           {onCreateChildPage ? (
             <DropdownMenuItem className="text-xs" onClick={onCreateChildPage}>
               <Plus aria-hidden="true" />

@@ -1,21 +1,10 @@
-import { getTranslations } from 'next-intl/server';
-import { AppLayout } from '@/core/ui/app-layout';
-import { PageTree } from '@/modules/pages';
+import { redirect } from 'next/navigation';
 
 /**
- * The app's home page: a sidebar with a workspace switcher and the page tree.
- * The default workspace is the first one in the user's list.
+ * The app home: the workspace is user-specific, so the root does not guess an
+ * id (a hardcoded seed workspace does not exist on production deployments).
+ * The workspaces screen lists the user's real workspaces and offers creation.
  */
-export default async function Home() {
-  const t = await getTranslations('workspace');
-
-  return (
-    <AppLayout workspaceId="00000000-0000-4000-8000-000000000001">
-      <h1 className="text-2xl font-semibold">{t('homeTitle')}</h1>
-      <p className="mt-2 text-neutral-500">{t('homeHint')}</p>
-      <div className="mt-6">
-        <PageTree workspaceId="00000000-0000-4000-8000-000000000001" />
-      </div>
-    </AppLayout>
-  );
+export default function Home() {
+  redirect('/workspaces');
 }
