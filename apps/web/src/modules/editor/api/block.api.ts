@@ -80,10 +80,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       });
 
       if (!response.ok) {
-        throw new HttpError(
-          response.status,
-          `Failed to move block: HTTP ${response.status}`,
-        );
+        throw new HttpError(response.status, `Failed to move block: HTTP ${response.status}`);
       }
 
       return toBlock(await response.json());

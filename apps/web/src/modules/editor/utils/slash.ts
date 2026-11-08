@@ -272,13 +272,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'inlineEquation',
     blockType: 'equation',
-    keywords: [
-      'inline equation',
-      'inline math',
-      'inline formula',
-      'math in text',
-      'text formula',
-    ],
+    keywords: ['inline equation', 'inline math', 'inline formula', 'math in text', 'text formula'],
   },
   {
     id: 'link-to-page',
@@ -305,14 +299,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'database',
     blockType: 'database',
-    keywords: [
-      'inline database',
-      'database inline',
-      'database',
-      'db',
-      'inline db',
-      'inline table',
-    ],
+    keywords: ['inline database', 'database inline', 'database', 'db', 'inline db', 'inline table'],
   },
   {
     id: 'database-page',

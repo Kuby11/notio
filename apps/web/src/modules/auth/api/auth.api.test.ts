@@ -163,7 +163,9 @@ describe('auth adapter', () => {
     const fetchMock = stubFetch(() => json({ status: true }));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
-    await expect(gateway.changePassword({ newPassword: 'new-password-34' })).resolves.toBeUndefined();
+    await expect(
+      gateway.changePassword({ newPassword: 'new-password-34' }),
+    ).resolves.toBeUndefined();
 
     const [url, init] = fetchMock.mock.calls[0] ?? [];
 
@@ -175,9 +177,9 @@ describe('auth adapter', () => {
     stubFetch(() => json({ code: 'CREDENTIAL_ACCOUNT_NOT_FOUND' }, 400));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
-    await expect(
-      gateway.changePassword({ newPassword: 'new-password-34' }),
-    ).rejects.toMatchObject({ code: 'PASSWORD_NOT_SET' });
+    await expect(gateway.changePassword({ newPassword: 'new-password-34' })).rejects.toMatchObject({
+      code: 'PASSWORD_NOT_SET',
+    });
   });
 
   it('asks to sign in again when the session is too stale for deletion', async () => {

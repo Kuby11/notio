@@ -13,10 +13,7 @@ function send(path: string, init: RequestInit): Promise<Response> {
   return Promise.resolve(app.request(path, init, env));
 }
 
-async function createPage(
-  workspaceId: string,
-  title = 'Test page',
-): Promise<{ id: string }> {
+async function createPage(workspaceId: string, title = 'Test page'): Promise<{ id: string }> {
   const response = await send('/pages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: ACTOR },
@@ -130,7 +127,10 @@ describe('page blocks', () => {
     const created = await send('/blocks', {
       method: 'POST',
       headers: { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: ACTOR },
-      body: JSON.stringify({ pageId: page.id, content: { type: 'paragraph', content: 'Deleting' } }),
+      body: JSON.stringify({
+        pageId: page.id,
+        content: { type: 'paragraph', content: 'Deleting' },
+      }),
     });
     const block = (await created.json()) as { id: string };
 
