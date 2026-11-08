@@ -13,8 +13,9 @@ concurrency:
 
 env:
   TURBO_TELEMETRY_DISABLED: 1
-  NEXT_PUBLIC_GATEWAY_URL: http://localhost:8787
-  NEXT_PUBLIC_APP_NAME: notio
+  # No NEXT_PUBLIC_* here: the web build reads them from .env.development /
+  # .env.production. Forcing the loopback address globally is exactly how a
+  # production bundle once shipped pointing at localhost.
 
 jobs:
   quality:
