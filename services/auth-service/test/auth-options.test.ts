@@ -155,6 +155,17 @@ describe('buildAuthOptions', () => {
     expect(options.account?.accountLinking?.trustedProviders).toEqual([]);
   });
 
+  it('sets the cookie domain only when one is configured', () => {
+    const withDomain = buildAuthOptions({ ...env, COOKIE_DOMAIN: '.notio.dev' }, deps());
+    const withoutDomain = buildAuthOptions({ ...env, COOKIE_DOMAIN: undefined }, deps());
+
+    expect(withDomain.advanced?.crossSubDomainCookies).toEqual({
+      enabled: true,
+      domain: '.notio.dev',
+    });
+    expect(withoutDomain.advanced?.crossSubDomainCookies).toBeUndefined();
+  });
+
   it('sends authentication errors back to the app login page', () => {
     const options = buildAuthOptions(env, deps({ frontendUrl: 'http://localhost:3000/' }));
 
@@ -170,6 +181,18 @@ describe('createAuth', () => {
 
   it('falls back to the default frontend address when none is set', () => {
     expect(() => createAuth({ ...env, FRONTEND_URL: undefined })).not.toThrow();
+  });
+
+  it('sends mail through EmailJS when all four keys are set', () => {
+    const configured = {
+      ...env,
+      EMAILJS_SERVICE_ID: 'service',
+      EMAILJS_TEMPLATE_ID: 'template',
+      EMAILJS_PUBLIC_KEY: 'public-key',
+      EMAILJS_PRIVATE_KEY: 'private-key',
+    };
+
+    expect(() => createAuth(configured)).not.toThrow();
   });
 
   it('builds a separate instance when dependencies are swapped', () => {
