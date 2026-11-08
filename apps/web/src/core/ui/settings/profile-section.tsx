@@ -181,7 +181,7 @@ export function ProfileSection({ workspaceId }: { workspaceId: string }) {
                 }
               }}
               aria-label={t('fullName')}
-              className="w-56 border-0"
+              className="w-56"
             />
             <Button
               onClick={() => {

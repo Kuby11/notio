@@ -166,7 +166,7 @@ export function WorkspacesSection() {
             aria-label={t('nameLabel')}
             placeholder={t('nameLabel')}
             onChange={(event) => setName(event.target.value)}
-            className="max-w-sm border-0"
+            className="max-w-sm"
           />
           <Button type="submit" disabled={createWorkspace.isPending || name.trim().length === 0}>
             <Plus data-icon="inline-start" aria-hidden="true" />
