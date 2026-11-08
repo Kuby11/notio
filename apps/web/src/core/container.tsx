@@ -52,10 +52,11 @@ export function createContainer(
 
 /** Builds the production container over the HTTP gateway. */
 export function createAppContainer(): Container {
-  // Auth-клиент ходит в свой же origin (/api/auth проксируется на gateway
-  // роут-хендлером): cookie сессии садится на хост приложения, а не на хост
-  // gateway — иначе на деплое web и gateway разнесены по поддоменам
-  // workers.dev, и сессия не видна приложению (см. app/api/auth).
+  // The auth client talks to the same origin (/api/auth is proxied to the
+  // gateway by a route handler): the session cookie lands on the app host,
+  // not on the gateway host — otherwise, in deployment, web and gateway end
+  // up on different workers.dev subdomains and the app cannot see the
+  // session (see app/api/auth).
   return createContainerWithAuth(createAuthModule({ baseUrl: env.NEXT_PUBLIC_GATEWAY_URL }));
 }
 
@@ -94,7 +95,7 @@ export function useContainer(): Container {
   const container = useContext(ContainerContext);
 
   if (container === null) {
-    throw new Error('useContainer вызван вне ContainerProvider');
+    throw new Error('useContainer was called outside of ContainerProvider');
   }
 
   return container;

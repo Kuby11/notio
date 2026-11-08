@@ -26,7 +26,7 @@ export function useWorkspaces(workspaceId?: string) {
     queryKey: workspaceKeys.members(workspaceId ?? null),
     queryFn: () => {
       if (workspaceId === undefined) {
-        throw new Error('workspaceId обязателен для загрузки участников');
+        throw new Error('workspaceId is required to load members');
       }
 
       return workspaces.listMembers(workspaceId);

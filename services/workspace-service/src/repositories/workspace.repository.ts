@@ -57,7 +57,7 @@ export class WorkspaceRepository {
     const [row] = await this.db.insert(workspaces).values(workspace).returning();
 
     if (!row) {
-      throw new Error('D1 вернул пустой результат при вставке workspace');
+      throw new Error('D1 returned an empty result while inserting the workspace');
     }
 
     return this.toWorkspace(row);

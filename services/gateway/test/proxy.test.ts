@@ -47,8 +47,8 @@ async function authedInit(extra: RequestInit = {}): Promise<RequestInit> {
   };
 }
 
-describe('проксирование в pages-service', () => {
-  it('переписывает путь /api/pages → /pages и сохраняет query', async () => {
+describe('proxying to pages-service', () => {
+  it('rewrites the path /api/pages → /pages and keeps the query', async () => {
     const pages = responderMock(pagesOk);
 
     await request(
@@ -63,7 +63,7 @@ describe('проксирование в pages-service', () => {
     expect(forwardedUrl.searchParams.get('workspaceId')).toBe(WORKSPACE_ID);
   });
 
-  it('переписывает путь вложенного ресурса', async () => {
+  it('rewrites a nested resource path', async () => {
     const pages = responderMock(pagesOk);
 
     await request(`/api/pages/${WORKSPACE_ID}`, await authedInit(), createEnv({ pages }));
@@ -71,12 +71,12 @@ describe('проксирование в pages-service', () => {
     expect(new URL(firstRequest(pages).url).pathname).toBe(`/pages/${WORKSPACE_ID}`);
   });
 
-  it('передаёт тело и метод без изменений', async () => {
+  it('passes the body and method through unchanged', async () => {
     const pages = responderMock(pagesOk);
 
     const response = await request(
       '/api/pages',
-      await authedInit(jsonRequest({ workspaceId: WORKSPACE_ID, title: 'Из gateway' })),
+      await authedInit(jsonRequest({ workspaceId: WORKSPACE_ID, title: 'From gateway' })),
       createEnv({ pages }),
     );
 
@@ -84,11 +84,11 @@ describe('проксирование в pages-service', () => {
     expect(firstRequest(pages).method).toBe('POST');
     expect(await firstRequest(pages).clone().json()).toEqual({
       workspaceId: WORKSPACE_ID,
-      title: 'Из gateway',
+      title: 'From gateway',
     });
   });
 
-  it('отдаёт файл медиа без токена: capability URL для <img>/<video>', async () => {
+  it('serves a media file without a token: capability URL for <img>/<video>', async () => {
     const media = responderMock(pagesOk);
 
     const response = await request(
@@ -103,7 +103,7 @@ describe('проксирование в pages-service', () => {
     );
   });
 
-  it('требует токен для загрузки медиа даже при публичном чтении', async () => {
+  it('requires a token for media uploads even when reads are public', async () => {
     const media = responderMock(pagesOk);
 
     const response = await request(
@@ -116,7 +116,7 @@ describe('проксирование в pages-service', () => {
     expect(media).not.toHaveBeenCalled();
   });
 
-  it('маршрутизирует медиа /api/media в media-service', async () => {
+  it('routes media /api/media to media-service', async () => {
     const media = responderMock(pagesOk);
 
     const response = await request(
@@ -131,7 +131,7 @@ describe('проксирование в pages-service', () => {
     expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('media-service');
   });
 
-  it('маршрутизирует блоки /api/blocks в pages-service', async () => {
+  it('routes blocks /api/blocks to pages-service', async () => {
     const pages = responderMock(pagesOk);
 
     const response = await request(
@@ -146,7 +146,7 @@ describe('проксирование в pages-service', () => {
     expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('pages-service');
   });
 
-  it('переписывает вложенные маршруты блоков', async () => {
+  it('rewrites nested block routes', async () => {
     const pages = responderMock(pagesOk);
 
     await request(
@@ -158,7 +158,7 @@ describe('проксирование в pages-service', () => {
     expect(new URL(firstRequest(pages).url).pathname).toBe(`/blocks/${BLOCK_ID}/move`);
   });
 
-  it('помечает вызов источником и возвращает маршрутизацию', async () => {
+  it('marks the call with its source and reports the routing back', async () => {
     const pages = responderMock(pagesOk);
 
     const response = await request('/api/pages', await authedInit(), createEnv({ pages }));
@@ -167,7 +167,7 @@ describe('проксирование в pages-service', () => {
     expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('pages-service');
   });
 
-  it('передаёт сервису пользователя из подписанного токена', async () => {
+  it('passes the user from the signed token to the service', async () => {
     const pages = responderMock(pagesOk);
 
     await request('/api/pages', await authedInit(), createEnv({ pages }));
@@ -175,7 +175,7 @@ describe('проксирование в pages-service', () => {
     expect(firstRequest(pages).headers.get(INTERNAL_HEADERS.ACTOR_ID)).toBe(USER_ID);
   });
 
-  it('не передаёт сервису подделанный заголовок пользователя', async () => {
+  it('does not pass a forged user header to the service', async () => {
     const pages = responderMock(pagesOk);
     const init = await authedInit({
       headers: { 'x-user-id': '11111111-1111-4111-8111-111111111111' },
@@ -186,7 +186,7 @@ describe('проксирование в pages-service', () => {
     expect(firstRequest(pages).headers.get(INTERNAL_HEADERS.ACTOR_ID)).toBe(USER_ID);
   });
 
-  it('не передаёт идентификатор, если токен не предъявлен', async () => {
+  it('does not pass an identifier when no token is presented', async () => {
     const pages = responderMock(pagesOk);
 
     // A request without a token never reaches the service: 401 on the closed route.
@@ -200,7 +200,7 @@ describe('проксирование в pages-service', () => {
     expect(pages).not.toHaveBeenCalled();
   });
 
-  it('пробрасывает валидный клиентский request-id: сквозная трассировка', async () => {
+  it('forwards a valid client request-id: end-to-end tracing', async () => {
     const pages = responderMock(pagesOk);
 
     const response = await request(
@@ -213,7 +213,7 @@ describe('проксирование в pages-service', () => {
     expect(response.headers.get(INTERNAL_HEADERS.REQUEST_ID)).toBe('trace-from-client');
   });
 
-  it('подменяет идентификатор, не проходящий политику', async () => {
+  it('replaces an identifier that fails the policy', async () => {
     const pages = responderMock(pagesOk);
 
     const response = await request(
@@ -228,7 +228,7 @@ describe('проксирование в pages-service', () => {
     expect(forwarded).toBe(response.headers.get(INTERNAL_HEADERS.REQUEST_ID));
   });
 
-  it('не пересылает hop-by-hop заголовки и host', async () => {
+  it('does not forward hop-by-hop headers and host', async () => {
     const pages = responderMock(pagesOk);
 
     await request(
@@ -252,7 +252,7 @@ describe('проксирование в pages-service', () => {
     expect(headers.get('x-custom')).toBe('custom-value');
   });
 
-  it('отдаёт клиенту только безопасные заголовки ответа', async () => {
+  it('serves only safe response headers to the client', async () => {
     const response = await request(
       '/api/pages',
       await authedInit(),
@@ -264,13 +264,13 @@ describe('проксирование в pages-service', () => {
     expect(response.headers.get('x-internal-secret')).toBeNull();
   });
 
-  it('возвращает 503 problem+json, если сервис недоступен', async () => {
+  it('returns 503 problem+json when the service is unavailable', async () => {
     const response = await request(
       '/api/pages',
       await authedInit(),
       createEnv({
         pages: () => {
-          throw new Error('сервис упал');
+          throw new Error('service crashed');
         },
       }),
     );
@@ -279,7 +279,7 @@ describe('проксирование в pages-service', () => {
     expect(await problemOf(response)).toMatchObject({ code: 'SERVICE_UNAVAILABLE' });
   });
 
-  it('не трогает маршруты вне проксируемых префиксов', async () => {
+  it('leaves routes outside proxied prefixes untouched', async () => {
     const pages = responderMock(pagesOk);
 
     const response = await request('/other', await authedInit(), createEnv({ pages }));
@@ -289,8 +289,8 @@ describe('проксирование в pages-service', () => {
   });
 });
 
-describe('проксирование в auth-service', () => {
-  it('маршрутизирует /api/auth/* в auth-service без префикса gateway', async () => {
+describe('proxying to auth-service', () => {
+  it('routes /api/auth/* to auth-service without the gateway prefix', async () => {
     const auth = responderMock(() => Response.json({ ok: true }));
 
     const response = await request(
@@ -304,7 +304,7 @@ describe('проксирование в auth-service', () => {
     expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('auth-service');
   });
 
-  it('передаёт cookie сессии, иначе вход через браузер не работает', async () => {
+  it('passes the session cookie, otherwise browser sign-in breaks', async () => {
     const auth = responderMock(() => Response.json({ user: null }));
 
     await request(
@@ -316,7 +316,7 @@ describe('проксирование в auth-service', () => {
     expect(firstRequest(auth).headers.get('cookie')).toBe('notio.session_token=abc');
   });
 
-  it('отдаёт Set-Cookie клиенту: без него сессия не сохранится', async () => {
+  it('serves Set-Cookie to the client: without it the session would not stick', async () => {
     const auth = responderMock(
       () =>
         new Response('{}', {
@@ -336,7 +336,7 @@ describe('проксирование в auth-service', () => {
     expect(response.headers.getSetCookie().join(';')).toContain('notio.session_token=abc');
   });
 
-  it('проксирует решение auth-service без изменений', async () => {
+  it('proxies the auth-service decision unchanged', async () => {
     const auth = responderMock(() => Response.json({ success: false }, { status: 403 }));
 
     const response = await request(
@@ -351,7 +351,7 @@ describe('проксирование в auth-service', () => {
     expect(response.headers.get(SERVICE_RESPONSE_HEADER)).toBe('auth-service');
   });
 
-  it('достаёт JWKS у auth-service для проверки токена', async () => {
+  it('fetches JWKS from auth-service for token verification', async () => {
     const auth = responderMock((incoming: Request) => {
       const path = new URL(incoming.url).pathname;
 
@@ -364,14 +364,14 @@ describe('проксирование в auth-service', () => {
   });
 });
 
-describe('identity для сервисов', () => {
-  it('возвращает undefined, когда пользователь не определён', () => {
+describe('identity for services', () => {
+  it('returns undefined when the user is not identified', () => {
     const context = { get: () => null };
 
     expect(userIdFromRequest(context)).toBeUndefined();
   });
 
-  it('возвращает id пользователя из контекста', () => {
+  it('returns the user id from the context', () => {
     const context = { get: () => ({ id: 'user-1', claims: { sub: 'user-1', exp: 0 } }) };
 
     expect(userIdFromRequest(context)).toBe('user-1');

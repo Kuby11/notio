@@ -19,7 +19,7 @@ export function createWorkspaceServiceApp(): Hono<AppEnv> {
     problem({
       status: 404,
       code: 'NOT_FOUND',
-      detail: `Маршрут ${c.req.method} ${c.req.path} не найден в ${SERVICE_NAME}`,
+      detail: `Route ${c.req.method} ${c.req.path} not found in ${SERVICE_NAME}`,
       requestId: c.req.header(INTERNAL_HEADERS.REQUEST_ID),
     }),
   );
@@ -54,7 +54,7 @@ export function createWorkspaceServiceApp(): Hono<AppEnv> {
     return problem({
       status: 500,
       code: 'INTERNAL_ERROR',
-      detail: 'Внутренняя ошибка сервиса рабочих пространств',
+      detail: 'Internal workspace service error',
       requestId,
     });
   });

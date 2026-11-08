@@ -54,11 +54,11 @@ export interface WorkspaceBody {
   archivedAt: string | null;
 }
 
-export async function createWorkspace(userId: string, name = 'Рабочее пространство') {
+export async function createWorkspace(userId: string, name = 'Workspace') {
   const response = await call('/workspaces', { body: { name }, userId });
 
   if (response.status !== 201) {
-    throw new Error(`Не удалось создать workspace: ${response.status}`);
+    throw new Error(`Failed to create the workspace: ${response.status}`);
   }
 
   return (await response.json()) as WorkspaceBody;

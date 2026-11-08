@@ -22,22 +22,22 @@ function codeOf(run: () => unknown): string | undefined {
 }
 
 describe('normalizeEmail', () => {
-  it('убирает пробелы и приводит к нижнему регистру', () => {
+  it('trims whitespace and lowercases the email', () => {
     expect(normalizeEmail('  User@Notio.Test ')).toBe('user@notio.test');
   });
 
-  it('одинаково нормализует разные написания одной почты', () => {
+  it('normalises different spellings of the same email identically', () => {
     expect(normalizeEmail('A@B.io')).toBe(normalizeEmail('a@b.io'));
   });
 });
 
 describe('isValidEmail', () => {
-  it('принимает обычные адреса', () => {
+  it('accepts ordinary addresses', () => {
     expect(isValidEmail('user@notio.dev')).toBe(true);
     expect(isValidEmail('first.last+tag@mail.notio.dev')).toBe(true);
   });
 
-  it('отклоняет то, что почтой не является', () => {
+  it('rejects values that are not an email', () => {
     expect(isValidEmail('user')).toBe(false);
     expect(isValidEmail('user@')).toBe(false);
     expect(isValidEmail('user@notio')).toBe(false);
@@ -46,20 +46,20 @@ describe('isValidEmail', () => {
 });
 
 describe('validateCredentials', () => {
-  it('принимает корректные данные', () => {
+  it('accepts valid credentials', () => {
     expect(
       validateCredentials({ email: 'user@notio.dev', password: 'correct-horse-battery' }),
     ).toEqual([]);
   });
 
-  it('требует заполнить пустые поля', () => {
+  it('requires the empty fields to be filled in', () => {
     const problems = validateCredentials({ email: '   ', password: '' });
 
     expect(problems.map((problem) => problem.field).toSorted()).toEqual(['email', 'password']);
     expect(problems.every((problem) => problem.code === 'REQUIRED')).toBe(true);
   });
 
-  it('отмечает некорректную почту', () => {
+  it('flags an invalid email', () => {
     expect(
       validateCredentials({ email: 'nope', password: 'correct-horse-battery' }),
     ).toContainEqual({
@@ -69,7 +69,7 @@ describe('validateCredentials', () => {
     });
   });
 
-  it('держит нижнюю границу длины пароля', () => {
+  it('enforces the lower bound of the password length', () => {
     const tooShort = validateCredentials({
       email: 'user@notio.dev',
       password: 'a'.repeat(MIN_PASSWORD_LENGTH - 1),
@@ -83,7 +83,7 @@ describe('validateCredentials', () => {
     expect(boundary).toEqual([]);
   });
 
-  it('держит верхнюю границу длины пароля', () => {
+  it('enforces the upper bound of the password length', () => {
     const tooLong = validateCredentials({
       email: 'user@notio.dev',
       password: 'a'.repeat(MAX_PASSWORD_LENGTH + 1),
@@ -97,13 +97,13 @@ describe('validateCredentials', () => {
     expect(boundary).toEqual([]);
   });
 
-  it('возвращает все проблемы сразу, а не по одной', () => {
+  it('returns all problems at once, not one at a time', () => {
     expect(validateCredentials({ email: 'nope', password: 'short' })).toHaveLength(2);
   });
 });
 
 describe('normalizeCredentials', () => {
-  it('нормализует почту и не трогает пароль', () => {
+  it('normalises the email and leaves the password untouched', () => {
     expect(
       normalizeCredentials({ email: ' User@Notio.DEV ', password: 'correct-horse-battery' }),
     ).toEqual({ email: 'user@notio.dev', password: 'correct-horse-battery' });
@@ -111,19 +111,19 @@ describe('normalizeCredentials', () => {
 });
 
 describe('assertSignInCredentials', () => {
-  it('нормализует почту перед входом', () => {
+  it('normalises the email before sign-in', () => {
     expect(
       assertSignInCredentials({ email: ' USER@notio.dev ', password: 'correct-horse-battery' }),
     ).toEqual({ email: 'user@notio.dev', password: 'correct-horse-battery' });
   });
 
-  it('не путает слабый пароль при входе с неверными данными', () => {
+  it('does not treat a short password at sign-in as a weak password', () => {
     expect(
       codeOf(() => assertSignInCredentials({ email: 'user@notio.dev', password: 'short' })),
     ).toBe('INVALID_CREDENTIALS');
   });
 
-  it('отличает некорректную почту', () => {
+  it('distinguishes an invalid email', () => {
     expect(
       codeOf(() => assertSignInCredentials({ email: 'nope', password: 'correct-horse-battery' })),
     ).toBe('INVALID_EMAIL');
@@ -131,49 +131,49 @@ describe('assertSignInCredentials', () => {
 });
 
 describe('assertSignUpInput', () => {
-  it('обрезает имя и нормализует почту', () => {
+  it('trims the name and normalises the email', () => {
     expect(
       assertSignUpInput({
-        name: ' Аня ',
+        name: ' Anna ',
         email: ' User@Notio.DEV ',
         password: 'correct-horse-battery',
       }),
-    ).toEqual({ name: 'Аня', email: 'user@notio.dev', password: 'correct-horse-battery' });
+    ).toEqual({ name: 'Anna', email: 'user@notio.dev', password: 'correct-horse-battery' });
   });
 
-  it('не пропускает слишком короткое имя', () => {
+  it('rejects a name that is too short', () => {
     expect(() =>
       assertSignUpInput({
         name: ' ',
         email: 'user@notio.dev',
         password: 'correct-horse-battery',
       }),
-    ).toThrowError(/Имя/);
+    ).toThrowError(/Name/);
   });
 
-  it('не пропускает некорректные учётные данные', () => {
+  it('rejects invalid credentials', () => {
     expect(
       codeOf(() => assertSignUpInput({ name: 'Anna', email: 'nope', password: 'short' })),
     ).toBe('UNKNOWN');
   });
 });
 
-describe('доменные ошибки аутентификации', () => {
-  it('хранит код и текст ошибки', () => {
-    const error = new AuthError('EMAIL_NOT_VERIFIED', 'Подтвердите почту');
+describe('auth domain errors', () => {
+  it('keeps the error code and message', () => {
+    const error = new AuthError('EMAIL_NOT_VERIFIED', 'Confirm your email');
 
     expect(error.code).toBe('EMAIL_NOT_VERIFIED');
     expect(error.name).toBe('AuthError');
-    expect(error.message).toBe('Подтвердите почту');
+    expect(error.message).toBe('Confirm your email');
   });
 
-  it('отличает доменную ошибку от прочих', () => {
-    expect(isAuthError(new AuthError('UNKNOWN', 'что-то'))).toBe(true);
-    expect(isAuthError(new Error('что-то'))).toBe(false);
+  it('tells a domain error apart from other errors', () => {
+    expect(isAuthError(new AuthError('UNKNOWN', 'something'))).toBe(true);
+    expect(isAuthError(new Error('something'))).toBe(false);
     expect(isAuthError(null)).toBe(false);
   });
 
-  it('задаёт закрытый список кодов', () => {
+  it('defines a closed list of codes', () => {
     expect(AUTH_ERROR_CODES).toContain('RATE_LIMITED');
     expect(AUTH_ERROR_CODES).not.toContain('WHATEVER');
   });

@@ -43,7 +43,9 @@ export class MediaService {
     const limit = maxUploadSizeForMime(mimeType);
 
     if (input.sizeBytes > limit) {
-      throw new PayloadTooLargeError(`Файл больше лимита ${Math.round(limit / (1024 * 1024))} МБ`);
+      throw new PayloadTooLargeError(
+        `File exceeds the limit of ${Math.round(limit / (1024 * 1024))} MB`,
+      );
     }
 
     const id = newId();
@@ -86,7 +88,7 @@ export class MediaService {
     const object = await this.bucket.head(id);
 
     if (!object) {
-      throw new NotFoundError('Файл не найден');
+      throw new NotFoundError('File not found');
     }
 
     return object;
@@ -96,7 +98,7 @@ export class MediaService {
     const object = await this.bucket.get(id, range ? { range } : undefined);
 
     if (!object) {
-      throw new NotFoundError('Файл не найден');
+      throw new NotFoundError('File not found');
     }
 
     return object;

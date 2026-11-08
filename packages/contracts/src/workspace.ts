@@ -88,7 +88,7 @@ export type Invitation = z.infer<typeof InvitationSchema>;
 export const InvitationListSchema = z.object({ items: z.array(InvitationSchema) });
 
 export const CreateWorkspaceInputSchema = z.object({
-  name: z.string().trim().min(1, 'Название не может быть пустым').max(120),
+  name: z.string().trim().min(1, 'Name cannot be empty').max(120),
   icon: z.string().max(16).optional(),
 });
 export type CreateWorkspaceInput = z.infer<typeof CreateWorkspaceInputSchema>;
@@ -99,7 +99,7 @@ export const UpdateWorkspaceInputSchema = z
     icon: z.string().max(16).nullable().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
-    message: 'Нужно передать хотя бы одно поле',
+    message: 'At least one field is required',
   });
 export type UpdateWorkspaceInput = z.infer<typeof UpdateWorkspaceInputSchema>;
 

@@ -26,7 +26,7 @@ export default defineConfig({
             const items = ids.map((id) => ({
               id,
               email: `${id}@notio.test`,
-              name: `Участник ${id.slice(0, 4)}`,
+              name: `Member ${id.slice(0, 4)}`,
             }));
 
             return Response.json({ items });

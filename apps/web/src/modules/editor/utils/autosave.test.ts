@@ -27,30 +27,30 @@ function entry(id: string | null, content: BlockContent): EditorBlockContent {
 }
 
 describe('contentEquals', () => {
-  it('не зависит от порядка ключей и вложенности', () => {
+  it('ignores key order and nesting', () => {
     expect(
       contentEquals(
-        { type: 'toggle', content: 'Заголовок', open: false, children: [{ type: 'divider' }] },
-        { children: [{ type: 'divider' }], open: false, content: 'Заголовок', type: 'toggle' },
+        { type: 'toggle', content: 'Heading', open: false, children: [{ type: 'divider' }] },
+        { children: [{ type: 'divider' }], open: false, content: 'Heading', type: 'toggle' },
       ),
     ).toBe(true);
   });
 
-  it('видит изменения в содержимом и вложенных блоках', () => {
+  it('sees changes in content and nested blocks', () => {
     expect(
-      contentEquals({ type: 'paragraph', content: 'А' }, { type: 'paragraph', content: 'B' }),
+      contentEquals({ type: 'paragraph', content: 'A' }, { type: 'paragraph', content: 'B' }),
     ).toBe(false);
     expect(
       contentEquals(
         {
           type: 'toggle',
-          content: 'Заголовок',
-          children: [{ type: 'toDo', checked: false, content: 'Задача' }],
+          content: 'Heading',
+          children: [{ type: 'toDo', checked: false, content: 'Task' }],
         },
         {
           type: 'toggle',
-          content: 'Заголовок',
-          children: [{ type: 'toDo', checked: true, content: 'Задача' }],
+          content: 'Heading',
+          children: [{ type: 'toDo', checked: true, content: 'Task' }],
         },
       ),
     ).toBe(false);
@@ -59,12 +59,12 @@ describe('contentEquals', () => {
 
 describe('planAutosave', () => {
   const saved: Block[] = [
-    block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: 'Первый' }),
-    block(HEADING_ID, 'a1', { type: 'heading', level: 2, content: 'Заголовок' }),
-    block(TODO_ID, 'a2', { type: 'toDo', checked: false, content: 'Задача' }),
+    block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: 'First' }),
+    block(HEADING_ID, 'a1', { type: 'heading', level: 2, content: 'Heading' }),
+    block(TODO_ID, 'a2', { type: 'toDo', checked: false, content: 'Task' }),
   ];
 
-  it('не планирует операций, если документ не изменился', () => {
+  it('plans no operations when the document is unchanged', () => {
     const plan = planAutosave(
       saved,
       saved.map((item) => entry(item.id, item.content)),
@@ -78,65 +78,65 @@ describe('planAutosave', () => {
     });
   });
 
-  it('обновляет изменённые блоки и сохраняет порядок', () => {
+  it('updates changed blocks and preserves the order', () => {
     const plan = planAutosave(saved, [
-      entry(PARAGRAPH_ID, { type: 'paragraph', content: 'Первый' }),
-      entry(HEADING_ID, { type: 'heading', level: 2, content: 'Новый заголовок' }),
-      entry(TODO_ID, { type: 'toDo', checked: true, content: 'Задача' }),
+      entry(PARAGRAPH_ID, { type: 'paragraph', content: 'First' }),
+      entry(HEADING_ID, { type: 'heading', level: 2, content: 'New heading' }),
+      entry(TODO_ID, { type: 'toDo', checked: true, content: 'Task' }),
     ]);
 
     expect(plan.updates).toEqual([
-      { id: HEADING_ID, content: { type: 'heading', level: 2, content: 'Новый заголовок' } },
-      { id: TODO_ID, content: { type: 'toDo', checked: true, content: 'Задача' } },
+      { id: HEADING_ID, content: { type: 'heading', level: 2, content: 'New heading' } },
+      { id: TODO_ID, content: { type: 'toDo', checked: true, content: 'Task' } },
     ]);
     expect(plan.creates).toEqual([]);
     expect(plan.deletes).toEqual([]);
     expect(plan.order).toEqual([PARAGRAPH_ID, HEADING_ID, TODO_ID]);
   });
 
-  it('создаёт новые блоки и удаляет пропавшие', () => {
+  it('creates new blocks and deletes the missing ones', () => {
     const plan = planAutosave(saved, [
-      entry(PARAGRAPH_ID, { type: 'paragraph', content: 'Первый' }),
-      entry(NEW_ID, { type: 'paragraph', content: 'Новый' }),
-      entry(TODO_ID, { type: 'toDo', checked: false, content: 'Задача' }),
+      entry(PARAGRAPH_ID, { type: 'paragraph', content: 'First' }),
+      entry(NEW_ID, { type: 'paragraph', content: 'New' }),
+      entry(TODO_ID, { type: 'toDo', checked: false, content: 'Task' }),
     ]);
 
     expect(plan.deletes).toEqual([HEADING_ID]);
     expect(plan.creates).toEqual([
-      { clientId: NEW_ID, content: { type: 'paragraph', content: 'Новый' } },
+      { clientId: NEW_ID, content: { type: 'paragraph', content: 'New' } },
     ]);
     expect(plan.order).toEqual([PARAGRAPH_ID, NEW_ID, TODO_ID]);
   });
 
-  it('выдаёт ключ блоку без id и повтору сохранённого id', () => {
+  it('keys a block without an id and a repeat of a saved id', () => {
     const plan = planAutosave(saved.slice(0, 1), [
-      entry(PARAGRAPH_ID, { type: 'paragraph', content: 'Первый' }),
-      entry(PARAGRAPH_ID, { type: 'paragraph', content: 'Копия' }),
-      entry(null, { type: 'paragraph', content: 'Без id' }),
+      entry(PARAGRAPH_ID, { type: 'paragraph', content: 'First' }),
+      entry(PARAGRAPH_ID, { type: 'paragraph', content: 'Copy' }),
+      entry(null, { type: 'paragraph', content: 'No id' }),
     ]);
 
     expect(plan.creates).toEqual([
-      { clientId: 'new-block:1', content: { type: 'paragraph', content: 'Копия' } },
-      { clientId: 'new-block:2', content: { type: 'paragraph', content: 'Без id' } },
+      { clientId: 'new-block:1', content: { type: 'paragraph', content: 'Copy' } },
+      { clientId: 'new-block:2', content: { type: 'paragraph', content: 'No id' } },
     ]);
     expect(plan.order).toEqual([PARAGRAPH_ID, 'new-block:1', 'new-block:2']);
   });
 });
 
 describe('planMoves', () => {
-  it('не двигает блоки, порядок которых совпадает', () => {
+  it('does not move blocks whose order already matches', () => {
     expect(
       planMoves([PARAGRAPH_ID, HEADING_ID, TODO_ID], [PARAGRAPH_ID, HEADING_ID, TODO_ID]),
     ).toEqual([]);
   });
 
-  it('возвращает блок на место после перестановки в конец', () => {
+  it('moves a block back after it was reordered to the end', () => {
     expect(
       planMoves([PARAGRAPH_ID, HEADING_ID, TODO_ID], [PARAGRAPH_ID, TODO_ID, HEADING_ID]),
     ).toEqual([{ id: TODO_ID, afterBlockId: HEADING_ID }]);
   });
 
-  it('ставит блок в начало, перемещая остальные за ним', () => {
+  it('moves a block to the start, shifting the others after it', () => {
     const moves = planMoves(
       [TODO_ID, PARAGRAPH_ID, HEADING_ID],
       [PARAGRAPH_ID, HEADING_ID, TODO_ID],
@@ -148,7 +148,7 @@ describe('planMoves', () => {
     ]);
   });
 
-  it('учитывает блоки, добавленные сервисом в конец', () => {
+  it('accounts for blocks appended by the service', () => {
     expect(planMoves([PARAGRAPH_ID, NEW_ID, TODO_ID], [PARAGRAPH_ID, TODO_ID, NEW_ID])).toEqual([
       { id: TODO_ID, afterBlockId: NEW_ID },
     ]);

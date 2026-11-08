@@ -7,25 +7,25 @@ import {
 } from './error-codes';
 
 describe('ErrorCodeSchema', () => {
-  it('принимает все коды из enum', () => {
+  it('accepts every code from the enum', () => {
     for (const code of ERROR_CODES) {
       expect(ErrorCodeSchema.parse(code)).toBe(code);
     }
   });
 
-  it('отклоняет свободные строки — только закрытый список', () => {
-    expect(() => ErrorCodeSchema.parse('ЧТО_ТО_НЕ_ИЗВЕСТНОЕ')).toThrow();
+  it('rejects free-form strings — it is a closed list', () => {
+    expect(() => ErrorCodeSchema.parse('SOMETHING_UNKNOWN')).toThrow();
     expect(() => ErrorCodeSchema.parse('not_found')).toThrow();
   });
 
-  it('не содержит пустых и дублирующихся значений', () => {
+  it('contains no empty or duplicate values', () => {
     expect(new Set(ERROR_CODES).size).toBe(ERROR_CODES.length);
     expect(ERROR_CODES.every((code) => code.length > 0)).toBe(true);
   });
 });
 
 describe('defaultErrorCodeForStatus', () => {
-  it('сопоставляет типичные статусы с кодами', () => {
+  it('maps typical statuses to codes', () => {
     expect(defaultErrorCodeForStatus(400)).toBe('VALIDATION_ERROR');
     expect(defaultErrorCodeForStatus(401)).toBe('UNAUTHENTICATED');
     expect(defaultErrorCodeForStatus(403)).toBe('FORBIDDEN');
@@ -35,11 +35,11 @@ describe('defaultErrorCodeForStatus', () => {
     expect(defaultErrorCodeForStatus(500)).toBe('INTERNAL_ERROR');
   });
 
-  it('откатывается к INTERNAL_ERROR для неизвестного статуса', () => {
+  it('falls back to INTERNAL_ERROR for an unknown status', () => {
     expect(defaultErrorCodeForStatus(418)).toBe('INTERNAL_ERROR');
   });
 
-  it('все коды по умолчанию входят в enum', () => {
+  it('every default code is part of the enum', () => {
     for (const code of Object.values(DEFAULT_ERROR_CODE_BY_STATUS)) {
       expect(ERROR_CODES).toContain(code);
     }

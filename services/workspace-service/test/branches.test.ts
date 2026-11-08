@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { createWorkspaceService } from '../src/services/workspace.service';
 import { TEST_ENV } from './helpers';
 
-describe('ветви сбоев', () => {
-  it('отдаёт ошибку, если auth-service недоступен при чтении участников', async () => {
+describe('failure branches', () => {
+  it('fails when auth-service is unavailable while reading members', async () => {
     const env = {
       ...TEST_ENV,
       AUTH_SERVICE: {
@@ -13,25 +13,25 @@ describe('ветви сбоев', () => {
 
     const service = createWorkspaceService(env, () => new Date());
     const workspace = await service.create('00000000-0000-4000-8000-00000000000a', {
-      name: 'Проект',
+      name: 'Project',
     });
 
     await expect(
       service.listMembers(workspace.id, '00000000-0000-4000-8000-00000000000a'),
-    ).rejects.toThrow(/auth-service не отдал профили/);
+    ).rejects.toThrow(/auth-service did not return profiles/);
   });
 
-  it('берёт сроки из конфигурации, а при мусоре — из значений по умолчанию', async () => {
+  it('takes limits from the configuration and falls back to defaults on garbage', async () => {
     const env = {
       ...TEST_ENV,
-      INVITATION_TTL_DAYS: 'много',
+      INVITATION_TTL_DAYS: 'lots',
       ARCHIVE_RETENTION_DAYS: '-3',
       MAX_ACTIVE_INVITATIONS: '',
     };
 
     const service = createWorkspaceService(env, () => new Date());
     const workspace = await service.create('00000000-0000-4000-8000-00000000000a', {
-      name: 'Проект',
+      name: 'Project',
     });
 
     // Garbage invitation limit from the config → the default (20) is used,
@@ -47,10 +47,10 @@ describe('ветви сбоев', () => {
     expect(invitation).toBeDefined();
   });
 
-  it('не удаляет архив, если срок ретенции ещё не истёк', async () => {
+  it('does not delete an archive whose retention has not expired yet', async () => {
     const owner = '00000000-0000-4000-8000-00000000000a';
     const service = createWorkspaceService(TEST_ENV, () => new Date());
-    const workspace = await service.create(owner, { name: 'Проект' });
+    const workspace = await service.create(owner, { name: 'Project' });
     await service.archive(workspace.id, owner);
 
     const removed = await service.purgeExpired();

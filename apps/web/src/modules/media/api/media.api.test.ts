@@ -39,7 +39,7 @@ afterEach(() => {
 });
 
 describe('createMediaRepositoryApi', () => {
-  it('отправляет multipart и разбирает FileMeta', async () => {
+  it('sends multipart and parses FileMeta', async () => {
     const repository = createMediaRepositoryApi(tokenProvider);
     const file = new File([new Uint8Array([1, 2, 3, 4])], 'pic.png', { type: 'image/png' });
 
@@ -59,12 +59,12 @@ describe('createMediaRepositoryApi', () => {
     expect(body instanceof FormData ? body.get('file') : null).toBe(file);
   });
 
-  it('превращает 413 в HttpError с деталью сервиса', async () => {
+  it('turns 413 into an HttpError with the service detail', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
         jsonResponse(
-          { status: 413, code: 'PAYLOAD_TOO_LARGE', detail: 'Файл больше лимита 20 МБ' },
+          { status: 413, code: 'PAYLOAD_TOO_LARGE', detail: 'File is over the 20 MB limit' },
           413,
         ),
       ),
@@ -74,7 +74,7 @@ describe('createMediaRepositoryApi', () => {
     const file = new File([new Uint8Array([1])], 'huge.png', { type: 'image/png' });
 
     await expect(repository.upload({ workspaceId: WORKSPACE_ID, file })).rejects.toThrow(
-      'Файл больше лимита 20 МБ',
+      'File is over the 20 MB limit',
     );
   });
 });

@@ -68,7 +68,7 @@ export function rateLimitMiddleware(config: GatewayConfig): MiddlewareHandler<Ap
       return problem({
         status: 429,
         code: 'RATE_LIMITED',
-        detail: 'Слишком много запросов. Повторите позже.',
+        detail: 'Too many requests. Try again later.',
         requestId: c.get('requestId'),
         headers: { 'retry-after': String(retryAfter) },
       });

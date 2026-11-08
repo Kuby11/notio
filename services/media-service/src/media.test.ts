@@ -25,7 +25,7 @@ function uploadRequest(file: File, headers: Record<string, string> = {}): Reques
 }
 
 describe('media-service /health', () => {
-  it('отвечает ok и описывает сам сервис', async () => {
+  it('answers ok and describes the service itself', async () => {
     const response = await app.request('/health', {}, env);
 
     expect(response.status).toBe(200);
@@ -35,13 +35,13 @@ describe('media-service /health', () => {
     });
   });
 
-  it('имеет бакет R2 в биндингах', () => {
+  it('has the R2 bucket in its bindings', () => {
     expect(env.MEDIA).toBeDefined();
   });
 });
 
 describe('media-service /media/files', () => {
-  it('принимает маленькое изображение и отдаёт его по id', async () => {
+  it('accepts a small image and serves it by id', async () => {
     const file = new File([new Uint8Array([137, 80, 78, 71])], 'pic.png', {
       type: 'image/png',
     });
@@ -59,7 +59,7 @@ describe('media-service /media/files', () => {
     expect(response.headers.get('accept-ranges')).toBe('bytes');
   });
 
-  it('принимает файл с неизвестным браузеру MIME-типом как бинарный', async () => {
+  it('accepts a file with a MIME type the browser does not know as binary', async () => {
     const file = new File([new Uint8Array([1])], 'boot.exe', { type: '' });
 
     const response = await app.request(uploadRequest(file), {}, env);
@@ -68,7 +68,7 @@ describe('media-service /media/files', () => {
     expect(await response.json()).toMatchObject({ mimeType: 'application/octet-stream' });
   });
 
-  it('отклоняет изображение больше 20 МБ', async () => {
+  it('rejects an image larger than 20 MB', async () => {
     const file = new File([new Uint8Array(20 * 1024 * 1024 + 1)], 'huge.png', {
       type: 'image/png',
     });
@@ -79,7 +79,7 @@ describe('media-service /media/files', () => {
     expect(await response.json()).toMatchObject({ code: 'PAYLOAD_TOO_LARGE' });
   });
 
-  it('отклоняет видео больше 50 МБ', async () => {
+  it('rejects a video larger than 50 MB', async () => {
     // A sparse array does not work here: File computes size from actual bytes.
     const bytes = new Uint8Array(50 * 1024 * 1024 + 1);
 
@@ -90,7 +90,7 @@ describe('media-service /media/files', () => {
     expect(response.status).toBe(413);
   });
 
-  it('требует идентичность из gateway', async () => {
+  it('requires an identity from the gateway', async () => {
     const form = new FormData();
 
     form.set('workspaceId', WORKSPACE_ID);
@@ -106,7 +106,7 @@ describe('media-service /media/files', () => {
     expect(response.headers.get('content-type')).toBe(PROBLEM_CONTENT_TYPE);
   });
 
-  it('отдаёт 404 на неизвестный id', async () => {
+  it('answers 404 for an unknown id', async () => {
     const response = await app.request(
       'http://localhost/media/files/00000000-0000-4000-8000-0000000000ff',
       {},
@@ -116,7 +116,7 @@ describe('media-service /media/files', () => {
     expect(response.status).toBe(404);
   });
 
-  it('отдаёт часть файла по Range и мету по HEAD', async () => {
+  it('serves part of a file via Range and metadata via HEAD', async () => {
     const file = new File([new Uint8Array([1, 2, 3, 4, 5])], 'r.png', { type: 'image/png' });
     const uploaded = await app.request(uploadRequest(file), {}, env);
     const meta = (await uploaded.json()) as { id: string };
@@ -146,8 +146,8 @@ describe('media-service /media/files', () => {
     expect(head.headers.get('content-disposition')).toContain(encodeURIComponent('r.png'));
   });
 
-  it('превращает ответ в сохранение файла по ?download=1', async () => {
-    const file = new File([new Uint8Array([9])], 'док.pdf', { type: 'application/pdf' });
+  it('turns the response into a file save via ?download=1', async () => {
+    const file = new File([new Uint8Array([9])], 'résumé.pdf', { type: 'application/pdf' });
     const uploaded = await app.request(uploadRequest(file), {}, env);
     const meta = (await uploaded.json()) as { id: string };
 
@@ -158,12 +158,12 @@ describe('media-service /media/files', () => {
     );
 
     expect(response.headers.get('content-disposition')).toContain('attachment');
-    expect(response.headers.get('content-disposition')).toContain(encodeURIComponent('док.pdf'));
+    expect(response.headers.get('content-disposition')).toContain(encodeURIComponent('résumé.pdf'));
   });
 });
 
 describe('parseRangeHeader', () => {
-  it('разбирает диапазоны, суффиксы и отвергает мусор', () => {
+  it('parses ranges and suffix ranges and rejects garbage', () => {
     expect(parseRangeHeader('bytes=0-1', 5)).toEqual({ offset: 0, length: 2 });
     expect(parseRangeHeader('bytes=2-', 5)).toEqual({ offset: 2, length: 3 });
     expect(parseRangeHeader('bytes=-2', 5)).toEqual({ offset: 3, length: 2 });

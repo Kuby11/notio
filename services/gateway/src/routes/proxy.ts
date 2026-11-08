@@ -202,7 +202,7 @@ export function proxyToService(target: ProxyTarget): MiddlewareHandler<AppEnv> {
       return problem({
         status: 503,
         code: 'SERVICE_UNAVAILABLE',
-        detail: `Сервис ${target.service} недоступен`,
+        detail: `Service ${target.service} is unavailable`,
         requestId,
       });
     }

@@ -40,13 +40,13 @@ export class DatabaseService {
 
   private async assertReadable(workspaceId: string, actorId: string): Promise<void> {
     if (!(await this.isMember(workspaceId, actorId))) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
   }
 
   private async assertWritable(workspaceId: string, actorId: string): Promise<void> {
     if (!(await this.canWrite(workspaceId, actorId))) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
   }
 
@@ -90,7 +90,7 @@ export class DatabaseService {
     const database = await this.repo.findById(id);
 
     if (!database) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
 
     await this.assertReadable(database.workspaceId, actorId);
@@ -108,7 +108,7 @@ export class DatabaseService {
     const database = await this.repo.findById(id);
 
     if (!database) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
 
     await this.assertWritable(database.workspaceId, actorId);
@@ -125,7 +125,7 @@ export class DatabaseService {
     });
 
     if (!updated) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
 
     return updated;
@@ -135,7 +135,7 @@ export class DatabaseService {
     const database = await this.repo.findById(databaseId);
 
     if (!database) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
 
     await this.assertReadable(database.workspaceId, actorId);
@@ -147,7 +147,7 @@ export class DatabaseService {
     const database = await this.repo.findById(input.databaseId);
 
     if (!database) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
 
     await this.assertWritable(database.workspaceId, actorId);
@@ -174,7 +174,7 @@ export class DatabaseService {
     const row = await this.repo.findRowById(id);
 
     if (!row) {
-      throw new NotFoundError('Строка не найдена');
+      throw new NotFoundError('Row not found');
     }
 
     await this.assertWritable(row.workspaceId, actorId);
@@ -187,7 +187,7 @@ export class DatabaseService {
     });
 
     if (!updated) {
-      throw new NotFoundError('Строка не найдена');
+      throw new NotFoundError('Row not found');
     }
 
     return updated;
@@ -197,7 +197,7 @@ export class DatabaseService {
     const row = await this.repo.findRowById(id);
 
     if (!row) {
-      throw new NotFoundError('Строка не найдена');
+      throw new NotFoundError('Row not found');
     }
 
     await this.assertWritable(row.workspaceId, actorId);
@@ -209,7 +209,7 @@ export class DatabaseService {
     const database = await this.repo.findById(databaseId);
 
     if (!database) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
 
     await this.assertReadable(database.workspaceId, actorId);
@@ -221,7 +221,7 @@ export class DatabaseService {
     const database = await this.repo.findById(input.databaseId);
 
     if (!database) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
 
     await this.assertWritable(database.workspaceId, actorId);
@@ -250,13 +250,13 @@ export class DatabaseService {
     const view = await this.repo.findViewById(id);
 
     if (!view) {
-      throw new NotFoundError('Представление не найдено');
+      throw new NotFoundError('View not found');
     }
 
     const database = await this.repo.findById(view.databaseId);
 
     if (!database) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
 
     await this.assertWritable(database.workspaceId, actorId);
@@ -277,7 +277,7 @@ export class DatabaseService {
     });
 
     if (!updated) {
-      throw new NotFoundError('Представление не найдено');
+      throw new NotFoundError('View not found');
     }
 
     return updated;
@@ -287,13 +287,13 @@ export class DatabaseService {
     const view = await this.repo.findViewById(id);
 
     if (!view) {
-      throw new NotFoundError('Представление не найдено');
+      throw new NotFoundError('View not found');
     }
 
     const database = await this.repo.findById(view.databaseId);
 
     if (!database) {
-      throw new NotFoundError('База данных не найдена');
+      throw new NotFoundError('Database not found');
     }
 
     await this.assertWritable(database.workspaceId, actorId);
@@ -302,7 +302,7 @@ export class DatabaseService {
 
     // The last view cannot be deleted: the UI renders views exclusively.
     if (views.length <= 1) {
-      throw new NotFoundError('Последнее представление удалить нельзя');
+      throw new NotFoundError('The last view cannot be deleted');
     }
 
     await this.repo.deleteViewById(id);
@@ -328,7 +328,7 @@ export function createDatabaseService(env: Bindings): DatabaseService {
 export function requireActorId(actorId: string | undefined | null): string {
   if (!actorId) {
     // Fail closed: no confirmed identity — no action.
-    throw new ForbiddenError('Не удалось определить пользователя по контексту запроса');
+    throw new ForbiddenError('Could not identify the user from the request context');
   }
 
   return actorId;

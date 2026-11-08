@@ -15,7 +15,7 @@ function closeMock() {
 }
 
 describe('SlashMenu', () => {
-  it('показывает все базовые блоки и их markdown-символы', () => {
+  it('shows all basic blocks and their markdown triggers', () => {
     renderWithIntl(<SlashMenu query="" onSelect={selectMock()} onClose={closeMock()} />);
 
     const menu = screen.getByRole('listbox', { name: 'Insert block' });
@@ -51,7 +51,7 @@ describe('SlashMenu', () => {
     expect(within(menu).getByRole('option', { name: /Number chart/ })).toBeInTheDocument();
   });
 
-  it('фильтрует команды по запросу', () => {
+  it('filters commands by the query', () => {
     const { rerender } = renderWithIntl(
       <SlashMenu query="" onSelect={selectMock()} onClose={closeMock()} />,
     );
@@ -69,7 +69,7 @@ describe('SlashMenu', () => {
     expect(options[0]).toHaveAccessibleName(/Heading 1/);
   });
 
-  it('выбирает команду стрелками и Enter', () => {
+  it('selects a command with arrow keys and Enter', () => {
     const onSelect = selectMock();
     renderWithIntl(<SlashMenu query="" onSelect={onSelect} onClose={closeMock()} />);
 
@@ -80,7 +80,7 @@ describe('SlashMenu', () => {
     expect(onSelect.mock.calls[0]?.[0]).toMatchObject({ id: 'heading1' });
   });
 
-  it('вставляет команду по клику', () => {
+  it('inserts a command on click', () => {
     const onSelect = selectMock();
     renderWithIntl(<SlashMenu query="" onSelect={onSelect} onClose={closeMock()} />);
 
@@ -90,7 +90,7 @@ describe('SlashMenu', () => {
     expect(onSelect.mock.calls[0]?.[0]).toMatchObject({ id: 'toggle' });
   });
 
-  it('вставляет команду уже по pointerdown и не дублирует её на click', () => {
+  it('inserts a command on pointerdown and does not duplicate it on click', () => {
     const onSelect = selectMock();
     renderWithIntl(<SlashMenu query="" onSelect={onSelect} onClose={closeMock()} />);
 
@@ -102,7 +102,7 @@ describe('SlashMenu', () => {
     expect(onSelect.mock.calls[0]?.[0]).toMatchObject({ id: 'checkList' });
   });
 
-  it('закрывается по Escape', () => {
+  it('closes on Escape', () => {
     const onClose = closeMock();
     renderWithIntl(<SlashMenu query="" onSelect={selectMock()} onClose={onClose} />);
 

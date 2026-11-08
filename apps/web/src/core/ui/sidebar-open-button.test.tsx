@@ -12,13 +12,13 @@ beforeEach(() => {
 });
 
 describe('SidebarOpenButton', () => {
-  it('не занимает место в топбаре, пока панель развёрнута', () => {
+  it('takes no space in the top bar while the panel is expanded', () => {
     renderWithIntl(<SidebarOpenButton />);
 
     expect(screen.queryByRole('button', { name: 'Open sidebar' })).not.toBeInTheDocument();
   });
 
-  it('разворачивает свёрнутую панель', async () => {
+  it('expands a collapsed panel', async () => {
     const user = userEvent.setup();
     useSidebarStore.setState({ collapsed: true });
 

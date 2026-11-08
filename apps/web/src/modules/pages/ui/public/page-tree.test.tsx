@@ -120,7 +120,7 @@ describe('PageTree', () => {
     expect(screen.getByRole('button', { name: 'Collapse “Root”' })).toBeInTheDocument();
   });
 
-  it('создаёт корневую страницу по кнопке в конце списка', async () => {
+  it('creates a root page via the button at the end of the list', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
@@ -136,7 +136,7 @@ describe('PageTree', () => {
     );
   });
 
-  it('показывает кнопку создания на корневом уровне и не показывает вложенным', async () => {
+  it('shows the create button at the root level and not on nested pages', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
@@ -153,7 +153,7 @@ describe('PageTree', () => {
     expect(screen.getAllByRole('button', { name: 'Add new' })).toHaveLength(1);
   });
 
-  it('показывает базы данных рядом с их страницей, даже без дочерних страниц', async () => {
+  it('shows databases next to their page even without child pages', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');

@@ -33,7 +33,7 @@ export type AuthGatewayStub = AuthGateway & {
 };
 
 export const SESSION: AuthSession = {
-  user: { id: 'user-1', email: 'user@notio.dev', name: 'Аня', emailVerified: true },
+  user: { id: 'user-1', email: 'user@notio.dev', name: 'Anna', emailVerified: true },
   expiresAt: '2026-10-19T00:00:00.000Z',
 };
 

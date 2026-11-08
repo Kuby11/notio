@@ -37,7 +37,7 @@ const NOOP_BRIDGE: PageLinkBridge = {
   workspaceId: '',
   currentPageId: '',
   getPage: async () => {
-    throw new Error('Мост страниц не назначен редактору');
+    throw new Error('Page bridge is not assigned to the editor');
   },
   listPages: async () => [],
   navigate: () => undefined,

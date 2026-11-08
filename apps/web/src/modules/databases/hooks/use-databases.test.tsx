@@ -33,7 +33,7 @@ function createWrapper() {
 }
 
 describe('useDatabases facade hook', () => {
-  it('загружает базу данных, строки и представления по умолчанию', async () => {
+  it('loads the database, rows and default views', async () => {
     const { result } = renderHook(() => useDatabases(DB_ID), {
       wrapper: createWrapper(),
     });
@@ -48,7 +48,7 @@ describe('useDatabases facade hook', () => {
     expect(result.current.activeView?.type).toBe('table');
   });
 
-  it('переключает активное представление между Table и Board', async () => {
+  it('switches the active view between Table and Board', async () => {
     const { result } = renderHook(() => useDatabases(DB_ID), {
       wrapper: createWrapper(),
     });
@@ -69,7 +69,7 @@ describe('useDatabases facade hook', () => {
     expect(result.current.groups.length).toBeGreaterThan(0);
   });
 
-  it('создаёт новую строку в базе данных', async () => {
+  it('creates a new row in the database', async () => {
     const { result } = renderHook(() => useDatabases(DB_ID), {
       wrapper: createWrapper(),
     });
@@ -91,7 +91,7 @@ describe('useDatabases facade hook', () => {
     expect(result.current.rows.some((r) => r.title === 'Deploy to Cloudflare')).toBe(true);
   });
 
-  it('обновляет значение ячейки в строке', async () => {
+  it('updates a cell value in a row', async () => {
     const { result } = renderHook(() => useDatabases(DB_ID), {
       wrapper: createWrapper(),
     });
@@ -114,7 +114,7 @@ describe('useDatabases facade hook', () => {
     });
   });
 
-  it('создаёт, переименовывает, скрывает, дублирует и удаляет свойство', async () => {
+  it('creates, renames, hides, duplicates and deletes a property', async () => {
     const { result } = renderHook(() => useDatabases(DB_ID), {
       wrapper: createWrapper(),
     });
@@ -179,7 +179,7 @@ describe('useDatabases facade hook', () => {
     });
   });
 
-  it('перемещает карточку в другую колонку канбана', async () => {
+  it('moves a card to another kanban column', async () => {
     const { result } = renderHook(() => useDatabases(DB_ID), {
       wrapper: createWrapper(),
     });
@@ -207,7 +207,7 @@ describe('useDatabases facade hook', () => {
 });
 
 describe('useWorkspaceDatabases facade hook', () => {
-  it('создаёт и удаляет базу данных рабочего пространства', async () => {
+  it('creates and deletes a workspace database', async () => {
     const { result } = renderHook(() => useWorkspaceDatabases(WORKSPACE_ID), {
       wrapper: createWrapper(),
     });

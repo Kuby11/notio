@@ -50,7 +50,7 @@ export function assertWorkspaceName(name: string): string {
   const trimmed = name.trim();
 
   if (trimmed.length === 0) {
-    throw new Error('Название не может быть пустым');
+    throw new Error('Name cannot be empty');
   }
 
   return trimmed;

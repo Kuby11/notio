@@ -37,11 +37,11 @@ export class BlockService {
     const page = await this.pages.findById(pageId);
 
     if (!page) {
-      throw new NotFoundError('Страница не найдена');
+      throw new NotFoundError('Page not found');
     }
 
     if (page.isTrashed) {
-      throw new ConflictError('Нельзя редактировать страницу в корзине');
+      throw new ConflictError('A page in the trash cannot be edited');
     }
   }
 
@@ -50,15 +50,15 @@ export class BlockService {
     const page = await this.pages.findById(pageId);
 
     if (!page) {
-      throw new NotFoundError('Страница не найдена');
+      throw new NotFoundError('Page not found');
     }
 
     if (page.isTrashed) {
-      throw new ConflictError('Нельзя редактировать страницу в корзине');
+      throw new ConflictError('A page in the trash cannot be edited');
     }
 
     if (page.isLocked) {
-      throw new ConflictError('Страница заблокирована для редактирования');
+      throw new ConflictError('The page is locked for editing');
     }
   }
 
@@ -92,7 +92,7 @@ export class BlockService {
     const block = await this.blocks.findById(id);
 
     if (!block) {
-      throw new NotFoundError('Блок не найден');
+      throw new NotFoundError('Block not found');
     }
 
     await this.assertPageWritable(block.pageId);
@@ -101,7 +101,7 @@ export class BlockService {
     const updated = await this.blocks.updateById(id, patch, now);
 
     if (!updated) {
-      throw new NotFoundError('Блок не найден');
+      throw new NotFoundError('Block not found');
     }
 
     await this.touchPage(block.pageId, now);
@@ -113,7 +113,7 @@ export class BlockService {
     const block = await this.blocks.findById(id);
 
     if (!block) {
-      throw new NotFoundError('Блок не найден');
+      throw new NotFoundError('Block not found');
     }
 
     await this.assertPageWritable(block.pageId);
@@ -126,7 +126,7 @@ export class BlockService {
     const block = await this.blocks.findById(id);
 
     if (!block) {
-      throw new NotFoundError('Блок не найден');
+      throw new NotFoundError('Block not found');
     }
 
     await this.assertPageWritable(block.pageId);
@@ -159,7 +159,7 @@ export class BlockService {
     const updated = await this.blocks.moveById(id, generateKeyBetween(before, after), this.now());
 
     if (!updated) {
-      throw new NotFoundError('Блок не найден');
+      throw new NotFoundError('Block not found');
     }
 
     await this.touchPage(block.pageId, updated.updatedAt);

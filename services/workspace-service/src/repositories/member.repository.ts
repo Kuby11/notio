@@ -80,7 +80,7 @@ export class MemberRepository {
       .returning();
 
     if (!row) {
-      throw new Error('D1 вернул пустой результат при сохранении участника');
+      throw new Error('D1 returned an empty result while saving a member');
     }
 
     return this.toMember(row);

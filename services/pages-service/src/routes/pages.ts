@@ -40,7 +40,7 @@ function parseOrThrow<T>(schema: z.ZodType<T>, data: unknown): T {
   const result = schema.safeParse(data);
 
   if (!result.success) {
-    throw new ValidationError('Проверка данных не пройдена', {
+    throw new ValidationError('Validation failed', {
       errors: toProblemErrors(result.error),
     });
   }
@@ -52,7 +52,7 @@ async function readJsonBody(request: Request): Promise<unknown> {
   try {
     return await request.json();
   } catch {
-    throw new ValidationError('Тело запроса должно быть корректным JSON');
+    throw new ValidationError('The request body must be valid JSON');
   }
 }
 
@@ -216,7 +216,7 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
     const version = await createPageVersionService(c.env).getVersion(versionId);
 
     if (!version) {
-      throw new NotFoundError('Версия не найдена');
+      throw new NotFoundError('Version not found');
     }
 
     return c.json(PageVersionSchema.parse(version), 200);

@@ -18,7 +18,7 @@ export class PageVersionRepository {
     const [row] = await this.db.insert(pageVersions).values(version).returning();
 
     if (!row) {
-      throw new Error('D1 вернул пустой результат при вставке версии');
+      throw new Error('D1 returned an empty result while inserting the version');
     }
 
     return PageVersionSchema.parse({

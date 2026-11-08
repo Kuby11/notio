@@ -23,7 +23,7 @@ const ClientEnvSchema = z.object({
   NEXT_PUBLIC_GATEWAY_URL: z
     .url()
     .refine((value) => value.startsWith('https://') || value.startsWith('http://'), {
-      message: 'Gateway URL должен использовать схему http(s)',
+      message: 'Gateway URL must use the http(s) scheme',
     })
     .default(DEV_GATEWAY_URL),
   NEXT_PUBLIC_APP_NAME: z.string().min(1).default('notio'),

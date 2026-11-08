@@ -45,7 +45,7 @@ export function normalizeUploadMimeType(mimeType: string): string {
 export function formatUploadLimit(mimeType: string): string {
   const mb = Math.round(maxUploadSizeForMime(mimeType) / (1024 * 1024));
 
-  return `${mb} МБ`;
+  return `${mb} MB`;
 }
 
 /** File metadata in R2. The file itself lives in the bucket; access goes through the gateway. */

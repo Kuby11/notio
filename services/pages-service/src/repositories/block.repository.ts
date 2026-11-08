@@ -59,7 +59,7 @@ export class BlockRepository {
     const [row] = await this.db.insert(blocks).values(block).returning();
 
     if (!row) {
-      throw new Error('D1 вернул пустой результат при вставке блока');
+      throw new Error('D1 returned an empty result while inserting the block');
     }
 
     return this.toBlock(row);

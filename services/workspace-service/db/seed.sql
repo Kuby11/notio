@@ -1,8 +1,8 @@
--- Демо-данные workspace-service для локальной разработки.
--- Идентификаторы фиксированы, чтобы демо-страницы из pages-service
--- ссылались на тот же workspace.
+-- Demo data for workspace-service for local development.
+-- Identifiers are fixed so the demo pages from pages-service
+-- reference the same workspace.
 --
--- Владелец совпадает с created_by демо-страниц:
+-- The owner matches the created_by of the demo pages:
 -- 00000000-0000-4000-8000-00000000000a.
 
 DELETE FROM invitations;

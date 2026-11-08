@@ -433,7 +433,7 @@ export const UpdateDatabaseInputSchema = z
     isTrashed: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
-    message: 'Нужно передать хотя бы одно изменяемое поле',
+    message: 'At least one editable field is required',
   });
 export type UpdateDatabaseInput = z.infer<typeof UpdateDatabaseInputSchema>;
 
@@ -451,7 +451,7 @@ export const UpdateRowInputSchema = z
     isTrashed: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
-    message: 'Нужно передать хотя бы одно изменяемое поле',
+    message: 'At least one editable field is required',
   });
 export type UpdateRowInput = z.infer<typeof UpdateRowInputSchema>;
 
@@ -480,6 +480,6 @@ export const UpdateViewInputSchema = z
     aggregations: z.array(DatabaseAggregationSchema).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
-    message: 'Нужно передать хотя бы одно изменяемое поле',
+    message: 'At least one editable field is required',
   });
 export type UpdateViewInput = z.infer<typeof UpdateViewInputSchema>;

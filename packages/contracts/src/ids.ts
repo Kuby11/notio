@@ -17,7 +17,7 @@ export const SlugSchema = z
   .string()
   .min(2)
   .max(64)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Слаг: латиница в нижнем регистре, цифры и дефисы');
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug: lowercase Latin letters, digits and hyphens');
 
 export type Slug = z.infer<typeof SlugSchema>;
 
@@ -49,7 +49,7 @@ export const HttpUrlSchema = z.url().refine(
       return false;
     }
   },
-  { message: 'Разрешены только http(s)-ссылки' },
+  { message: 'Only http(s) URLs are allowed' },
 );
 
 export type HttpUrl = z.infer<typeof HttpUrlSchema>;

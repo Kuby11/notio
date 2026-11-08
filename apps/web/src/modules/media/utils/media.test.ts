@@ -3,7 +3,7 @@ import { MAX_IMAGE_UPLOAD_BYTES, MAX_VIDEO_UPLOAD_BYTES } from '@notio/contracts
 import { checkUploadable, formatBytes, mediaFileUrl, mediaKindOfMime } from './media';
 
 describe('checkUploadable', () => {
-  it('пропускает файл в рамках лимита', () => {
+  it('passes a file within the limit', () => {
     const file = new File([new Uint8Array([1])], 'pic.png', { type: 'image/png' });
 
     expect(checkUploadable(file, 'image')).toEqual({
@@ -14,7 +14,7 @@ describe('checkUploadable', () => {
     });
   });
 
-  it('сообщает о превышении лимита изображения (20 МБ)', () => {
+  it('reports an image over the limit (20 MB)', () => {
     const file = new File([new Uint8Array(1)], 'huge.png', { type: 'image/png' });
 
     Object.defineProperty(file, 'size', { value: MAX_IMAGE_UPLOAD_BYTES + 1 });
@@ -26,7 +26,7 @@ describe('checkUploadable', () => {
     expect(check.limitBytes).toBe(MAX_IMAGE_UPLOAD_BYTES);
   });
 
-  it('видео пропускает до 50 МБ', () => {
+  it('allows video up to 50 MB', () => {
     const file = new File([new Uint8Array(1)], 'clip.mp4', { type: 'video/mp4' });
 
     Object.defineProperty(file, 'size', { value: MAX_VIDEO_UPLOAD_BYTES });
@@ -34,7 +34,7 @@ describe('checkUploadable', () => {
     expect(checkUploadable(file, 'video').ok).toBe(true);
   });
 
-  it('отклоняет неразрешённый тип', () => {
+  it('rejects a disallowed type', () => {
     const file = new File([new Uint8Array([1])], 'boot.exe', {
       type: 'application/x-msdownload',
     });
@@ -48,27 +48,27 @@ describe('checkUploadable', () => {
 });
 
 describe('mediaKindOfMime / formatBytes / mediaFileUrl', () => {
-  it('определяет тип блока по MIME', () => {
+  it('determines the block type from MIME', () => {
     expect(mediaKindOfMime('image/png')).toBe('image');
     expect(mediaKindOfMime('video/mp4')).toBe('video');
     expect(mediaKindOfMime('application/pdf')).toBe('file');
   });
 
-  it('форматирует размеры', () => {
+  it('formats sizes', () => {
     expect(formatBytes(900)).toBe('900 B');
     expect(formatBytes(2048)).toBe('2 KB');
     expect(formatBytes(5 * 1024 * 1024)).toBe('5 MB');
   });
 
-  it('берёт подписи единиц из локали', () => {
-    const units = { byte: 'Б', kilobyte: 'КБ', megabyte: 'МБ' };
+  it('takes unit labels from the locale', () => {
+    const units = { byte: 'B', kilobyte: 'KB', megabyte: 'MB' };
 
-    expect(formatBytes(900, units)).toBe('900 Б');
-    expect(formatBytes(2048, units)).toBe('2 КБ');
-    expect(formatBytes(5 * 1024 * 1024, units)).toBe('5 МБ');
+    expect(formatBytes(900, units)).toBe('900 B');
+    expect(formatBytes(2048, units)).toBe('2 KB');
+    expect(formatBytes(5 * 1024 * 1024, units)).toBe('5 MB');
   });
 
-  it('строит URL файла в gateway', () => {
+  it('builds the file URL in the gateway', () => {
     expect(mediaFileUrl('abc', 'http://gateway:8080')).toBe(
       'http://gateway:8080/api/media/files/abc',
     );

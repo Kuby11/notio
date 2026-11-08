@@ -57,7 +57,7 @@ function renderMenu(overrides: Partial<typeof baseProps> = {}) {
 }
 
 describe('BlockActionsMenu', () => {
-  it('показывает четыре действия блока', () => {
+  it('shows the four block actions', () => {
     renderMenu();
 
     expect(screen.getByRole('menu', { name: 'Block actions' })).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('BlockActionsMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });
 
-  it('вызывает удаление и дублирование', () => {
+  it('triggers delete and duplicate', () => {
     const { onDelete, onDuplicate } = renderMenu();
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
@@ -77,7 +77,7 @@ describe('BlockActionsMenu', () => {
     expect(onDuplicate).toHaveBeenCalledTimes(1);
   });
 
-  it('открывает список превращения и применяет выбранный тип', () => {
+  it('opens the turn-into list and applies the selected type', () => {
     const { onTurnInto } = renderMenu();
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Turn into' }));
@@ -97,7 +97,7 @@ describe('BlockActionsMenu', () => {
     expect(onTurnInto.mock.calls[0]?.[0]).toMatchObject({ kind: 'quote' });
   });
 
-  it('открывает цвета и выбирает пресет текста и фона', () => {
+  it('opens colors and picks a text and background preset', () => {
     const { onSetColor, onSetBackground } = renderMenu();
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Color' }));
@@ -109,7 +109,7 @@ describe('BlockActionsMenu', () => {
     expect(onSetBackground).toHaveBeenCalledWith('blue');
   });
 
-  it('показывает замену и скачивание для медиа-блока', () => {
+  it('shows replace and download for a media block', () => {
     const { onReplace, onDownload } = renderMenu({ canReplace: true, canDownload: true });
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Replace' }));
@@ -119,21 +119,21 @@ describe('BlockActionsMenu', () => {
     expect(onDownload).toHaveBeenCalledTimes(1);
   });
 
-  it('без медиа-источника замены и скачивания нет', () => {
+  it('offers no replace or download without a media source', () => {
     renderMenu();
 
     expect(screen.queryByRole('menuitem', { name: 'Replace' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Download' })).not.toBeInTheDocument();
   });
 
-  it('скрывает превращение и цвет для неподдерживаемых блоков', () => {
+  it('hides turn-into and color for unsupported blocks', () => {
     renderMenu({ canTurnInto: false, canColor: false });
 
     expect(screen.queryByRole('menuitem', { name: 'Turn into' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Color' })).not.toBeInTheDocument();
   });
 
-  it('закрывается по Escape', async () => {
+  it('closes on Escape', async () => {
     const { onClose } = renderMenu();
 
     fireEvent.keyDown(window, { key: 'Escape' });

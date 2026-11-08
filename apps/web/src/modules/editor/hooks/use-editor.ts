@@ -293,7 +293,7 @@ export function useEditor(pageId: string, workspaceId: string) {
       }
     } catch (error) {
       // The document is not lost: the next change sends the full diff again.
-      setAutosaveError(error instanceof Error ? error : new Error('Не удалось сохранить документ'));
+      setAutosaveError(error instanceof Error ? error : new Error('Failed to save the document'));
       setAutosaveStatus('error');
     } finally {
       savingRef.current = false;

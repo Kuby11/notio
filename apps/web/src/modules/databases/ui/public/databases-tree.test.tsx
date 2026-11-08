@@ -34,7 +34,7 @@ function seedDatabase(repo: DatabaseRepository, parentId: string | null, title: 
 }
 
 describe('DatabasesTree', () => {
-  it('показывает только базы данных этой страницы', async () => {
+  it('shows only the databases of this page', async () => {
     const databases = createFakeDatabaseRepository();
     await seedDatabase(databases, PAGE_ID, 'Page database');
     await seedDatabase(databases, null, 'Root database');
@@ -49,7 +49,7 @@ describe('DatabasesTree', () => {
     expect(screen.queryByRole('link', { name: /Root database/ })).not.toBeInTheDocument();
   });
 
-  it('выравнивает строку базы данных по уровню вложенности страницы', async () => {
+  it('aligns the database row with the page nesting level', async () => {
     const databases = createFakeDatabaseRepository();
     await seedDatabase(databases, PAGE_ID, 'Nested database');
     const gateway = gatewayStub();
@@ -66,7 +66,7 @@ describe('DatabasesTree', () => {
     expect(link.closest('li')).toHaveStyle({ paddingLeft: '12px' });
   });
 
-  it('раскрывает представления базы данных, как дочерние страницы', async () => {
+  it('expands database views like child pages', async () => {
     const user = userEvent.setup();
     const databases = createFakeDatabaseRepository();
     await seedDatabase(databases, PAGE_WITH_VIEWS, 'Expandable database');
@@ -93,7 +93,7 @@ describe('DatabasesTree', () => {
     expect(screen.getByRole('link', { name: 'Chart' })).toBeInTheDocument();
   });
 
-  it('удаляет базу данных после подтверждения в модальном окне', async () => {
+  it('deletes a database after confirmation in a modal dialog', async () => {
     const user = userEvent.setup();
     const databases = createFakeDatabaseRepository();
     await seedDatabase(databases, PAGE_ID, 'Deletable database');

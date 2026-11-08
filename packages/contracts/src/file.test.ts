@@ -26,9 +26,9 @@ describe('Upload limits', () => {
   });
 
   it('formats the limit in whole megabytes', () => {
-    expect(formatUploadLimit('image/png')).toBe('20 МБ');
-    expect(formatUploadLimit('video/webm')).toBe('50 МБ');
-    expect(formatUploadLimit('text/plain')).toBe('20 МБ');
+    expect(formatUploadLimit('image/png')).toBe('20 MB');
+    expect(formatUploadLimit('video/webm')).toBe('50 MB');
+    expect(formatUploadLimit('text/plain')).toBe('20 MB');
   });
 });
 

@@ -36,7 +36,7 @@ export function createAuthRoutes(dependencies?: Partial<AuthDependencies>): Hono
         return problem({
           status: 409,
           code: 'CONFLICT',
-          detail: 'Аккаунт с такой почтой уже существует',
+          detail: 'An account with this email already exists',
           requestId: c.req.header(INTERNAL_HEADERS.REQUEST_ID),
         });
       }

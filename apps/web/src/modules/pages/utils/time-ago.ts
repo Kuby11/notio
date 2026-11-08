@@ -65,7 +65,7 @@ const YEAR = 365 * DAY;
  * Compact "time ago" for table cells, as a unit + value pair.
  *
  * The sign is kept (negative = in the past) so `Intl.RelativeTimeFormat` can
- * phrase it in the current locale ("2d ago", "2 дн. назад"). Anything under a
+ * phrase it in the current locale ("2d ago"). Anything under a
  * minute collapses to zero seconds, which `numeric: 'auto'` renders as "now".
  */
 export function shortAgo(iso: string, now: Date = new Date()): ShortAgo | null {

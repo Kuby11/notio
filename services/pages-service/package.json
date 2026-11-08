@@ -2,7 +2,7 @@
   "name": "@notio/pages-service",
   "version": "0.0.0",
   "private": true,
-  "description": "Владелец данных страниц и блоков notio: своя база D1, доступ только через gateway",
+  "description": "notio owner of page and block data: its own D1 database, access only through the gateway",
   "type": "module",
   "types": "./src/index.ts",
   "exports": {

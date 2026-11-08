@@ -63,28 +63,28 @@ export function validateCredentials(input: Credentials): CredentialsProblem[] {
   const password = input.password;
 
   if (email.length === 0) {
-    problems.push({ field: 'email', code: 'REQUIRED', message: 'Укажите почту' });
+    problems.push({ field: 'email', code: 'REQUIRED', message: 'Enter your email' });
   } else if (!isValidEmail(email)) {
     problems.push({
       field: 'email',
       code: 'INVALID_EMAIL',
-      message: 'Почта выглядит некорректно',
+      message: 'That email address looks invalid',
     });
   }
 
   if (password.length === 0) {
-    problems.push({ field: 'password', code: 'REQUIRED', message: 'Укажите пароль' });
+    problems.push({ field: 'password', code: 'REQUIRED', message: 'Enter your password' });
   } else if (password.length < MIN_PASSWORD_LENGTH) {
     problems.push({
       field: 'password',
       code: 'TOO_SHORT',
-      message: `Пароль не короче ${MIN_PASSWORD_LENGTH} символов`,
+      message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
     });
   } else if (password.length > MAX_PASSWORD_LENGTH) {
     problems.push({
       field: 'password',
       code: 'TOO_LONG',
-      message: `Пароль не длиннее ${MAX_PASSWORD_LENGTH} символов`,
+      message: `Password must be at most ${MAX_PASSWORD_LENGTH} characters`,
     });
   }
 
@@ -123,7 +123,7 @@ export function assertSignUpInput(input: SignUpInput): SignUpInput {
   const name = input.name.trim();
 
   if (name.length < MIN_NAME_LENGTH) {
-    throw new AuthError('UNKNOWN', `Имя не короче ${MIN_NAME_LENGTH} символов`);
+    throw new AuthError('UNKNOWN', `Name must be at least ${MIN_NAME_LENGTH} characters`);
   }
 
   const credentials = normalizeCredentials(input);

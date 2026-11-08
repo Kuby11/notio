@@ -51,7 +51,7 @@ describe('page link bridge', () => {
 
     expect(bridge.workspaceId).toBe('');
     expect(bridge.currentPageId).toBe('');
-    await expect(bridge.getPage('page-1')).rejects.toThrow(/Мост страниц/);
+    await expect(bridge.getPage('page-1')).rejects.toThrow(/Page bridge/);
     await expect(bridge.listPages()).resolves.toEqual([]);
     expect(() => bridge.navigate('/workspaces/ws-1/page-1')).not.toThrow();
   });

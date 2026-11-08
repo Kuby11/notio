@@ -9,7 +9,7 @@ import { DatabaseView } from './database-view';
 const DB_ID = 'db-view-test-123';
 
 describe('DatabaseView properties', () => {
-  it('добавляет свойство выбранного типа из заголовка таблицы', async () => {
+  it('adds a property of the selected type from the table header', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     const user = userEvent.setup();
@@ -28,7 +28,7 @@ describe('DatabaseView properties', () => {
     });
   });
 
-  it('переименовывает свойство и скрывает его из текущего представления', async () => {
+  it('renames a property and hides it from the current view', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     const user = userEvent.setup();

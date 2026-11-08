@@ -17,8 +17,8 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/login',
 }));
 
-describe('LoginForm: возврат после OAuth', () => {
-  it('объясняет отказ провайдера вместо молчаливого возврата', () => {
+describe('LoginForm: return after OAuth', () => {
+  it('explains a provider rejection instead of returning silently', () => {
     renderWithProviders(<LoginForm providerError="access_denied" />, gatewayStub());
 
     expect(screen.getByRole('alert')).toHaveTextContent(
@@ -26,7 +26,7 @@ describe('LoginForm: возврат после OAuth', () => {
     );
   });
 
-  it('истёкшую попытку показывает как истечение, а не как отказ', () => {
+  it('shows an expired attempt as expiration, not rejection', () => {
     renderWithProviders(<LoginForm providerError="state_mismatch" />, gatewayStub());
 
     expect(screen.getByRole('alert')).toHaveTextContent(
@@ -34,7 +34,7 @@ describe('LoginForm: возврат после OAuth', () => {
     );
   });
 
-  it('без ?error= сообщения нет', () => {
+  it('shows no message without ?error=', () => {
     renderWithProviders(<LoginForm />, gatewayStub());
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();

@@ -5,40 +5,40 @@ const index = {
   name: APP_NAME,
   version: '0.1.0',
   endpoints: [
-    { method: 'GET' as const, path: '/', description: 'Индекс API' },
+    { method: 'GET' as const, path: '/', description: 'API index' },
     { method: 'GET' as const, path: '/api/health', description: 'Readiness' },
   ],
 };
 
 describe('ServiceIndexSchema', () => {
-  it('принимает корректный индекс', () => {
+  it('accepts a valid index', () => {
     expect(ServiceIndexSchema.parse(index)).toEqual(index);
   });
 
-  it('фиксирует имя приложения', () => {
+  it('pins the application name', () => {
     expect(APP_NAME).toBe('notio');
     expect(() => ServiceIndexSchema.parse({ ...index, name: 'notio-clone' })).toThrow();
   });
 
-  it('требует пути, начинающегося с /', () => {
+  it('requires paths starting with /', () => {
     expect(() =>
       ServiceIndexSchema.parse({
         ...index,
-        endpoints: [{ method: 'GET', path: 'api/health', description: 'нет слеша' }],
+        endpoints: [{ method: 'GET', path: 'api/health', description: 'no slash' }],
       }),
     ).toThrow();
   });
 
-  it('отклоняет неизвестный HTTP-метод', () => {
+  it('rejects an unknown HTTP method', () => {
     expect(() =>
       ServiceIndexSchema.parse({
         ...index,
-        endpoints: [{ method: 'TRACE', path: '/', description: 'не поддерживается' }],
+        endpoints: [{ method: 'TRACE', path: '/', description: 'unsupported' }],
       }),
     ).toThrow();
   });
 
-  it('типизирует методы как литеральное объединение', () => {
+  it('types methods as a literal union', () => {
     expect(HTTP_METHODS).toEqual(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
   });
 });

@@ -39,8 +39,8 @@ beforeEach(() => {
   });
 });
 
-describe('секция предпочтений', () => {
-  it('даёт выбрать часовой пояс только при выключенном автоопределении', async () => {
+describe('preferences section', () => {
+  it('allows choosing a time zone only when auto-detection is off', async () => {
     const user = userEvent.setup();
 
     renderSection();
@@ -54,7 +54,7 @@ describe('секция предпочтений', () => {
     expect(screen.getByLabelText('Time zone')).toBeEnabled();
   });
 
-  it('показывает пример в выбранном формате чисел', async () => {
+  it('shows an example in the selected number format', async () => {
     const user = userEvent.setup();
 
     renderSection();
@@ -67,7 +67,7 @@ describe('секция предпочтений', () => {
     expect(screen.getByText('Example: 1.234.567,89')).toBeInTheDocument();
   });
 
-  it('показывает пример в выбранном формате даты', async () => {
+  it('shows an example in the selected date format', async () => {
     const user = userEvent.setup();
 
     renderSection();

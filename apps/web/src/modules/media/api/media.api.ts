@@ -15,9 +15,9 @@ async function problemMessage(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { detail?: string };
 
-    return body.detail ?? `Не удалось загрузить файл: HTTP ${response.status}`;
+    return body.detail ?? `Failed to upload file: HTTP ${response.status}`;
   } catch {
-    return `Не удалось загрузить файл: HTTP ${response.status}`;
+    return `Failed to upload file: HTTP ${response.status}`;
   }
 }
 
@@ -28,7 +28,7 @@ export function createMediaRepositoryApi(accessToken: TokenProvider): MediaRepos
     const token = await accessToken.execute();
 
     if (token === null) {
-      throw new HttpError(401, 'Требуется авторизация');
+      throw new HttpError(401, 'Authorization required');
     }
 
     return { authorization: `Bearer ${token}` };

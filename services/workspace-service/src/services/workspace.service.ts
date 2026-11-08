@@ -34,7 +34,7 @@ import { WorkspaceRepository } from '../repositories/workspace.repository';
 export type Clock = () => Date;
 
 /** Name of the personal workspace when the user has none yet. */
-export const DEFAULT_PERSONAL_WORKSPACE_NAME = 'Личное пространство';
+export const DEFAULT_PERSONAL_WORKSPACE_NAME = 'Personal workspace';
 
 export const INVITATION_TTL_DAYS = 7;
 
@@ -57,39 +57,39 @@ export const INTERNAL_USERS_URL = 'https://internal/internal/users';
  * with 'workspace' so the address always stays valid.
  */
 const CYRILLIC_MAP: Readonly<Record<string, string>> = {
-  а: 'a',
-  б: 'b',
-  в: 'v',
-  г: 'g',
-  д: 'd',
-  е: 'e',
-  ё: 'e',
-  ж: 'zh',
-  з: 'z',
-  и: 'i',
-  й: 'y',
-  к: 'k',
-  л: 'l',
-  м: 'm',
-  н: 'n',
-  о: 'o',
-  п: 'p',
-  р: 'r',
-  с: 's',
-  т: 't',
-  у: 'u',
-  ф: 'f',
-  х: 'h',
-  ц: 'c',
-  ч: 'ch',
-  ш: 'sh',
-  щ: 'sch',
-  ъ: '',
-  ы: 'y',
-  ь: '',
-  э: 'e',
-  ю: 'yu',
-  я: 'ya',
+  '\u0430': 'a',
+  '\u0431': 'b',
+  '\u0432': 'v',
+  '\u0433': 'g',
+  '\u0434': 'd',
+  '\u0435': 'e',
+  '\u0451': 'e',
+  '\u0436': 'zh',
+  '\u0437': 'z',
+  '\u0438': 'i',
+  '\u0439': 'y',
+  '\u043a': 'k',
+  '\u043b': 'l',
+  '\u043c': 'm',
+  '\u043d': 'n',
+  '\u043e': 'o',
+  '\u043f': 'p',
+  '\u0440': 'r',
+  '\u0441': 's',
+  '\u0442': 't',
+  '\u0443': 'u',
+  '\u0444': 'f',
+  '\u0445': 'h',
+  '\u0446': 'c',
+  '\u0447': 'ch',
+  '\u0448': 'sh',
+  '\u0449': 'sch',
+  '\u044a': '',
+  '\u044b': 'y',
+  '\u044c': '',
+  '\u044d': 'e',
+  '\u044e': 'yu',
+  '\u044f': 'ya',
 };
 
 export function slugify(name: string): string {
@@ -192,7 +192,7 @@ export class WorkspaceService {
 
     if (workspace.archivedAt !== null && role !== 'owner') {
       // The archive is hidden from members: otherwise they would see something that no longer works.
-      throw new NotFoundError('Рабочее пространство не найдено');
+      throw new NotFoundError('Workspace not found');
     }
 
     return workspace;
@@ -213,7 +213,7 @@ export class WorkspaceService {
     });
 
     if (!updated) {
-      throw new NotFoundError('Рабочее пространство не найдено');
+      throw new NotFoundError('Workspace not found');
     }
 
     return updated;
@@ -233,7 +233,7 @@ export class WorkspaceService {
     });
 
     if (!archived) {
-      throw new NotFoundError('Рабочее пространство не найдено');
+      throw new NotFoundError('Workspace not found');
     }
 
     return archived;
@@ -253,7 +253,7 @@ export class WorkspaceService {
     });
 
     if (!restored) {
-      throw new NotFoundError('Рабочее пространство не найдено');
+      throw new NotFoundError('Workspace not found');
     }
 
     return restored;
@@ -330,7 +330,7 @@ export class WorkspaceService {
 
     if (active.length >= max) {
       throw new ConflictError(
-        `Достигнут лимит активных приглашений (${max}). Отзовите лишние или дождитесь истечения срока.`,
+        `Active invitation limit reached (${max}). Revoke some or wait for them to expire.`,
       );
     }
 
@@ -357,14 +357,14 @@ export class WorkspaceService {
     const record = await this.invitations.findByToken(token);
 
     if (!record) {
-      throw new NotFoundError('Приглашение не найдено');
+      throw new NotFoundError('Invitation not found');
     }
 
     const now = this.clock();
     const expired = record.expiresAt <= now.toISOString();
 
     if (expired || record.acceptedAt !== null) {
-      throw new InvitationError('Ссылка-приглашение истекла или уже использована');
+      throw new InvitationError('The invitation link has expired or has already been used');
     }
 
     await this.requireWorkspace(record.workspaceId);
@@ -392,7 +392,7 @@ export class WorkspaceService {
     const record = await this.invitations.findByToken(token);
 
     if (!record || record.workspaceId !== workspaceId) {
-      throw new NotFoundError('Приглашение не найдено');
+      throw new NotFoundError('Invitation not found');
     }
 
     await this.invitations.delete(record.id);
@@ -435,11 +435,11 @@ export class WorkspaceService {
     const role = await this.members.findRole(workspaceId, actorId);
 
     if (role === null) {
-      throw new NotFoundError('Рабочее пространство не найдено');
+      throw new NotFoundError('Workspace not found');
     }
 
     if (!roleCan(role, permission)) {
-      throw new ForbiddenError('Недостаточно прав для этого действия');
+      throw new ForbiddenError('Not enough permissions for this action');
     }
 
     return role;
@@ -449,7 +449,7 @@ export class WorkspaceService {
     const workspace = await this.workspaces.findById(workspaceId);
 
     if (!workspace) {
-      throw new NotFoundError('Рабочее пространство не найдено');
+      throw new NotFoundError('Workspace not found');
     }
 
     return workspace;
@@ -459,7 +459,7 @@ export class WorkspaceService {
     const role = await this.members.findRole(workspaceId, userId);
 
     if (role === null) {
-      throw new NotFoundError('Участник не найден');
+      throw new NotFoundError('Member not found');
     }
 
     return { workspaceId, userId, role, createdAt: '', updatedAt: '' };
@@ -469,7 +469,7 @@ export class WorkspaceService {
   private async assertNotLastOwner(workspaceId: string): Promise<void> {
     if ((await this.members.countOwners(workspaceId)) <= 1) {
       throw new ValidationError(
-        'Владелец должен остаться: передайте права другому участнику перед сменой роли или удалением',
+        'An owner must remain: transfer ownership to another member before changing the role or removing them',
       );
     }
   }
@@ -515,7 +515,7 @@ export class WorkspaceService {
     );
 
     if (!response.ok) {
-      throw new Error(`auth-service не отдал профили: HTTP ${response.status}`);
+      throw new Error(`auth-service did not return profiles: HTTP ${response.status}`);
     }
 
     return UserProfileListSchema.parse(await response.json()).items;
@@ -561,7 +561,7 @@ export function createWorkspaceService(
 export function requireActorId(actorId: string | undefined | null): string {
   if (!actorId) {
     // Fail closed: no confirmed identity — no action.
-    throw new ForbiddenError('Не удалось определить пользователя по контексту запроса');
+    throw new ForbiddenError('Could not identify the user from the request context');
   }
 
   return actorId;

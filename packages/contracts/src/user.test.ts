@@ -7,38 +7,38 @@ import {
 } from './user';
 
 describe('UserProfileSchema', () => {
-  it('принимает публичные данные пользователя', () => {
+  it('accepts the public user data', () => {
     const profile = {
       id: '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
       email: 'user@notio.dev',
-      name: 'Аня',
+      name: 'Ann',
     };
 
     expect(UserProfileSchema.parse(profile)).toEqual(profile);
   });
 
-  it('не пропускает пароль и прочие внутренние поля', () => {
+  it('does not let passwords or other internal fields through', () => {
     const parsed = UserProfileSchema.parse({
       id: '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
       email: 'user@notio.dev',
-      name: 'Аня',
+      name: 'Ann',
       password: 'hash',
     });
 
     expect(parsed).not.toHaveProperty('password');
   });
 
-  it('требует корректную почту', () => {
+  it('requires a valid email', () => {
     expect(
       UserProfileSchema.safeParse({
         id: '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
-        email: 'не-почта',
-        name: 'Аня',
+        email: 'not-an-email',
+        name: 'Ann',
       }).success,
     ).toBe(false);
   });
 
-  it('список профилей принимает массив', () => {
+  it('profile list accepts an array', () => {
     expect(UserProfileListSchema.parse({ items: [] })).toEqual({ items: [] });
   });
 });
@@ -46,20 +46,20 @@ describe('UserProfileSchema', () => {
 describe('UserProfilesQuerySchema', () => {
   const id = '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f';
 
-  it('разбирает список id через запятую', () => {
+  it('parses a comma-separated list of ids', () => {
     expect(UserProfilesQuerySchema.parse({ ids: `${id}, ${id}` })).toEqual({ ids: [id, id] });
   });
 
-  it('отбрасывает пустые элементы', () => {
+  it('drops empty entries', () => {
     expect(UserProfilesQuerySchema.parse({ ids: ` ,${id}, ` })).toEqual({ ids: [id] });
   });
 
-  it('не принимает пустой список и неверный id', () => {
+  it('rejects an empty list and an invalid id', () => {
     expect(UserProfilesQuerySchema.safeParse({ ids: '' }).success).toBe(false);
-    expect(UserProfilesQuerySchema.safeParse({ ids: 'не-id' }).success).toBe(false);
+    expect(UserProfilesQuerySchema.safeParse({ ids: 'not-an-id' }).success).toBe(false);
   });
 
-  it('ограничивает размер запроса, чтобы ответ не раздувался', () => {
+  it('caps the request size so the response does not balloon', () => {
     const many = Array.from(
       { length: MAX_USER_PROFILES_PER_REQUEST + 1 },
       (_, index) => `1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e${index}`,

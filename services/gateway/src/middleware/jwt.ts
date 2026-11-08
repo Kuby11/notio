@@ -45,7 +45,7 @@ export async function fetchJwks(
   const response = await authService.fetch(new Request(AUTH_JWKS_URL));
 
   if (!response.ok) {
-    throw new Error(`auth-service не отдал JWKS: HTTP ${response.status}`);
+    throw new Error(`auth-service did not return JWKS: HTTP ${response.status}`);
   }
 
   const keys = JsonWebKeySetSchema.parse(await response.json());

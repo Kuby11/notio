@@ -160,7 +160,7 @@ export function PageHeader({ workspaceId, pageId }: PageHeaderProps) {
           sidebarCollapsed ? '-ml-12 -mr-6 pr-6 pl-12' : '-mx-6 px-6',
         )}
       >
-        <div className="mx-auto flex h-10 w-full max-w-52rem items-center justify-between gap-2">
+        <div className="mx-auto flex h-12 w-full max-w-52rem items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-1">
             <Breadcrumb>
               <BreadcrumbList>

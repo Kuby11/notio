@@ -33,7 +33,8 @@ const SEARCH_RESULT_LIMIT = 50;
  * How many recent pages are considered for a match.
  *
  * SQLite folds case for ASCII only (LIKE and lower() alike), so a Cyrillic
- * query like "дорожная" would never match "Дорожная". Folding is done in JS
+ * query would never match a title that differs only by the case of its
+ * first letter. Folding is done in JS
  * — `String#toLowerCase` is Unicode-aware — over a bounded set of the most
  * recently edited pages: correct for every script and cheap at this scale.
  * A normalized column written on save would be the next step if workspaces
@@ -109,7 +110,7 @@ export class PageRepository {
     const [inserted] = await this.db.insert(pages).values(row).returning();
 
     if (!inserted) {
-      throw new Error('D1 вернул пустой результат при вставке страницы');
+      throw new Error('D1 returned an empty result while inserting the page');
     }
 
     return this.toPage(inserted);

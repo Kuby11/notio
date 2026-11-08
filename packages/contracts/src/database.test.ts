@@ -20,7 +20,7 @@ import {
 import { newId } from './ids';
 
 describe('Database contracts and schemas', () => {
-  it('валидирует полную структуру базы данных и представлений', () => {
+  it('validates the full database and view structure', () => {
     const workspaceId = newId();
     const { database, defaultRows, defaultViews } = createDefaultDatabase(
       workspaceId,
@@ -36,7 +36,7 @@ describe('Database contracts and schemas', () => {
     }
   });
 
-  it('отклоняет некорректный тип свойства', () => {
+  it('rejects an invalid property type', () => {
     expect(() =>
       DatabasePropertySchema.parse({
         id: 'bad_prop',
@@ -147,7 +147,7 @@ describe('Database Engine: Filtering', () => {
     },
   ];
 
-  it('фильтрует по строковым операторам: contains, starts_with, equals', () => {
+  it('filters with string operators: contains, starts_with, equals', () => {
     const filter1 = { propertyId: 'title', operator: 'contains' as const, value: 'login' };
     const res1 = filterRows(rows, filter1, properties);
     expect(res1).toHaveLength(1);
@@ -159,13 +159,13 @@ describe('Database Engine: Filtering', () => {
     expect(res2[0]?.title).toBe('D1 migrations');
   });
 
-  it('фильтрует по числовым операторам: greater_than, less_than_or_equal_to', () => {
+  it('filters with numeric operators: greater_than, less_than_or_equal_to', () => {
     const filter = { propertyId: 'estimate', operator: 'greater_than' as const, value: 6 };
     const result = filterRows(rows, filter, properties);
     expect(result.map((r) => r.title)).toEqual(['D1 migrations', 'E2E tests']);
   });
 
-  it('фильтрует по чекбоксу: is_checked, is_not_checked', () => {
+  it('filters by checkbox: is_checked, is_not_checked', () => {
     const checked = filterRows(rows, { propertyId: 'done', operator: 'is_checked' }, properties);
     expect(checked).toHaveLength(1);
     expect(checked[0]?.title).toBe('Auth login form');
@@ -178,7 +178,7 @@ describe('Database Engine: Filtering', () => {
     expect(unchecked).toHaveLength(3);
   });
 
-  it('фильтрует по пустоте: is_empty, is_not_empty', () => {
+  it('filters by emptiness: is_empty, is_not_empty', () => {
     const emptyEstimate = filterRows(
       rows,
       { propertyId: 'estimate', operator: 'is_empty' },
@@ -188,7 +188,7 @@ describe('Database Engine: Filtering', () => {
     expect(emptyEstimate[0]?.title).toBe('Unestimated task');
   });
 
-  it('фильтрует по составным условиям: AND и OR', () => {
+  it('filters by compound conditions: AND and OR', () => {
     const compound = {
       and: [
         { propertyId: 'status', operator: 'equals' as const, value: 'todo' },
@@ -266,7 +266,7 @@ describe('Database Engine: Sorting', () => {
     },
   ];
 
-  it('сортирует по возрастанию и убыванию с отправкой пустых значений в конец', () => {
+  it('sorts ascending and descending, pushing empty values to the end', () => {
     const sorted = sortRows(
       rows,
       [
@@ -337,7 +337,7 @@ describe('Database Engine: Grouping (Kanban Board)', () => {
     },
   ];
 
-  it('группирует записи по колонкам канбана и сохраняет пустую колонку In Progress', () => {
+  it('groups rows into kanban columns and keeps the empty In Progress column', () => {
     const groups = groupRows(
       rows,
       { propertyId: 'status', sortDirection: 'ascending', hideEmpty: false },
@@ -354,7 +354,7 @@ describe('Database Engine: Grouping (Kanban Board)', () => {
     expect(emptyGroup?.rows[0]?.title).toBe('Task 3 without status');
   });
 
-  it('перемещает карточку между колонками канбана', () => {
+  it('moves a card between kanban columns', () => {
     const target = rows[0]!;
     const updatedProps = moveRowBetweenGroups(
       target,
@@ -430,7 +430,7 @@ describe('Database Engine: Calculations and Aggregations', () => {
     },
   ];
 
-  it('вычисляет статистику: count_all, sum, average, min, max, percent_checked', () => {
+  it('computes statistics: count_all, sum, average, min, max, percent_checked', () => {
     expect(calculateAggregation(rows, 'title', 'count_all', properties)).toBe(4);
     expect(calculateAggregation(rows, 'score', 'count_values', properties)).toBe(3);
     expect(calculateAggregation(rows, 'score', 'sum', properties)).toBe(60);
@@ -471,18 +471,18 @@ describe('Database Engine: Formulas', () => {
     updatedAt: now,
   };
 
-  it('вычисляет арифметические выражения', () => {
+  it('evaluates arithmetic expressions', () => {
     const result = evaluateFormula(row, 'prop("Price") * prop("Quantity")', properties);
     expect(result).toBe(450);
   });
 
-  it('вычисляет условные выражения: if()', () => {
+  it('evaluates conditional expressions: if()', () => {
     const expr = 'if(prop("In Stock"), "Available", "Sold Out")';
     const result = evaluateFormula(row, expr, properties);
     expect(result).toBe('Available');
   });
 
-  it('вычисляет конкатенацию строк и функции: concat()', () => {
+  it('evaluates string concatenation and functions: concat()', () => {
     const expr = 'concat("Product: ", prop("Name"))';
     const result = evaluateFormula(row, expr, properties);
     expect(result).toBe('Product: Keyboard');
@@ -542,7 +542,7 @@ describe('Database Engine: Rollup', () => {
     updatedAt: now,
   };
 
-  it('суммирует связанные записи через rollup (sum hours)', () => {
+  it('sums related rows through a rollup (sum hours)', () => {
     const rollupResult = calculateRollup(
       parentRow,
       {

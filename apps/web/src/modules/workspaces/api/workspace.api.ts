@@ -16,7 +16,7 @@ export function createWorkspaceRepositoryApi(accessToken: TokenProvider): Worksp
     const token = await accessToken.execute();
 
     if (token === null) {
-      throw new HttpError(401, 'Требуется авторизация');
+      throw new HttpError(401, 'Authorization required');
     }
 
     return { authorization: `Bearer ${token}` };
@@ -30,7 +30,7 @@ export function createWorkspaceRepositoryApi(accessToken: TokenProvider): Worksp
     });
 
     if (!response.ok) {
-      throw new HttpError(response.status, `Запрос не удался: HTTP ${response.status}`);
+      throw new HttpError(response.status, `Request failed: HTTP ${response.status}`);
     }
 
     return (await response.json()) as T;

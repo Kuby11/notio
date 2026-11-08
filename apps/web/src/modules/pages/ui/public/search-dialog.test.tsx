@@ -85,13 +85,13 @@ afterEach(() => {
 });
 
 describe('SearchDialog', () => {
-  it('показывает найденные страницы и открывает их по клику', async () => {
-    stubFetch([page({ id: PAGE_ID, title: 'Дорожная карта', position: 'a0', icon: '🗺️' })]);
+  it('shows found pages and opens them on click', async () => {
+    stubFetch([page({ id: PAGE_ID, title: 'Roadmap', position: 'a0', icon: '🗺️' })]);
     const user = userEvent.setup();
 
-    renderDialog({ initialQuery: 'Дор' });
+    renderDialog({ initialQuery: 'Roa' });
 
-    const result = await screen.findByRole('button', { name: /Дорожная карта/ });
+    const result = await screen.findByRole('button', { name: /Roadmap/ });
     expect(result).toBeInTheDocument();
 
     await user.click(result);
@@ -99,15 +99,15 @@ describe('SearchDialog', () => {
     expect(routerPush).toHaveBeenCalledWith(`/workspaces/${WORKSPACE_ID}/${PAGE_ID}`);
   });
 
-  it('показывает пустое состояние, когда ничего не найдено', async () => {
+  it('shows the empty state when nothing is found', async () => {
     stubFetch([]);
 
-    renderDialog({ initialQuery: 'Несуществующая' });
+    renderDialog({ initialQuery: 'Nonexistent' });
 
     expect(await screen.findByText('No pages found')).toBeInTheDocument();
   });
 
-  it('не ищет с пустым запросом и показывает подсказку', async () => {
+  it('does not search with an empty query and shows the hint', async () => {
     stubFetch([]);
 
     renderDialog({ initialQuery: '' });
@@ -116,10 +116,10 @@ describe('SearchDialog', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('остальные категории показаны, но отключены — работает только поиск по страницам', async () => {
+  it('shows other categories but disabled: only page search works', async () => {
     stubFetch([]);
 
-    renderDialog({ initialQuery: 'Дор' });
+    renderDialog({ initialQuery: 'Roa' });
 
     expect(await screen.findByRole('button', { name: 'Pages' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Chats' })).toBeDisabled();
@@ -128,13 +128,13 @@ describe('SearchDialog', () => {
     expect(screen.getByRole('button', { name: 'In' })).toBeDisabled();
   });
 
-  it('подсказывает ошибку, когда поиск не загрузился', async () => {
+  it('shows an error when the search fails to load', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => new Response('boom', { status: 500 })),
     );
 
-    renderDialog({ initialQuery: 'Дор' });
+    renderDialog({ initialQuery: 'Roa' });
 
     await waitFor(() => {
       expect(screen.getByText('Could not load search results')).toBeInTheDocument();

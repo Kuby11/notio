@@ -10,18 +10,18 @@ function renderDialog(onConfirm: () => void) {
     <NextIntlClientProvider locale="en" messages={TEST_MESSAGES}>
       <ConfirmPhraseDialog
         open
-        title="Удалить «Проект»?"
-        description="Действие необратимо"
-        phrase="Проект"
+        title="Delete “Project”?"
+        description="The action is irreversible"
+        phrase="Project"
         confirmLabel="Delete"
-        countdownLabel={(seconds) => `Удаление через ${seconds} с`}
+        countdownLabel={(seconds) => `Deleting in ${seconds}s`}
         onOpenChange={() => undefined}
         onConfirm={onConfirm}
       />
     </NextIntlClientProvider>,
   );
 
-  return screen.getByRole('button', { name: /Удалить|Удаление через/u });
+  return screen.getByRole('button', { name: /Delete|Deleting in/u });
 }
 
 async function advance(seconds: number): Promise<void> {
@@ -30,7 +30,7 @@ async function advance(seconds: number): Promise<void> {
   });
 }
 
-describe('диалог подтверждения по фразе', () => {
+describe('phrase confirmation dialog', () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -39,14 +39,14 @@ describe('диалог подтверждения по фразе', () => {
     vi.useRealTimers();
   });
 
-  it('держит кнопку заблокированной до конца отсчёта', async () => {
+  it('keeps the button locked until the countdown ends', async () => {
     const confirm = renderDialog(() => undefined);
 
     expect(confirm).toBeDisabled();
-    expect(confirm).toHaveTextContent(`Удаление через ${CONFIRM_COUNTDOWN_SECONDS} с`);
+    expect(confirm).toHaveTextContent(`Deleting in ${CONFIRM_COUNTDOWN_SECONDS}s`);
 
-    fireEvent.change(screen.getByLabelText('Type “Проект” to confirm'), {
-      target: { value: 'Проект' },
+    fireEvent.change(screen.getByLabelText('Type “Project” to confirm'), {
+      target: { value: 'Project' },
     });
 
     await advance(CONFIRM_COUNTDOWN_SECONDS);
@@ -54,11 +54,11 @@ describe('диалог подтверждения по фразе', () => {
     expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
   });
 
-  it('не разблокируется, пока фраза не совпала', async () => {
+  it('stays locked until the phrase matches', async () => {
     renderDialog(() => undefined);
 
-    fireEvent.change(screen.getByLabelText('Type “Проект” to confirm'), {
-      target: { value: 'другое' },
+    fireEvent.change(screen.getByLabelText('Type “Project” to confirm'), {
+      target: { value: 'something else' },
     });
 
     await advance(CONFIRM_COUNTDOWN_SECONDS);

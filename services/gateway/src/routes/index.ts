@@ -13,12 +13,12 @@ export function createIndexRoutes(): Hono<AppEnv> {
         name: 'notio',
         version: c.env.SERVICE_VERSION,
         endpoints: [
-          { method: 'GET', path: '/', description: 'Индекс API' },
-          { method: 'GET', path: '/health', description: 'Liveness самого gateway' },
+          { method: 'GET', path: '/', description: 'API index' },
+          { method: 'GET', path: '/health', description: 'Liveness of the gateway itself' },
           {
             method: 'GET',
             path: '/api/health',
-            description: 'Readiness: gateway и внутренние сервисы',
+            description: 'Readiness: the gateway and internal services',
           },
         ],
       }),

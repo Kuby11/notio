@@ -24,7 +24,7 @@ export function firstRequest(mock: ResponderMock): Request {
   const incoming = mock.mock.calls[0]?.[0];
 
   if (!incoming) {
-    throw new Error('Сервис не был вызван');
+    throw new Error('The service was never called');
   }
 
   return incoming;

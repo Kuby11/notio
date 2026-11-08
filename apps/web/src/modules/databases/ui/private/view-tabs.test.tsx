@@ -43,7 +43,7 @@ function renderTabs(overrides: Partial<React.ComponentProps<typeof ViewTabs>> = 
 }
 
 describe('ViewTabs', () => {
-  it('открывает одно меню добавления со всеми типами графиков', async () => {
+  it('opens a single add menu with all chart types', async () => {
     const user = userEvent.setup();
     const props = renderTabs();
 
@@ -60,7 +60,7 @@ describe('ViewTabs', () => {
     expect(props.onAddView).toHaveBeenCalledWith('chart_horizontal', 'Horizontal chart');
   });
 
-  it('добавляет списочное, галерейное и календарное представления', async () => {
+  it('adds list, gallery and calendar views', async () => {
     const user = userEvent.setup();
     const props = renderTabs();
 
@@ -75,7 +75,7 @@ describe('ViewTabs', () => {
     expect(props.onAddView).toHaveBeenCalledWith('calendar', 'Calendar');
   });
 
-  it('переименовывает представление из меню вкладки', async () => {
+  it('renames a view from the tab menu', async () => {
     const user = userEvent.setup();
     const props = renderTabs();
 
@@ -91,7 +91,7 @@ describe('ViewTabs', () => {
     expect(props.onRenameView).toHaveBeenCalledWith(TABLE.id, 'Tasks');
   });
 
-  it('дублирует и удаляет представление из меню вкладки', async () => {
+  it('duplicates and deletes a view from the tab menu', async () => {
     const user = userEvent.setup();
     const props = renderTabs();
 

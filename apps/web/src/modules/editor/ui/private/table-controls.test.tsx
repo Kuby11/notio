@@ -77,7 +77,7 @@ function tableOf(current: Editor): ProseMirrorNode {
 }
 
 describe('TableControls', () => {
-  it('показывает пилюли строки и колонки в таблице', async () => {
+  it('shows row and column pills on the table', async () => {
     editor = createTableEditor();
 
     renderWithIntl(<TableControls editor={editor} />);
@@ -90,7 +90,7 @@ describe('TableControls', () => {
     expect(screen.getByRole('button', { name: 'Drag column' })).toBeInTheDocument();
   });
 
-  it('добавляет строку и колонку по кнопкам', async () => {
+  it('adds a row and a column via the buttons', async () => {
     editor = createTableEditor();
 
     renderWithIntl(<TableControls editor={editor} />);
@@ -104,7 +104,7 @@ describe('TableControls', () => {
     expect(tableOf(editor).child(0).childCount).toBe(3);
   });
 
-  it('удаляет строку и колонку по кнопкам', async () => {
+  it('deletes a row and a column via the buttons', async () => {
     editor = createTableEditor();
 
     renderWithIntl(<TableControls editor={editor} />);
@@ -118,7 +118,7 @@ describe('TableControls', () => {
     expect(tableOf(editor).child(0).childCount).toBe(1);
   });
 
-  it('прячет пилюли, когда курсор вне таблицы', async () => {
+  it('hides the pills when the cursor is outside the table', async () => {
     editor = new Editor({ extensions: editorExtensions });
 
     editor.commands.setContent({

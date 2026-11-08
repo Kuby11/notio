@@ -14,7 +14,7 @@ function createTestLogger(level?: 'debug' | 'info' | 'warn' | 'error') {
 }
 
 describe('createLogger', () => {
-  it('пишет JSON-строку с уровнем, сервисом, временем и сообщением', () => {
+  it('writes a JSON line with level, service, time and message', () => {
     const { logger, last } = createTestLogger();
 
     logger.info('gateway started');
@@ -27,7 +27,7 @@ describe('createLogger', () => {
     });
   });
 
-  it('добавляет поля события', () => {
+  it('adds event fields', () => {
     const { logger, last } = createTestLogger();
 
     logger.warn('slow request', { requestId: 'req-1', durationMs: 1200 });
@@ -39,16 +39,16 @@ describe('createLogger', () => {
     });
   });
 
-  it('уважает порог уровня: debug не пишется при info', () => {
+  it('respects the level threshold: debug is not written at info', () => {
     const { logger, lines } = createTestLogger('info');
 
-    logger.debug('подробности');
-    logger.info('событие');
+    logger.debug('details');
+    logger.info('event');
 
     expect(lines).toHaveLength(1);
   });
 
-  it('пишет всё при уровне debug', () => {
+  it('writes everything at debug level', () => {
     const { logger, lines } = createTestLogger('debug');
 
     logger.debug('a');
@@ -59,15 +59,15 @@ describe('createLogger', () => {
     expect(lines).toHaveLength(4);
   });
 
-  it('по умолчанию не пишет debug', () => {
+  it('does not write debug by default', () => {
     const { logger, lines } = createTestLogger();
 
-    logger.debug('тихо');
+    logger.debug('quiet');
 
     expect(lines).toHaveLength(0);
   });
 
-  it('сериализует Error в name/message/stack', () => {
+  it('serializes an Error into name/message/stack', () => {
     const { logger, last } = createTestLogger();
     const error = new Error('boom');
 
@@ -79,18 +79,18 @@ describe('createLogger', () => {
     expect(serialized.stack).toContain('Error: boom');
   });
 
-  it('оставляет не-Error значение ошибки как есть', () => {
+  it('leaves a non-Error error value as is', () => {
     const { logger, last } = createTestLogger();
 
-    logger.error('unhandled', { error: 'строка' });
+    logger.error('unhandled', { error: 'string' });
 
-    expect(last()['error']).toBe('строка');
+    expect(last()['error']).toBe('string');
   });
 
-  it('по умолчанию пишет в console', () => {
+  it('writes to console by default', () => {
     const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
-    createLogger({ service: 'gateway' }).info('через console');
+    createLogger({ service: 'gateway' }).info('via console');
 
     expect(spy).toHaveBeenCalledOnce();
     expect(spy.mock.calls[0]?.[0]).toContain('"service":"gateway"');
@@ -99,7 +99,7 @@ describe('createLogger', () => {
 });
 
 describe('isLogLevel', () => {
-  it('узнаёт известные уровни и отвергает мусор', () => {
+  it('recognizes known levels and rejects garbage', () => {
     expect(LOG_LEVELS.every(isLogLevel)).toBe(true);
     expect(isLogLevel('trace')).toBe(false);
   });

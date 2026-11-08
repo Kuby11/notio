@@ -6,10 +6,10 @@ import type { Database, DatabaseProperty } from '@notio/contracts';
 export function assertValidDatabaseTitle(title: string): void {
   const trimmed = title.trim();
   if (trimmed.length === 0) {
-    throw new Error('Название базы данных не может быть пустым');
+    throw new Error('Database name cannot be empty');
   }
   if (trimmed.length > 500) {
-    throw new Error('Название базы данных не может превышать 500 символов');
+    throw new Error('Database name cannot exceed 500 characters');
   }
 }
 
@@ -23,10 +23,10 @@ export function assertValidPropertyName(
 ): void {
   const trimmed = name.trim();
   if (trimmed.length === 0) {
-    throw new Error('Название свойства не может быть пустым');
+    throw new Error('Property name cannot be empty');
   }
   if (trimmed.length > 255) {
-    throw new Error('Название свойства не может превышать 255 символов');
+    throw new Error('Property name cannot exceed 255 characters');
   }
 
   const normalized = trimmed.toLowerCase();
@@ -34,7 +34,7 @@ export function assertValidPropertyName(
     (p) => p.id !== excludePropertyId && p.name.trim().toLowerCase() === normalized,
   );
   if (duplicate) {
-    throw new Error(`Свойство с именем «${trimmed}» уже существует`);
+    throw new Error(`Property "${trimmed}" already exists`);
   }
 }
 
@@ -44,7 +44,7 @@ export function assertValidPropertyName(
 export function findTitleProperty(database: Database): DatabaseProperty {
   const titleProp = database.properties.find((p) => p.type === 'title');
   if (!titleProp) {
-    throw new Error('База данных должна иметь ровно одно свойство title');
+    throw new Error('Database must have exactly one title property');
   }
   return titleProp;
 }

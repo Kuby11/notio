@@ -10,7 +10,7 @@ function validPage(): Record<string, unknown> {
     id: PAGE_ID,
     workspaceId: WORKSPACE_ID,
     parentId: null,
-    title: 'Заметка',
+    title: 'Note',
     position: 'a0',
     isFavorite: false,
     isTrashed: false,
@@ -21,31 +21,31 @@ function validPage(): Record<string, unknown> {
 }
 
 describe('toPage', () => {
-  it('возвращает страницу, прошедшую валидацию', () => {
+  it('returns a page that passes validation', () => {
     const page = toPage(validPage());
 
     expect(page.id).toBe(PAGE_ID);
-    expect(page.title).toBe('Заметка');
+    expect(page.title).toBe('Note');
   });
 
-  it('отклоняет ответ с некорректным id', () => {
+  it('rejects a response with an invalid id', () => {
     expect(() => toPage({ ...validPage(), id: 'page-1' })).toThrow();
   });
 
-  it('отклоняет ответ без обязательных полей', () => {
+  it('rejects a response without required fields', () => {
     expect(() => toPage({ id: PAGE_ID })).toThrow();
   });
 });
 
 describe('toPageList', () => {
-  it('разбирает постраничный ответ', () => {
+  it('parses a paginated response', () => {
     const result = toPageList({ items: [validPage()], nextCursor: null });
 
     expect(result.items).toHaveLength(1);
     expect(result.nextCursor).toBeNull();
   });
 
-  it('отклоняет ответ, где items не массив', () => {
-    expect(() => toPageList({ items: 'нет', nextCursor: null })).toThrow();
+  it('rejects a response where items is not an array', () => {
+    expect(() => toPageList({ items: 'nope', nextCursor: null })).toThrow();
   });
 });

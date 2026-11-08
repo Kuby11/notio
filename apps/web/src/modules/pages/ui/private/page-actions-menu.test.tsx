@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 describe('PageActionsMenu', () => {
-  it('уводит на главную пространства после перемещения открытой страницы в корзину', async () => {
+  it('navigates to the workspace home after trashing the open page', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');

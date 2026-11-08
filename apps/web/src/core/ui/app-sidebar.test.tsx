@@ -58,7 +58,7 @@ afterEach(() => {
 });
 
 describe('AppSidebar', () => {
-  it('открывает избранное в модальном окне, не уходя со страницы', async () => {
+  it('opens favorites in a modal without leaving the page', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
@@ -75,7 +75,7 @@ describe('AppSidebar', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('открывает корзину в модальном окне', async () => {
+  it('opens the trash in a modal', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
@@ -89,7 +89,7 @@ describe('AppSidebar', () => {
     expect(await within(dialog).findByText('Trash is empty')).toBeInTheDocument();
   });
 
-  it('открывает поиск по страницам по submit и передаёт введённый запрос', async () => {
+  it('opens page search on submit and passes the typed query', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
@@ -97,17 +97,17 @@ describe('AppSidebar', () => {
     renderWithProviders(<AppSidebar workspaceId={WORKSPACE_ID} />, gateway);
 
     const input = screen.getByRole('searchbox', { name: 'Search…' });
-    await user.type(input, 'Дор');
+    await user.type(input, 'Roa');
     await user.keyboard('{Enter}');
 
     const dialog = await screen.findByRole('dialog');
     // The submitted text seeds the query inside the modal.
     await waitFor(() =>
-      expect(within(dialog).getByRole('textbox', { name: 'Search pages…' })).toHaveValue('Дор'),
+      expect(within(dialog).getByRole('textbox', { name: 'Search pages…' })).toHaveValue('Roa'),
     );
   });
 
-  it('сворачивает боковую панель по кнопке целиком, без рейла', async () => {
+  it('collapses the whole sidebar via the button, without the rail', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
@@ -131,7 +131,7 @@ describe('AppSidebar', () => {
     expect(screen.getByRole('searchbox', { hidden: true })).toBeInTheDocument();
   });
 
-  it('переключает боковую панель по Ctrl + /', async () => {
+  it('toggles the sidebar with Ctrl + /', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
@@ -149,7 +149,7 @@ describe('AppSidebar', () => {
     expect(screen.getByRole('searchbox', { name: 'Search…' })).toBeInTheDocument();
   });
 
-  it('открывает поиск по Ctrl + K и с свёрнутой панелью', async () => {
+  it('opens search with Ctrl + K even with a collapsed panel', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
@@ -164,14 +164,14 @@ describe('AppSidebar', () => {
     expect(within(dialog).getByRole('textbox', { name: 'Search pages…' })).toBeInTheDocument();
   });
 
-  it('показывает библиотеку в меню профиля перед настройками', async () => {
+  it('shows Library in the profile menu before Settings', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub({ currentSession: sessionOf(SESSION) });
     gateway.accessToken.mockResolvedValue('jwt');
 
     renderWithProviders(<AppSidebar workspaceId={WORKSPACE_ID} />, gateway);
 
-    await user.click(await screen.findByRole('button', { name: /Аня/ }));
+    await user.click(await screen.findByRole('button', { name: /Anna/ }));
 
     const menu = await screen.findByRole('dialog');
     const library = within(menu).getByRole('button', { name: 'Library' });

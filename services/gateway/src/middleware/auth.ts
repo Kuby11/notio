@@ -70,8 +70,8 @@ export function requireAuthentication(): MiddlewareHandler<AppEnv> {
       // The wording difference helps tell "no token" from "invalid"
       // when reading logs; it has no effect on security.
       detail: hasToken
-        ? 'Токен недействителен или истёк. Войдите заново.'
-        : 'Требуется авторизация: передайте токен в заголовке Authorization: Bearer <token>',
+        ? 'Token is invalid or expired. Sign in again.'
+        : 'Authorization required: pass a token in the Authorization: Bearer <token> header',
       requestId: c.get('requestId'),
     });
   };

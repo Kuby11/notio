@@ -2,7 +2,7 @@
   "name": "@notio/workspace-service",
   "version": "0.0.0",
   "private": true,
-  "description": "Рабочие пространства notio: участники, роли owner/editor/viewer, приглашения по ссылке",
+  "description": "notio workspaces: members, owner/editor/viewer roles, invitation links",
   "type": "module",
   "types": "./src/index.ts",
   "exports": {

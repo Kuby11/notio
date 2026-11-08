@@ -45,11 +45,11 @@ describe('editedAgo', () => {
 });
 
 describe('shortAgo', () => {
-  it('меньше минуты — нулевые секунды (Intl скажет «сейчас»)', () => {
+  it('under a minute collapses to zero seconds (Intl says "now")', () => {
     expect(shortAgo(isoAgo(30), NOW)).toEqual({ unit: 'second', value: 0 });
   });
 
-  it('идёт по возрастанию единиц: минуты, часы, дни, недели, месяцы, годы', () => {
+  it('steps up through units: minutes, hours, days, weeks, months, years', () => {
     expect(shortAgo(isoAgo(5 * 60), NOW)).toEqual({ unit: 'minute', value: -5 });
     expect(shortAgo(isoAgo(3 * 3600), NOW)).toEqual({ unit: 'hour', value: -3 });
     expect(shortAgo(isoAgo(2 * 86400), NOW)).toEqual({ unit: 'day', value: -2 });
@@ -58,13 +58,13 @@ describe('shortAgo', () => {
     expect(shortAgo(isoAgo(400 * 86400), NOW)).toEqual({ unit: 'year', value: -1 });
   });
 
-  it('знак сохраняется: будущее время — положительное значение', () => {
+  it('keeps the sign: a future time is a positive value', () => {
     const future = new Date(NOW.getTime() + 3 * 3600 * 1000).toISOString();
 
     expect(shortAgo(future, NOW)).toEqual({ unit: 'hour', value: 3 });
   });
 
-  it('нечитаемая дата — null', () => {
+  it('returns null for an unparseable date', () => {
     expect(shortAgo('not a date', NOW)).toBeNull();
   });
 });

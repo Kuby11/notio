@@ -79,7 +79,7 @@ function tableOf(current: Editor): ProseMirrorNode {
   });
 
   if (!table) {
-    throw new Error('Таблица не найдена');
+    throw new Error('Table not found');
   }
 
   return table;
@@ -95,7 +95,7 @@ function tablePosOf(current: Editor): number {
   });
 
   if (position === -1) {
-    throw new Error('Таблица не найдена');
+    throw new Error('Table not found');
   }
 
   return position;
@@ -118,7 +118,7 @@ function cellTexts(current: Editor): string[][] {
 }
 
 describe('moveTableRow', () => {
-  it('переставляет строку с сохранением содержимого', () => {
+  it('moves a row keeping its content', () => {
     editor = createTableEditor();
 
     const moved = moveTableRow(editor, tablePosOf(editor), 2, 0);
@@ -131,7 +131,7 @@ describe('moveTableRow', () => {
     ]);
   });
 
-  it('ничего не делает при вставке на собственное место', () => {
+  it('does nothing when inserting at its own place', () => {
     editor = createTableEditor();
 
     expect(moveTableRow(editor, tablePosOf(editor), 1, 1)).toBe(false);
@@ -139,7 +139,7 @@ describe('moveTableRow', () => {
     expect(cellTexts(editor)[0]).toEqual(['A', 'B']);
   });
 
-  it('сохраняет attrs строк при перестановке', () => {
+  it('keeps row attrs when moving', () => {
     editor = createTableEditor();
     const tablePos = tablePosOf(editor);
     const table = tableOf(editor);
@@ -160,7 +160,7 @@ describe('moveTableRow', () => {
 });
 
 describe('moveTableColumn', () => {
-  it('переставляет колонку во всех строках', () => {
+  it('moves a column in every row', () => {
     editor = createTableEditor();
 
     const moved = moveTableColumn(editor, tablePosOf(editor), 0, 2);
@@ -173,7 +173,7 @@ describe('moveTableColumn', () => {
     ]);
   });
 
-  it('ничего не делает при вставке на собственное место', () => {
+  it('does nothing when inserting at its own place', () => {
     editor = createTableEditor();
 
     expect(moveTableColumn(editor, tablePosOf(editor), 0, 0)).toBe(false);

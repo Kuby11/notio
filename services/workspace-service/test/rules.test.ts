@@ -2,25 +2,25 @@ import { describe, expect, it } from 'vitest';
 import { createInvitationToken, slugify } from '../src/services/workspace.service';
 
 describe('slugify', () => {
-  it('транслитерирует кириллицу', () => {
+  it('transliterates Cyrillic', () => {
     expect(slugify('Моя работа')).toBe('moya-rabota');
   });
 
-  it('оставляет латиницу и цифры, схлопывает разделители', () => {
+  it('keeps latin letters and digits and collapses separators', () => {
     expect(slugify('Notion  Clone — 2026')).toBe('notion-clone-2026');
   });
 
-  it('подставляет запасное имя, если символов для slug не осталось', () => {
+  it('falls back to a default name when no slug characters remain', () => {
     expect(slugify('???')).toBe('workspace');
   });
 
-  it('ограничивает длину, чтобы адрес оставался читаемым', () => {
+  it('limits the length so the URL stays readable', () => {
     expect(slugify('а'.repeat(80))).toHaveLength(48);
   });
 });
 
 describe('createInvitationToken', () => {
-  it('возвращает 32 байта в hex и не повторяется', () => {
+  it('returns 32 bytes in hex and never repeats', () => {
     const first = createInvitationToken();
     const second = createInvitationToken();
 

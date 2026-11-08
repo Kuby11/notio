@@ -22,12 +22,12 @@ beforeEach(() => {
 });
 
 describe('LoginForm', () => {
-  it('показывает ошибки полей и не ходит в сеть при неверной форме', async () => {
+  it('shows field errors and skips the network when the form is invalid', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     renderWithProviders(<LoginForm />, gateway);
 
-    await user.type(screen.getByLabelText('Email'), 'не-почта');
+    await user.type(screen.getByLabelText('Email'), 'not-an-email');
     // Leave the password empty: the form must show both errors at once.
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
@@ -37,7 +37,7 @@ describe('LoginForm', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it('входит и уводит на главную по успешному входу', async () => {
+  it('signs in and navigates to the home page on success', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     renderWithProviders(<LoginForm />, gateway);
@@ -55,7 +55,7 @@ describe('LoginForm', () => {
     });
   });
 
-  it('показывает текст доменной ошибки вместо ухода на страницу', async () => {
+  it('shows the domain error message instead of navigating', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub({
       signIn: failsWith(
@@ -74,7 +74,7 @@ describe('LoginForm', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it('остаётся доступной с клавиатуры: подписи полей связаны с вводом', async () => {
+  it('stays keyboard accessible: field labels are bound to the inputs', async () => {
     renderWithProviders(<LoginForm />, gatewayStub());
 
     expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email');

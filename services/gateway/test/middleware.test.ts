@@ -30,7 +30,7 @@ async function authHeaders(): Promise<Record<string, string>> {
 }
 
 describe('request-id', () => {
-  it('генерирует идентификатор, если клиент его не прислал', async () => {
+  it('generates an identifier when the client sends none', async () => {
     const response = await request('/');
 
     expect(response.headers.get(INTERNAL_HEADERS.REQUEST_ID)).toMatch(
@@ -38,7 +38,7 @@ describe('request-id', () => {
     );
   });
 
-  it('принимает корректный идентификатор клиента', async () => {
+  it('accepts a valid client identifier', async () => {
     const response = await request('/', {
       headers: { [INTERNAL_HEADERS.REQUEST_ID]: 'req_from_client' },
     });
@@ -46,7 +46,7 @@ describe('request-id', () => {
     expect(response.headers.get(INTERNAL_HEADERS.REQUEST_ID)).toBe('req_from_client');
   });
 
-  it('выбрасывает идентификатор, не проходящий политику', async () => {
+  it('discards an identifier that fails the policy', async () => {
     const response = await request('/', {
       headers: { [INTERNAL_HEADERS.REQUEST_ID]: 'req from client!' },
     });
@@ -55,7 +55,7 @@ describe('request-id', () => {
     expect(isValidRequestId('req\ninjected: header')).toBe(false);
   });
 
-  it('пропускает только короткие безопасные значения', () => {
+  it('allows only short safe values', () => {
     expect(isValidRequestId('a-b_C9')).toBe(true);
     expect(isValidRequestId('a'.repeat(65))).toBe(false);
     expect(isValidRequestId('')).toBe(false);
@@ -63,8 +63,8 @@ describe('request-id', () => {
   });
 });
 
-describe('security-заголовки', () => {
-  it('задаёт защитные заголовки на каждом ответе', async () => {
+describe('security headers', () => {
+  it('sets protective headers on every response', async () => {
     const response = await request('/');
 
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
@@ -73,13 +73,13 @@ describe('security-заголовки', () => {
     expect(response.headers.get('content-security-policy')).toContain("default-src 'none'");
   });
 
-  it('задаёт защитные заголовки и на проксированных ответах', async () => {
+  it('sets protective headers on proxied responses too', async () => {
     const response = await request('/api/pages', { headers: await authHeaders() }, createEnv());
 
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
   });
 
-  it('не ставит HSTS на http, чтобы не сломать локальную разработку', async () => {
+  it('does not set HSTS on http, so local development keeps working', async () => {
     const response = await request('/');
 
     expect(response.headers.get('strict-transport-security')).toBeNull();
@@ -87,20 +87,20 @@ describe('security-заголовки', () => {
 });
 
 describe('CORS', () => {
-  it('разрешает origin из allowlist', async () => {
+  it('allows an origin from the allowlist', async () => {
     const response = await request('/', { headers: { origin: 'http://localhost:3000' } });
 
     expect(response.headers.get('access-control-allow-origin')).toBe('http://localhost:3000');
     expect(response.headers.get('vary')).toBe('Origin');
   });
 
-  it('не отражает чужой origin', async () => {
+  it('does not reflect a foreign origin', async () => {
     const response = await request('/', { headers: { origin: 'https://evil.example' } });
 
     expect(response.headers.get('access-control-allow-origin')).toBeNull();
   });
 
-  it('отвечает 204 на разрешённый префлайт и 403 на чужой', async () => {
+  it('answers 204 for an allowed preflight and 403 for a foreign one', async () => {
     const allowed = await request('/api/pages', {
       method: 'OPTIONS',
       headers: { origin: 'http://localhost:3000' },
@@ -117,7 +117,7 @@ describe('CORS', () => {
 });
 
 describe('rate limit', () => {
-  it('считает запросы по идентификатору клиента и отдаёт 429 с Retry-After', async () => {
+  it('counts requests by client identifier and answers 429 with Retry-After', async () => {
     const env = createEnv({ bindings: { RATE_LIMIT_MAX_REQUESTS: '3' } });
     const headers = await authHeaders();
     headers['cf-connecting-ip'] = uniqueIp();
@@ -134,7 +134,7 @@ describe('rate limit', () => {
     expect(await problemOf(limited)).toMatchObject({ code: 'RATE_LIMITED' });
   });
 
-  it('не ограничивает запросы с другого IP', async () => {
+  it('does not limit requests from another IP', async () => {
     const env = createEnv({ bindings: { RATE_LIMIT_MAX_REQUESTS: '3' } });
 
     for (const _ of [1, 2, 3, 4]) {
@@ -149,7 +149,7 @@ describe('rate limit', () => {
     }
   });
 
-  it('не ограничивает health-эндпоинты: мониторинг не должен ловить 429', async () => {
+  it('does not limit health endpoints: monitoring must not hit 429', async () => {
     const env = createEnv({ bindings: { RATE_LIMIT_MAX_REQUESTS: '2' } });
 
     for (const _ of [1, 2, 3, 4, 5]) {
@@ -158,7 +158,7 @@ describe('rate limit', () => {
     }
   });
 
-  it('identifies клиента по cf-connecting-ip, а не по заголовку клиента', () => {
+  it('identifies the client by cf-connecting-ip, not by a client header', () => {
     const withCloudflareIp = new Request('https://gateway.notio.dev/', {
       headers: { 'cf-connecting-ip': '203.0.113.1' },
     });
@@ -170,14 +170,14 @@ describe('rate limit', () => {
     expect(clientIdentifier(withSpoofedHeader)).toBe('anonymous');
   });
 
-  it('считает окно по времени, а не по счётчику запросов', () => {
+  it('computes the window from time, not from the request counter', () => {
     expect(currentWindow(60, 0)).toBe(0);
     expect(currentWindow(60, 59_999)).toBe(0);
     expect(currentWindow(60, 60_000)).toBe(1);
     expect(rateLimitKey('1.2.3.4', 7)).toBe('rl:7:1.2.3.4');
   });
 
-  it('применяется ко всему /api/*, включая несуществующие маршруты', async () => {
+  it('applies to all of /api/*, including unknown routes', async () => {
     const env = createEnv({ bindings: { RATE_LIMIT_MAX_REQUESTS: '3' } });
     const headers = { 'cf-connecting-ip': uniqueIp() };
 
@@ -189,8 +189,8 @@ describe('rate limit', () => {
   });
 });
 
-describe('конфигурация', () => {
-  it('не молча снимает защиту при некорректных лимитах', async () => {
+describe('configuration', () => {
+  it('does not silently drop protection on invalid limits', async () => {
     const env = createEnv({ bindings: { RATE_LIMIT_MAX_REQUESTS: '0' } });
 
     const response = await request('/health', undefined, env);
@@ -198,15 +198,15 @@ describe('конфигурация', () => {
     expect(response.status).toBe(500);
   });
 
-  it('не стартует с некорректным списком origin', async () => {
-    const env = createEnv({ bindings: { CORS_ALLOWED_ORIGINS: 'не-url' } });
+  it('does not start with an invalid origin list', async () => {
+    const env = createEnv({ bindings: { CORS_ALLOWED_ORIGINS: 'not-a-url' } });
 
     const response = await request('/', undefined, env);
 
     expect(response.status).toBe(500);
   });
 
-  it('использует уровень лога по умолчанию, если значение неизвестно', async () => {
+  it('uses the default log level when the value is unknown', async () => {
     const env = createEnv({ bindings: { LOG_LEVEL: 'verbose' } });
 
     const response = await request('/', undefined, env);

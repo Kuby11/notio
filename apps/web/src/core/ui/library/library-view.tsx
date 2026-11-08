@@ -209,8 +209,8 @@ export function LibraryView({ workspaceId }: LibraryViewProps) {
   }, [hiddenColumns]);
 
   const formatTime = useMemo(() => {
-    // `short` rather than `narrow`: the narrow Russian form drops "назад" and
-    // renders as "-3 дн.", which reads like a duration, not a point in time.
+    // `short` rather than `narrow`: the narrow Russian form drops the "ago"
+    // word and renders as "-3d", which reads like a duration, not a point in time.
     const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'short' });
 
     return (iso: string): string => {

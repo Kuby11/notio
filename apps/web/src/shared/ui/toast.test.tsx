@@ -5,14 +5,14 @@ import { renderWithIntl } from '../../../test/auth-fixture';
 import { Toaster, toast } from './toast';
 
 describe('Toaster', () => {
-  it('показывает тост и убирает по клику', async () => {
+  it('shows a toast and removes it on click', async () => {
     renderWithIntl(<Toaster />);
 
-    toast('Файл больше лимита 20 МБ', 'error');
+    toast('File exceeds the 20 MB limit', 'error');
 
     const item = await screen.findByRole('alert');
 
-    expect(item).toHaveTextContent('Файл больше лимита 20 МБ');
+    expect(item).toHaveTextContent('File exceeds the 20 MB limit');
 
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
 
@@ -21,10 +21,10 @@ describe('Toaster', () => {
     });
   });
 
-  it('успешный тост получает роль status', async () => {
+  it('a success toast gets the status role', async () => {
     renderWithIntl(<Toaster />);
 
-    toast('Загружено', 'success');
+    toast('Uploaded', 'success');
 
     expect(await screen.findByRole('status')).toBeInTheDocument();
   });
