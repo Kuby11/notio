@@ -13,7 +13,6 @@ export function createWorkspaceServiceApp(): Hono<AppEnv> {
   app.route('/', createHealthRoutes());
   app.route('/', createWorkspaceRoutes());
   app.route('/', createDatabaseRoutes());
-  app.route('/', createDatabaseRoutes());
 
   app.notFound((c) =>
     problem({
