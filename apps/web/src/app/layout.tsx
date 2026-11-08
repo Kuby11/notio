@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
     ...(siteUrl === undefined ? {} : { metadataBase: new URL(siteUrl) }),
     title: {
       default: t('title'),
-      template: `%s — ${env.NEXT_PUBLIC_APP_NAME}`,
+      template: `%s | ${env.NEXT_PUBLIC_APP_NAME}`,
     },
     description,
     applicationName: env.NEXT_PUBLIC_APP_NAME,
