@@ -1,5 +1,19 @@
+import type { Metadata } from 'next';
 import { AppLayout } from '@/core/ui/app-layout';
+import { fetchDatabaseTitle } from '@/shared/server/metadata';
 import { DatabasePageView } from './database-page-view';
+
+/** The `<head>` title is the opened database's name, not the route or a heading. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ workspaceId: string; databaseId: string }>;
+}): Promise<Metadata> {
+  const { databaseId } = await params;
+  const title = await fetchDatabaseTitle(databaseId);
+
+  return title === null ? {} : { title };
+}
 
 export default async function DatabasePage({
   params,

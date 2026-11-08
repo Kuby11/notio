@@ -64,3 +64,10 @@ export async function fetchWorkspaceName(workspaceId: string): Promise<string | 
 
   return readStringField(data, 'name');
 }
+
+/** The opened database's title, or null when it cannot be read. */
+export async function fetchDatabaseTitle(databaseId: string): Promise<string | null> {
+  const data = await fetchAuthorized(`/api/databases/${databaseId}`);
+
+  return readStringField(data, 'title');
+}
