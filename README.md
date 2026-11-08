@@ -1,5 +1,7 @@
 # notio
 
+app url: https://notio-web.saab112468.workers.dev
+
 A Notion clone as a portfolio project: microservices on Cloudflare Workers, isolated databases,
 a block editor and real-time collaborative editing on Durable Objects.
 
