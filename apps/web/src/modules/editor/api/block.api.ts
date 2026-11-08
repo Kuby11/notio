@@ -11,7 +11,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
     const token = await accessToken.execute();
 
     if (token === null) {
-      throw new HttpError(401, 'Требуется авторизация');
+      throw new HttpError(401, 'Authorization required');
     }
 
     return { authorization: `Bearer ${token}` };
@@ -23,7 +23,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       const response = await fetch(`${baseUrl}/api/pages/${pageId}/blocks`, { headers });
 
       if (!response.ok) {
-        throw new HttpError(response.status, `Не удалось загрузить блоки: HTTP ${response.status}`);
+        throw new HttpError(response.status, `Failed to load blocks: HTTP ${response.status}`);
       }
 
       return toBlockList(await response.json()).items;
@@ -38,7 +38,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       });
 
       if (!response.ok) {
-        throw new HttpError(response.status, `Не удалось создать блок: HTTP ${response.status}`);
+        throw new HttpError(response.status, `Failed to create block: HTTP ${response.status}`);
       }
 
       return toBlock(await response.json());
@@ -53,7 +53,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       });
 
       if (!response.ok) {
-        throw new HttpError(response.status, `Не удалось обновить блок: HTTP ${response.status}`);
+        throw new HttpError(response.status, `Failed to update block: HTTP ${response.status}`);
       }
 
       return toBlock(await response.json());
@@ -67,7 +67,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       });
 
       if (!response.ok) {
-        throw new HttpError(response.status, `Не удалось удалить блок: HTTP ${response.status}`);
+        throw new HttpError(response.status, `Failed to delete block: HTTP ${response.status}`);
       }
     },
 
@@ -82,7 +82,7 @@ export function createBlockRepositoryApi(accessToken: TokenProvider): BlockRepos
       if (!response.ok) {
         throw new HttpError(
           response.status,
-          `Не удалось переместить блок: HTTP ${response.status}`,
+          `Failed to move block: HTTP ${response.status}`,
         );
       }
 

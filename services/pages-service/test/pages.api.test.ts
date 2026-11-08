@@ -80,31 +80,31 @@ beforeEach(() => {
 });
 
 describe('POST /pages', () => {
-  it('создаёт страницу в корне workspace', async () => {
-    const response = await api().createPage({ workspaceId, title: 'Первая страница' });
+  it('creates a page at the workspace root', async () => {
+    const response = await api().createPage({ workspaceId, title: 'First page' });
 
     expect(response.status).toBe(201);
     expect(await response.json()).toMatchObject({
       workspaceId,
       parentId: null,
-      title: 'Первая страница',
+      title: 'First page',
       isFavorite: false,
       isTrashed: false,
       createdBy: ACTOR,
     });
   });
 
-  it('не создаёт страницу без контекста пользователя (fail closed)', async () => {
+  it('does not create a page without a user context (fail closed)', async () => {
     const response = await Promise.resolve(
-      app.request('/pages', json({ workspaceId, title: 'Без автора' }), env),
+      app.request('/pages', json({ workspaceId, title: 'No author' }), env),
     );
 
     expect(response.status).toBe(403);
     expect(await problemOf(response)).toMatchObject({ code: 'FORBIDDEN' });
   });
 
-  it('отклоняет тело, не прошедшее Zod, со списком полей', async () => {
-    const response = await api().createPage({ workspaceId: 'не-uuid', title: 'x'.repeat(501) });
+  it('rejects a body that fails Zod with a list of fields', async () => {
+    const response = await api().createPage({ workspaceId: 'not-a-uuid', title: 'x'.repeat(501) });
 
     expect(response.status).toBe(400);
     const problem = await problemOf(response);
@@ -114,21 +114,21 @@ describe('POST /pages', () => {
     );
   });
 
-  it('отклоняет лишние поля во входных данных', async () => {
+  it('rejects extra fields in the input', async () => {
     const response = await api().createPage({ workspaceId, isAdmin: true });
 
     expect(response.status).toBe(400);
     expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
-  it('отвечает 400, если тело не JSON', async () => {
+  it('responds 400 when the body is not JSON', async () => {
     const response = await Promise.resolve(
       app.request(
         '/pages',
         {
           method: 'POST',
           headers: { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: ACTOR },
-          body: 'не json',
+          body: 'not json',
         },
         env,
       ),
@@ -138,35 +138,35 @@ describe('POST /pages', () => {
     expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
-  it('запрещает родителя из чужого workspace', async () => {
-    const parent = await createPage({ workspaceId, title: 'Родитель' });
+  it('forbids a parent from a foreign workspace', async () => {
+    const parent = await createPage({ workspaceId, title: 'Parent' });
 
     const response = await api().createPage({
       workspaceId: otherWorkspaceId,
       parentId: parent.id,
-      title: 'Чужой родитель',
+      title: 'Foreign parent',
     });
 
     expect(response.status).toBe(403);
     expect(await problemOf(response)).toMatchObject({ code: 'FORBIDDEN' });
   });
 
-  it('запрещает родителя, которого нет', async () => {
+  it('forbids a parent that does not exist', async () => {
     const response = await api().createPage({
       workspaceId,
       parentId: crypto.randomUUID(),
-      title: 'Сирота',
+      title: 'Orphan',
     });
 
     expect(response.status).toBe(404);
     expect(await problemOf(response)).toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('запрещает создавать страницу внутри страницы в корзине', async () => {
-    const parent = await createPage({ workspaceId, title: 'В корзине' });
+  it('forbids creating a page inside a trashed page', async () => {
+    const parent = await createPage({ workspaceId, title: 'In trash' });
     await api().patchPage(parent.id, `workspaceId=${workspaceId}`, { isTrashed: true });
 
-    const response = await api().createPage({ workspaceId, parentId: parent.id, title: 'Внутри' });
+    const response = await api().createPage({ workspaceId, parentId: parent.id, title: 'Inside' });
 
     expect(response.status).toBe(409);
     expect(await problemOf(response)).toMatchObject({ code: 'CONFLICT' });
@@ -174,13 +174,13 @@ describe('POST /pages', () => {
 });
 
 describe('GET /pages', () => {
-  it('возвращает дочерние страницы в порядке fractional indexing', async () => {
+  it('returns child pages in fractional indexing order', async () => {
     const client = api();
-    const first = (await (await client.createPage({ workspaceId, title: 'Первая' })).json()) as {
+    const first = (await (await client.createPage({ workspaceId, title: 'First' })).json()) as {
       id: string;
     };
-    await client.createPage({ workspaceId, title: 'Вторая' });
-    await client.createPage({ workspaceId, title: 'Третья' });
+    await client.createPage({ workspaceId, title: 'Second' });
+    await client.createPage({ workspaceId, title: 'Third' });
 
     const response = await client.listPages(`workspaceId=${workspaceId}`);
     const body = (await response.json()) as {
@@ -189,32 +189,32 @@ describe('GET /pages', () => {
     };
 
     expect(response.status).toBe(200);
-    expect(body.items.map((item) => item.title)).toEqual(['Первая', 'Вторая', 'Третья']);
+    expect(body.items.map((item) => item.title)).toEqual(['First', 'Second', 'Third']);
     expect(body.nextCursor).toBeNull();
 
     // Inserting between neighbours rewrites no existing positions.
-    await client.createPage({ workspaceId, title: 'Между', afterPageId: first.id });
+    await client.createPage({ workspaceId, title: 'Between', afterPageId: first.id });
 
     const after = (await (await client.listPages(`workspaceId=${workspaceId}`)).json()) as {
       items: { title: string }[];
     };
 
-    expect(after.items.map((item) => item.title)).toEqual(['Первая', 'Между', 'Вторая', 'Третья']);
+    expect(after.items.map((item) => item.title)).toEqual(['First', 'Between', 'Second', 'Third']);
   });
 
-  it('помечает hasChildren только у страниц с видимыми детьми', async () => {
+  it('marks hasChildren only for pages with visible children', async () => {
     const client = api();
-    const parent = await createPage({ workspaceId, title: 'Родитель' });
-    const child = await createPage({ workspaceId, parentId: parent.id, title: 'Ребёнок' });
-    await client.createPage({ workspaceId, title: 'Лист' });
+    const parent = await createPage({ workspaceId, title: 'Parent' });
+    const child = await createPage({ workspaceId, parentId: parent.id, title: 'Child' });
+    await client.createPage({ workspaceId, title: 'Leaf' });
 
     const body = (await (await client.listPages(`workspaceId=${workspaceId}`)).json()) as {
       items: { title: string; hasChildren: boolean }[];
     };
     const byTitle = new Map(body.items.map((item) => [item.title, item.hasChildren]));
 
-    expect(byTitle.get('Родитель')).toBe(true);
-    expect(byTitle.get('Лист')).toBe(false);
+    expect(byTitle.get('Parent')).toBe(true);
+    expect(byTitle.get('Leaf')).toBe(false);
 
     // A trashed child must not make the parent expandable.
     await client.patchPage(child.id, `workspaceId=${workspaceId}`, { isTrashed: true });
@@ -226,12 +226,12 @@ describe('GET /pages', () => {
       await client.listPages(`workspaceId=${workspaceId}&includeTrashed=true`)
     ).json()) as { items: { title: string; hasChildren: boolean }[] };
 
-    expect(visible.items.find((item) => item.title === 'Родитель')?.hasChildren).toBe(false);
-    expect(withTrashed.items.find((item) => item.title === 'Родитель')?.hasChildren).toBe(true);
+    expect(visible.items.find((item) => item.title === 'Parent')?.hasChildren).toBe(false);
+    expect(withTrashed.items.find((item) => item.title === 'Parent')?.hasChildren).toBe(true);
   });
 
-  it('не отдаёт страницы чужого workspace', async () => {
-    await api().createPage({ workspaceId, title: 'Своя' });
+  it('does not return pages of a foreign workspace', async () => {
+    await api().createPage({ workspaceId, title: 'Own' });
 
     const body = (await (await api().listPages(`workspaceId=${otherWorkspaceId}`)).json()) as {
       items: unknown[];
@@ -240,9 +240,9 @@ describe('GET /pages', () => {
     expect(body.items).toEqual([]);
   });
 
-  it('постранично отдаёт курсор вместо смещения', async () => {
+  it('paginates with a cursor instead of an offset', async () => {
     const client = api();
-    for (const title of ['Один', 'Два', 'Три']) {
+    for (const title of ['One', 'Two', 'Three']) {
       await client.createPage({ workspaceId, title });
     }
 
@@ -257,13 +257,13 @@ describe('GET /pages', () => {
       await client.listPages(`workspaceId=${workspaceId}&limit=2&cursor=${firstPage.nextCursor}`)
     ).json()) as { items: { title: string }[]; nextCursor: string | null };
 
-    expect(secondPage.items.map((item) => item.title)).toEqual(['Три']);
+    expect(secondPage.items.map((item) => item.title)).toEqual(['Three']);
     expect(secondPage.nextCursor).toBeNull();
   });
 
-  it('различает includeTrashed=true и false', async () => {
+  it('distinguishes includeTrashed=true from false', async () => {
     const client = api();
-    const page = await createPage({ workspaceId, title: 'Мусор' });
+    const page = await createPage({ workspaceId, title: 'Junk' });
     await client.patchPage(page.id, `workspaceId=${workspaceId}`, { isTrashed: true });
 
     const visible = (await (await client.listPages(`workspaceId=${workspaceId}`)).json()) as {
@@ -277,7 +277,7 @@ describe('GET /pages', () => {
     expect(withTrashed.items).toHaveLength(1);
   });
 
-  it('отклоняет limit вне диапазона 1..100', async () => {
+  it('rejects a limit outside the 1..100 range', async () => {
     const response = await api().listPages(`workspaceId=${workspaceId}&limit=101`);
 
     expect(response.status).toBe(400);
@@ -286,12 +286,12 @@ describe('GET /pages', () => {
 });
 
 describe('GET /pages/all', () => {
-  it('отдаёт все страницы workspace плоским списком с признаком детей', async () => {
+  it('returns all workspace pages as a flat list with the has-children flag', async () => {
     const client = api();
-    const root = await createPage({ workspaceId, title: 'Корень' });
-    const child = await createPage({ workspaceId, parentId: root.id, title: 'Вложенная' });
-    const trashed = await createPage({ workspaceId, title: 'Удалённая' });
-    await createPage({ workspaceId: otherWorkspaceId, title: 'Чужая' });
+    const root = await createPage({ workspaceId, title: 'Root' });
+    const child = await createPage({ workspaceId, parentId: root.id, title: 'Nested' });
+    const trashed = await createPage({ workspaceId, title: 'Deleted' });
+    await createPage({ workspaceId: otherWorkspaceId, title: 'Foreign' });
 
     await client.patchPage(trashed.id, `workspaceId=${workspaceId}`, { isTrashed: true });
 
@@ -303,7 +303,7 @@ describe('GET /pages/all', () => {
 
     expect(response.status).toBe(200);
     // Both levels in one answer: the library nests them on the client.
-    expect(body.items.map((item) => item.title).toSorted()).toEqual(['Вложенная', 'Корень']);
+    expect(body.items.map((item) => item.title).toSorted()).toEqual(['Nested', 'Root']);
     expect(body.items.find((item) => item.id === child.id)?.parentId).toBe(root.id);
     // The chevron in the table comes from this flag.
     expect(body.items.find((item) => item.id === root.id)?.hasChildren).toBe(true);
@@ -311,8 +311,8 @@ describe('GET /pages/all', () => {
     expect(body.nextCursor).toBeNull();
   });
 
-  it('отклоняет workspaceId без UUID', async () => {
-    const response = await api().listAll('workspaceId=не-uuid');
+  it('rejects a workspaceId without a UUID', async () => {
+    const response = await api().listAll('workspaceId=not-a-uuid');
 
     expect(response.status).toBe(400);
     expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
@@ -320,12 +320,12 @@ describe('GET /pages/all', () => {
 });
 
 describe('GET /pages/favorites', () => {
-  it('собирает избранное со всех уровней и скрывает корзину и чужие workspace', async () => {
+  it('collects favorites from all levels and hides the trash and foreign workspaces', async () => {
     const client = api();
-    const root = await createPage({ workspaceId, title: 'Корень' });
-    const child = await createPage({ workspaceId, parentId: root.id, title: 'Вложенная' });
-    const trashed = await createPage({ workspaceId, title: 'Удалённая' });
-    const foreign = await createPage({ workspaceId: otherWorkspaceId, title: 'Чужая' });
+    const root = await createPage({ workspaceId, title: 'Root' });
+    const child = await createPage({ workspaceId, parentId: root.id, title: 'Nested' });
+    const trashed = await createPage({ workspaceId, title: 'Deleted' });
+    const foreign = await createPage({ workspaceId: otherWorkspaceId, title: 'Foreign' });
 
     await client.patchPage(root.id, `workspaceId=${workspaceId}`, { isFavorite: true });
     await client.patchPage(child.id, `workspaceId=${workspaceId}`, { isFavorite: true });
@@ -342,12 +342,12 @@ describe('GET /pages/favorites', () => {
     };
 
     expect(response.status).toBe(200);
-    expect(body.items.map((item) => item.title).toSorted()).toEqual(['Вложенная', 'Корень']);
+    expect(body.items.map((item) => item.title).toSorted()).toEqual(['Nested', 'Root']);
     expect(body.nextCursor).toBeNull();
   });
 
-  it('отклоняет workspaceId без UUID', async () => {
-    const response = await api().listFavorites('workspaceId=не-uuid');
+  it('rejects a workspaceId without a UUID', async () => {
+    const response = await api().listFavorites('workspaceId=not-a-uuid');
 
     expect(response.status).toBe(400);
     expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
@@ -355,12 +355,12 @@ describe('GET /pages/favorites', () => {
 });
 
 describe('GET /pages/trash', () => {
-  it('собирает удалённые страницы со всех уровней и не отдаёт чужие', async () => {
+  it('collects deleted pages from all levels and never returns foreign ones', async () => {
     const client = api();
-    const root = await createPage({ workspaceId, title: 'Корень' });
-    const child = await createPage({ workspaceId, parentId: root.id, title: 'Вложенная' });
-    const active = await createPage({ workspaceId, title: 'Живая' });
-    const foreign = await createPage({ workspaceId: otherWorkspaceId, title: 'Чужая' });
+    const root = await createPage({ workspaceId, title: 'Root' });
+    const child = await createPage({ workspaceId, parentId: root.id, title: 'Nested' });
+    const active = await createPage({ workspaceId, title: 'Alive' });
+    const foreign = await createPage({ workspaceId: otherWorkspaceId, title: 'Foreign' });
 
     await client.patchPage(root.id, `workspaceId=${workspaceId}`, { isTrashed: true });
     await client.patchPage(child.id, `workspaceId=${workspaceId}`, { isTrashed: true });
@@ -373,13 +373,13 @@ describe('GET /pages/trash', () => {
     };
 
     expect(response.status).toBe(200);
-    expect(body.items.map((item) => item.title).toSorted()).toEqual(['Вложенная', 'Корень']);
+    expect(body.items.map((item) => item.title).toSorted()).toEqual(['Nested', 'Root']);
     expect(body.items.some((item) => item.id === active.id)).toBe(false);
     expect(body.nextCursor).toBeNull();
   });
 
-  it('отклоняет workspaceId без UUID', async () => {
-    const response = await api().listTrash('workspaceId=не-uuid');
+  it('rejects a workspaceId without a UUID', async () => {
+    const response = await api().listTrash('workspaceId=not-a-uuid');
 
     expect(response.status).toBe(400);
     expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
@@ -387,13 +387,13 @@ describe('GET /pages/trash', () => {
 });
 
 describe('GET /pages/search', () => {
-  it('ищет по названию по всем уровням и прячет корзину и чужие workspace', async () => {
+  it('searches by title across all levels and hides the trash and foreign workspaces', async () => {
     const client = api();
     const root = await createPage({ workspaceId, title: 'Дорожная карта' });
     await createPage({ workspaceId, parentId: root.id, title: 'Вложенная Дорожная карта' });
     const trashed = await createPage({ workspaceId, title: 'Дорожная карта в корзине' });
     await createPage({ workspaceId: otherWorkspaceId, title: 'Дорожная карта' });
-    await createPage({ workspaceId, title: 'Другое' });
+    await createPage({ workspaceId, title: 'Other' });
 
     await client.patchPage(trashed.id, `workspaceId=${workspaceId}`, { isTrashed: true });
 
@@ -409,10 +409,10 @@ describe('GET /pages/search', () => {
     ]);
   });
 
-  it('относит % в запросе к обычному тексту, а не к подстановочному знаку', async () => {
+  it('treats % in the query as literal text, not a wildcard', async () => {
     const client = api();
-    await createPage({ workspaceId, title: '100% хлопок' });
-    await createPage({ workspaceId, title: '100 долларов' });
+    await createPage({ workspaceId, title: '100% cotton' });
+    await createPage({ workspaceId, title: '100 dollars' });
 
     const response = await client.searchPages(
       `workspaceId=${workspaceId}&q=${encodeURIComponent('100%')}`,
@@ -420,32 +420,32 @@ describe('GET /pages/search', () => {
     const body = (await response.json()) as { items: { title: string }[] };
 
     expect(response.status).toBe(200);
-    expect(body.items.map((item) => item.title)).toEqual(['100% хлопок']);
+    expect(body.items.map((item) => item.title)).toEqual(['100% cotton']);
   });
 
-  it('отклоняет пустой запрос и workspaceId без UUID', async () => {
+  it('rejects an empty query and a workspaceId without a UUID', async () => {
     const empty = await api().searchPages(`workspaceId=${workspaceId}&q=`);
     expect(empty.status).toBe(400);
     expect(await problemOf(empty)).toMatchObject({ code: 'VALIDATION_ERROR' });
 
-    const badWorkspace = await api().searchPages('workspaceId=не-uuid&q=что-то');
+    const badWorkspace = await api().searchPages('workspaceId=not-a-uuid&q=something');
     expect(badWorkspace.status).toBe(400);
     expect(await problemOf(badWorkspace)).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 });
 
 describe('GET /pages/:id', () => {
-  it('возвращает страницу', async () => {
-    const created = await createPage({ workspaceId, title: 'Найти' });
+  it('returns the page', async () => {
+    const created = await createPage({ workspaceId, title: 'Find' });
 
     const response = await api().getPage(created.id);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ id: created.id, title: 'Найти' });
+    expect(await response.json()).toMatchObject({ id: created.id, title: 'Find' });
   });
 
-  it('скрывает страницу чужого workspace под 404 (защита от IDOR)', async () => {
-    const created = await createPage({ workspaceId, title: 'Чужая' });
+  it('hides a foreign-workspace page behind a 404 (IDOR protection)', async () => {
+    const created = await createPage({ workspaceId, title: 'Foreign' });
 
     const response = await api().getPage(created.id, `workspaceId=${otherWorkspaceId}`);
 
@@ -453,14 +453,14 @@ describe('GET /pages/:id', () => {
     expect(await problemOf(response)).toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('отвечает 400 на некорректный идентификатор', async () => {
-    const response = await api().getPage('не-uuid');
+  it('responds 400 to an invalid identifier', async () => {
+    const response = await api().getPage('not-a-uuid');
 
     expect(response.status).toBe(400);
     expect(await problemOf(response)).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 
-  it('отвечает 404 на несуществующую страницу', async () => {
+  it('responds 404 for a nonexistent page', async () => {
     const response = await api().getPage(crypto.randomUUID());
 
     expect(response.status).toBe(404);
@@ -469,33 +469,33 @@ describe('GET /pages/:id', () => {
 });
 
 describe('PATCH /pages/:id', () => {
-  it('обновляет заголовок и время изменения', async () => {
+  it('updates the title and modification time', async () => {
     const client = api();
-    const created = await createPage({ workspaceId, title: 'Было' });
+    const created = await createPage({ workspaceId, title: 'Before' });
 
     const response = await client.patchPage(created.id, `workspaceId=${workspaceId}`, {
-      title: 'Стало',
+      title: 'After',
       isFavorite: true,
     });
     const page = (await response.json()) as { title: string; isFavorite: boolean };
 
     expect(response.status).toBe(200);
-    expect(page).toMatchObject({ title: 'Стало', isFavorite: true });
+    expect(page).toMatchObject({ title: 'After', isFavorite: true });
   });
 
-  it('не меняет страницу чужого workspace', async () => {
-    const created = await createPage({ workspaceId, title: 'Чужая' });
+  it('does not change a page of a foreign workspace', async () => {
+    const created = await createPage({ workspaceId, title: 'Foreign' });
 
     const response = await api().patchPage(created.id, `workspaceId=${otherWorkspaceId}`, {
-      title: 'Взлом',
+      title: 'Hack',
     });
 
     expect(response.status).toBe(404);
     expect(await problemOf(response)).toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('отклоняет пустое обновление', async () => {
-    const created = await createPage({ workspaceId, title: 'Что-то' });
+  it('rejects an empty update', async () => {
+    const created = await createPage({ workspaceId, title: 'Something' });
 
     const response = await api().patchPage(created.id, `workspaceId=${workspaceId}`, {});
 

@@ -13,7 +13,7 @@ const app = createPagesServiceApp();
 const env: Bindings = workerEnv;
 
 describe('pages-service /health', () => {
-  it('отвечает ok и описывает сам сервис', async () => {
+  it('responds ok and describes the service itself', async () => {
     const response = await app.request('/health', {}, env);
 
     expect(response.status).toBe(200);
@@ -23,20 +23,20 @@ describe('pages-service /health', () => {
     });
   });
 
-  it('берёт версию из переменных окружения', async () => {
+  it('takes the version from environment variables', async () => {
     const response = await app.request('/health', {}, { ...env, SERVICE_VERSION: '9.9.9' });
     const body = (await response.json()) as { version: string };
 
     expect(body.version).toBe('9.9.9');
   });
 
-  it('имеет собственную базу D1 (database-per-service)', () => {
+  it('has its own D1 database (database-per-service)', () => {
     expect(env.DB).toBeDefined();
   });
 });
 
-describe('pages-service обработка ошибок', () => {
-  it('возвращает problem+json для неизвестного маршрута', async () => {
+describe('pages-service error handling', () => {
+  it('returns problem+json for an unknown route', async () => {
     const response = await app.request('/nope', {}, env);
     const body = (await response.json()) as Record<string, unknown>;
 
@@ -45,17 +45,17 @@ describe('pages-service обработка ошибок', () => {
     expect(body).toMatchObject({ status: 404, code: 'NOT_FOUND' });
   });
 
-  it('не выдаёт детали необработанной ошибки наружу', async () => {
+  it('does not leak unhandled error details', async () => {
     const failing = createPagesServiceApp();
     failing.get('/boom', () => {
-      throw new Error('секретные детали системы');
+      throw new Error('secret internal details');
     });
 
     const response = await failing.request('/boom', {}, env);
     const text = await response.text();
 
     expect(response.status).toBe(500);
-    expect(text).not.toContain('секретные детали');
+    expect(text).not.toContain('secret internal details');
     expect(JSON.parse(text)).toMatchObject({ status: 500, code: 'INTERNAL_ERROR' });
   });
 });

@@ -202,8 +202,8 @@ function PageTreeNode({
           <span className="truncate">{title}</span>
           {page.isFavorite ? <span aria-label={t('favorites')}>★</span> : null}
         </Link>
-        {/* Кнопки появляются при наведении на строку дерева и остаются
-            видимыми, пока открыто меню страницы. */}
+        {/* The buttons appear on row hover and stay visible
+            while the page menu is open. */}
         <div
           className={`mr-1 shrink-0 items-center gap-0.5 ${
             menuOpen ? 'flex' : 'hidden group-hover:flex'
