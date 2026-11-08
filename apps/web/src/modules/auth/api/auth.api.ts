@@ -136,15 +136,36 @@ export function createBetterAuthGateway(options: AuthGatewayOptions): AuthGatewa
       await call(() => client.changeEmail({ newEmail, callbackURL: '/' }));
     },
 
-    async changePassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
-      await call(() =>
-        client.changePassword({
-          currentPassword: input.currentPassword,
-          newPassword: input.newPassword,
-          // Other devices keep their sessions: a password change is not a global sign-out.
-          revokeOtherSessions: false,
-        }),
-      );
+    async changePassword(input: { newPassword: string }): Promise<void> {
+      // Plain fetch to the auth-service's own endpoint: the standard Better Auth
+      // changePassword demands the current password, while the form relies on the
+      // fresh-session check instead (Notion-style). The response is validated
+      // by Zod — the network is not a trusted source.
+      let response: Response;
+
+      try {
+        response = await fetch(`${options.baseUrl}/api/auth/change-password/session`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ newPassword: input.newPassword }),
+        });
+      } catch (error) {
+        throw networkError(error);
+      }
+
+      if (response.ok) {
+        return;
+      }
+
+      const payload = AuthErrorResponseSchema.safeParse(await response.json().catch(() => null));
+
+      throw payload.success
+        ? authErrorFromPayload({
+            code: payload.data.code,
+            status: payload.data.status ?? response.status,
+          })
+        : authErrorFromStatus(response.status);
     },
 
     async deleteAccount(): Promise<void> {

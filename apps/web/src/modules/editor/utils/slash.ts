@@ -39,7 +39,7 @@ export interface SlashCommand {
   /** For kind 'columns': how many columns to create (2–5). */
   columnsCount?: 2 | 3 | 4 | 5;
   blockType: BlockType;
-  /** Search synonyms: Notion's English commands and Russian labels. */
+  /** Search synonyms: Notion's English commands and common synonyms. */
   keywords: readonly string[];
 }
 
@@ -57,7 +57,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'paragraph',
     blockType: 'paragraph',
-    keywords: ['text', 'plain', 'paragraph', 'текст', 'абзац'],
+    keywords: ['text', 'plain', 'paragraph', 'plain text', 'body text'],
   },
   {
     id: 'heading1',
@@ -67,7 +67,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'heading',
     headingLevel: 1,
     blockType: 'heading',
-    keywords: ['h1', 'heading1', 'heading 1', 'heading', 'заголовок1', 'заголовок 1', '#'],
+    keywords: ['h1', 'heading1', 'heading 1', 'heading', 'big heading', '#'],
   },
   {
     id: 'heading2',
@@ -77,7 +77,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'heading',
     headingLevel: 2,
     blockType: 'heading',
-    keywords: ['h2', 'heading2', 'heading 2', 'heading', 'заголовок2', 'заголовок 2', '##'],
+    keywords: ['h2', 'heading2', 'heading 2', 'heading', 'medium heading', '##'],
   },
   {
     id: 'heading3',
@@ -87,7 +87,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'heading',
     headingLevel: 3,
     blockType: 'heading',
-    keywords: ['h3', 'heading3', 'heading 3', 'heading', 'заголовок3', 'заголовок 3', '###'],
+    keywords: ['h3', 'heading3', 'heading 3', 'heading', 'small heading', '###'],
   },
   {
     id: 'heading4',
@@ -97,7 +97,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'heading',
     headingLevel: 4,
     blockType: 'heading',
-    keywords: ['h4', 'heading4', 'heading 4', 'heading', 'заголовок4', 'заголовок 4', '####'],
+    keywords: ['h4', 'heading4', 'heading 4', 'heading', 'smallest heading', '####'],
   },
   {
     id: 'toggle',
@@ -106,7 +106,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: '>',
     kind: 'toggle',
     blockType: 'toggle',
-    keywords: ['toggle', 'toggle list', 'переключатель', 'сворачиваемый', '>'],
+    keywords: ['toggle', 'toggle list', 'toggle heading', 'collapsible', '>'],
   },
   {
     id: 'numberedList',
@@ -115,7 +115,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: '1.',
     kind: 'orderedList',
     blockType: 'numberedListItem',
-    keywords: ['num', 'numbered', 'numbered list', 'ordered', 'нумерованный', '1.'],
+    keywords: ['num', 'numbered', 'numbered list', 'ordered', 'ordered list', '1.'],
   },
   {
     id: 'checkList',
@@ -124,7 +124,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: '[]',
     kind: 'toDo',
     blockType: 'toDo',
-    keywords: ['todo', 'to-do', 'check', 'checklist', 'task', 'задача', 'чек', '[]'],
+    keywords: ['todo', 'to-do', 'check', 'checklist', 'task', 'checkbox', '[]'],
   },
   {
     id: 'bulletedList',
@@ -133,7 +133,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: '-',
     kind: 'bulletList',
     blockType: 'bulletedListItem',
-    keywords: ['bullet', 'bulleted', 'bulleted list', 'unordered', 'маркированный', '-'],
+    keywords: ['bullet', 'bulleted', 'bulleted list', 'unordered', 'unordered list', '-'],
   },
   {
     id: 'quote',
@@ -142,7 +142,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: '"',
     kind: 'quote',
     blockType: 'quote',
-    keywords: ['quote', 'blockquote', 'cite', 'цитата', 'цитировать', '"'],
+    keywords: ['quote', 'blockquote', 'cite', 'citation', 'callout', '"'],
   },
   {
     id: 'divider',
@@ -151,7 +151,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: '---',
     kind: 'divider',
     blockType: 'divider',
-    keywords: ['divider', 'hr', 'line', 'rule', 'разделитель', 'линия', '---'],
+    keywords: ['divider', 'hr', 'line', 'rule', 'separator', 'horizontal rule', '---'],
   },
   {
     id: 'table',
@@ -160,7 +160,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'table',
     blockType: 'table',
-    keywords: ['table', 'grid', 'таблица', 'сетка', 'столбцы', 'строки'],
+    keywords: ['table', 'grid', 'rows and columns', 'cells'],
   },
   {
     id: 'page',
@@ -169,7 +169,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'page',
     blockType: 'page',
-    keywords: ['page', 'subpage', 'sub-page', 'страница', 'подстраница', 'документ'],
+    keywords: ['page', 'subpage', 'sub-page', 'child page', 'document'],
   },
   {
     id: 'code',
@@ -178,7 +178,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: '```',
     kind: 'code',
     blockType: 'code',
-    keywords: ['code', 'snippet', 'код', 'фрагмент', '```'],
+    keywords: ['code', 'snippet', 'code block', 'code snippet', '```'],
   },
   {
     id: 'image',
@@ -187,7 +187,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'image',
     blockType: 'image',
-    keywords: ['image', 'picture', 'img', 'изображение', 'картинка', 'фото'],
+    keywords: ['image', 'picture', 'img', 'photo', 'pic'],
   },
   {
     id: 'video',
@@ -196,7 +196,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'video',
     blockType: 'video',
-    keywords: ['video', 'movie', 'видео', 'ролик', 'mp4'],
+    keywords: ['video', 'movie', 'clip', 'mp4'],
   },
   {
     id: 'file',
@@ -205,7 +205,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'file',
     blockType: 'file',
-    keywords: ['file', 'document', 'pdf', 'файл', 'документ', 'вложение'],
+    keywords: ['file', 'document', 'pdf', 'attachment', 'upload'],
   },
   {
     id: 'emoji',
@@ -214,7 +214,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'emoji',
     blockType: 'emoji',
-    keywords: ['emoji', 'smile', 'icon', 'эмодзи', 'смайл', 'иконка'],
+    keywords: ['emoji', 'smile', 'icon', 'smiley', 'emoticon'],
   },
   {
     id: 'columns-2',
@@ -224,7 +224,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'columns',
     columnsCount: 2,
     blockType: 'columns',
-    keywords: ['columns', 'columns 2', 'колонки', '2 колонки', 'две колонки'],
+    keywords: ['columns', 'columns 2', 'two columns', 'column split'],
   },
   {
     id: 'columns-3',
@@ -234,7 +234,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'columns',
     columnsCount: 3,
     blockType: 'columns',
-    keywords: ['columns', 'columns 3', 'колонки', '3 колонки', 'три колонки'],
+    keywords: ['columns', 'columns 3', 'three columns', 'column split'],
   },
   {
     id: 'columns-4',
@@ -244,7 +244,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'columns',
     columnsCount: 4,
     blockType: 'columns',
-    keywords: ['columns', 'columns 4', 'колонки', '4 колонки', 'четыре колонки'],
+    keywords: ['columns', 'columns 4', 'four columns', 'column split'],
   },
   {
     id: 'columns-5',
@@ -254,7 +254,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'columns',
     columnsCount: 5,
     blockType: 'columns',
-    keywords: ['columns', 'columns 5', 'колонки', '5 колонок', 'пять колонок'],
+    keywords: ['columns', 'columns 5', 'five columns', 'column split'],
   },
   {
     id: 'equation',
@@ -263,7 +263,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'equation',
     blockType: 'equation',
-    keywords: ['equation', 'formula', 'math', 'latex', 'tex', 'формула', 'математика', 'уравнение'],
+    keywords: ['equation', 'formula', 'math', 'latex', 'tex', 'math expression'],
   },
   {
     id: 'inline-equation',
@@ -275,9 +275,9 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     keywords: [
       'inline equation',
       'inline math',
-      'строчная формула',
-      'инлайн формула',
-      'формула в тексте',
+      'inline formula',
+      'math in text',
+      'text formula',
     ],
   },
   {
@@ -287,7 +287,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'linkToPage',
     blockType: 'linkToPage',
-    keywords: ['link to page', 'page link', 'ссылка на страницу', 'ссылка', 'упоминание страницы'],
+    keywords: ['link to page', 'page link', 'page mention', 'mention page', 'link'],
   },
   {
     id: 'breadcrumb',
@@ -296,7 +296,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     markdown: null,
     kind: 'breadcrumb',
     blockType: 'breadcrumb',
-    keywords: ['breadcrumb', 'path', 'крошки', 'хлебные крошки', 'путь страницы'],
+    keywords: ['breadcrumb', 'path', 'breadcrumbs', 'page path', 'page trail'],
   },
   {
     id: 'database-inline',
@@ -310,8 +310,8 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
       'database inline',
       'database',
       'db',
-      'база данных',
-      'инлайн база',
+      'inline db',
+      'inline table',
     ],
   },
   {
@@ -326,9 +326,8 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
       'database page',
       'whole page database',
       'database',
-      'полная страница базы',
-      'база данных страницей',
-      'страница базы',
+      'database as page',
+      'full-page database',
     ],
   },
   {
@@ -344,8 +343,8 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
       'bar chart',
       'chart horizontal',
       'chart',
-      'горизонтальный график',
-      'график',
+      'bar graph',
+      'chart bar',
     ],
   },
   {
@@ -361,8 +360,8 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
       'column chart',
       'chart vertical',
       'chart',
-      'вертикальный график',
-      'график',
+      'column graph',
+      'chart column',
     ],
   },
   {
@@ -373,7 +372,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'chart',
     chartType: 'chart_donut',
     blockType: 'database',
-    keywords: ['donut chart', 'pie chart', 'chart donut', 'chart', 'кольцевой график', 'график'],
+    keywords: ['donut chart', 'pie chart', 'chart donut', 'chart', 'ring chart', 'pie graph'],
   },
   {
     id: 'chart-line',
@@ -383,7 +382,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'chart',
     chartType: 'chart_line',
     blockType: 'database',
-    keywords: ['line chart', 'chart line', 'chart', 'линейный график', 'график'],
+    keywords: ['line chart', 'chart line', 'chart', 'line graph', 'graph over time'],
   },
   {
     id: 'chart-number',
@@ -393,7 +392,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     kind: 'chart',
     chartType: 'chart_number',
     blockType: 'database',
-    keywords: ['number chart', 'count chart', 'chart number', 'chart', 'числовой график', 'график'],
+    keywords: ['number chart', 'count chart', 'chart number', 'chart', 'number card', 'counter'],
   },
 ];
 

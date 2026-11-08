@@ -39,7 +39,7 @@ function subPageNodes(current: Editor): { pageId: unknown; title: unknown }[] {
 }
 
 describe('insertSubPageAtSlash', () => {
-  it('заменяет пустой абзац ссылкой и дополняет её после создания страницы', async () => {
+  it('replaces an empty paragraph with a link and fills it in after the page is created', async () => {
     const current = createEditorWithBridge(async () => DRAFT);
     editor = current;
 
@@ -56,7 +56,7 @@ describe('insertSubPageAtSlash', () => {
     expect(types).toEqual(['subPage', 'paragraph']);
   });
 
-  it('убирает заглушку, если страницу создать не удалось', async () => {
+  it('removes the stub when the page fails to be created', async () => {
     const current = createEditorWithBridge(async () => null);
     editor = current;
 
@@ -69,7 +69,7 @@ describe('insertSubPageAtSlash', () => {
     expect((current.getJSON().content ?? []).map((node) => node.type)).toEqual(['paragraph']);
   });
 
-  it('вставляет ссылку после непустого блока, не удаляя его текст', async () => {
+  it('inserts the link after a non-empty block without deleting its text', async () => {
     const current = createEditorWithBridge(async () => DRAFT);
     editor = current;
 
@@ -88,13 +88,13 @@ describe('insertSubPageAtSlash', () => {
 });
 
 describe('insertSubPageBelow', () => {
-  it('вставляет ссылку под блоком из plus-меню', async () => {
+  it('inserts the link below a block from the plus menu', async () => {
     const current = createEditorWithBridge(async () => DRAFT);
     editor = current;
 
     current.commands.setContent({
       type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Строка' }] }],
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Line' }] }],
     });
 
     const block = findBlockAtPosition(current, 0);
@@ -107,7 +107,7 @@ describe('insertSubPageBelow', () => {
     expect(subPageNodes(current)).toEqual([{ pageId: DRAFT.id, title: '' }]);
   });
 
-  it('выходит из списка: ссылка вставляется после всего списка', async () => {
+  it('leaves the list: the link is inserted after the whole list', async () => {
     const current = createEditorWithBridge(async () => DRAFT);
     editor = current;
 
@@ -119,7 +119,7 @@ describe('insertSubPageBelow', () => {
           content: [
             {
               type: 'listItem',
-              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Пункт' }] }],
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Item' }] }],
             },
           ],
         },

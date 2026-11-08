@@ -4,6 +4,7 @@ import { jwt } from 'better-auth/plugins';
 import type { Bindings } from '../env';
 import { requireAuthSecret } from '../env';
 import type { MailSender } from './mailer';
+import { sessionPasswordPlugin } from './session-password-plugin';
 
 export const AUTH_BASE_PATH = '/api/auth';
 
@@ -142,7 +143,7 @@ export function buildAuthOptions(env: Bindings, deps: AuthDependencies): BetterA
         await deps.mailSender.send({
           to: user.email,
           kind: 'RESET_PASSWORD',
-          subject: 'Восстановление пароля в notio',
+          subject: 'Reset your password for notio',
           // Better Auth builds the link with callbackURL=/ (gateway). Rewrite it to the frontend
           // so a password reset lands on the login page.
           actionUrl: rewriteCallbackUrl(url, deps.frontendUrl),
@@ -156,14 +157,31 @@ export function buildAuthOptions(env: Bindings, deps: AuthDependencies): BetterA
       autoSignInAfterVerification: true,
       expiresIn: 60 * 60 * 24,
       sendVerificationEmail: async ({ user, url }) => {
-        await deps.mailSender.send({
-          to: user.email,
-          kind: 'VERIFY_EMAIL',
-          subject: 'Подтвердите почту в notio',
-          // Better Auth builds the link with callbackURL=/ (gateway). Rewrite it to the frontend
-          // so email confirmation lands on the home page.
-          actionUrl: rewriteCallbackUrl(url, deps.frontendUrl),
-        });
+        try {
+          await deps.mailSender.send({
+            to: user.email,
+            kind: 'VERIFY_EMAIL',
+            subject: 'Confirm your email for notio',
+            // Better Auth builds the link with callbackURL=/ (gateway). Rewrite it to the frontend
+            // so email confirmation lands on the home page.
+            actionUrl: rewriteCallbackUrl(url, deps.frontendUrl),
+          });
+        } catch (error) {
+          // Better Auth runs this as a background task and logs the error as
+          // an empty object (Error fields are not enumerable): the reason —
+          // e.g. the provider's response text — must be logged explicitly.
+          log(
+            JSON.stringify({
+              level: 'error',
+              service: 'auth-service',
+              event: 'mail_send_failed',
+              to: user.email,
+              reason: error instanceof Error ? error.message : String(error),
+            }),
+          );
+
+          throw error;
+        }
       },
     },
 
@@ -213,8 +231,8 @@ export function buildAuthOptions(env: Bindings, deps: AuthDependencies): BetterA
       storage: 'secondary-storage',
     },
 
-    // The JWT is needed for service-to-service calls: the gateway verifies the signature
-    // locally against JWKS and does not call auth-service on every request.
+    // The JWT is needed for service-to-service calls: the gateway verifies the
+    // signature locally against JWKS and does not call auth-service on every request.
     plugins: [
       jwt({
         jwks: {
@@ -224,16 +242,17 @@ export function buildAuthOptions(env: Bindings, deps: AuthDependencies): BetterA
           disablePrivateKeyEncryption: env.ENVIRONMENT !== 'production',
         },
       }),
+      sessionPasswordPlugin(),
     ],
 
     advanced: {
       useSecureCookies: env.ENVIRONMENT === 'production',
       cookiePrefix: 'notio',
-      // Web и gateway — sibling hosts (workers.dev subdomains): cookie сессии
-      // должна ставиться на их общий родительский домен, иначе она остаётся на
-      // хосте gateway, и proxy.ts на web-воркере никогда не видит
-      // аутентифицированную навигацию. COOKIE_DOMAIN задаёт этот домен; в dev
-      // оба хоста — localhost (cookie не зависит от порта), домен не нужен.
+      // Web and gateway are sibling hosts (workers.dev subdomains): the session
+      // cookie must be set on their shared parent domain, otherwise it stays on
+      // the gateway host and proxy.ts on the web worker never sees
+      // authenticated navigation. COOKIE_DOMAIN sets that domain; in dev both
+      // hosts are localhost (the cookie ignores ports), so no domain is needed.
       ...(env.COOKIE_DOMAIN
         ? {
             crossSubDomainCookies: {

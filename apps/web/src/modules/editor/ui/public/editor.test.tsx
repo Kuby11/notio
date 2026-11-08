@@ -65,21 +65,21 @@ function mockBlockResponse(blocks: Block[]) {
 }
 
 const BLOCKS: Block[] = [
-  block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: 'Первый абзац' }),
-  block(HEADING_ID, 'a1', { type: 'heading', level: 2, content: 'Заголовок' }),
-  block(BULLET_ID, 'a2', { type: 'bulletedListItem', content: 'Пункт списка' }),
-  block(TODO_ID, 'a3', { type: 'toDo', checked: false, content: 'Задача' }),
+  block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: 'First paragraph' }),
+  block(HEADING_ID, 'a1', { type: 'heading', level: 2, content: 'Heading' }),
+  block(BULLET_ID, 'a2', { type: 'bulletedListItem', content: 'List item' }),
+  block(TODO_ID, 'a3', { type: 'toDo', checked: false, content: 'Task' }),
   block(QUOTE_ID, 'a4', { type: 'quote', content: 'Quote' }),
   block(CODE_ID, 'a5', { type: 'code', language: 'ts', content: 'const x = 1;' }),
   block(DIVIDER_ID, 'a6', { type: 'divider' }),
   block(IMAGE_ID, 'a7', { type: 'image', fileId: FILE_ID, url: null, caption: 'Caption' }),
-  block(TOGGLE_ID, 'a8', { type: 'toggle', content: 'Переключатель' }),
+  block(TOGGLE_ID, 'a8', { type: 'toggle', content: 'Toggle' }),
   block(TABLE_ID, 'a9', {
     type: 'table',
     headerRow: true,
     rows: [
       ['Name', 'Value'],
-      ['Один', '1'],
+      ['One', '1'],
     ],
   }),
   block(SUB_PAGE_BLOCK_ID, 'a10', {
@@ -101,7 +101,7 @@ afterEach(() => {
 });
 
 describe('Editor', () => {
-  it('гидратирует блоки в Tiptap и рендерит их типами', async () => {
+  it('hydrates blocks into Tiptap and renders them by type', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
 
@@ -109,12 +109,12 @@ describe('Editor', () => {
       databases: createFakeDatabaseRepository(),
     });
 
-    expect(await screen.findByText('Первый абзац')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: 'Заголовок' })).toBeInTheDocument();
-    expect(screen.getByText('Пункт списка')).toBeInTheDocument();
-    expect(screen.getByText('Задача')).toBeInTheDocument();
+    expect(await screen.findByText('First paragraph')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Heading' })).toBeInTheDocument();
+    expect(screen.getByText('List item')).toBeInTheDocument();
+    expect(screen.getByText('Task')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: 'Check' })).not.toBeChecked();
-    expect(screen.getByText('Задача').closest('[data-block-id]')).toHaveAttribute(
+    expect(screen.getByText('Task').closest('[data-block-id]')).toHaveAttribute(
       'data-block-id',
       TODO_ID,
     );
@@ -123,7 +123,7 @@ describe('Editor', () => {
     // The image caption is an input inside the node view.
     expect(screen.getByDisplayValue('Caption')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Caption' })).toBeInTheDocument();
-    expect(screen.getByText('Переключатель')).toBeInTheDocument();
+    expect(screen.getByText('Toggle')).toBeInTheDocument();
     expect(document.querySelector(`hr[data-block-id="${DIVIDER_ID}"]`)).not.toBeNull();
 
     // Table: first row is the header, the second holds regular cells.
@@ -139,28 +139,28 @@ describe('Editor', () => {
     ).not.toBeNull();
     expect(screen.getByText('Child page')).toBeInTheDocument();
 
-    expect(screen.getByText('Первый абзац').closest('[data-block-id]')).toHaveAttribute(
+    expect(screen.getByText('First paragraph').closest('[data-block-id]')).toHaveAttribute(
       'data-block-id',
       PARAGRAPH_ID,
     );
-    expect(screen.getByText('Пункт списка').closest('[data-block-id]')).toHaveAttribute(
+    expect(screen.getByText('List item').closest('[data-block-id]')).toHaveAttribute(
       'data-block-id',
       BULLET_ID,
     );
 
-    const bulletItem = screen.getByText('Пункт списка').closest('li');
+    const bulletItem = screen.getByText('List item').closest('li');
     expect(bulletItem).toHaveClass('notio-list-item');
     expect(bulletItem?.querySelector('.notio-list-marker')).not.toBeNull();
   });
 
-  it('раскрывает и сворачивает toggle, поворачивая стрелку', async () => {
+  it('expands and collapses a toggle, rotating the arrow', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([
       block(TOGGLE_ID, 'a0', {
         type: 'toggle',
-        content: 'Переключатель',
-        children: [{ type: 'paragraph', content: 'Содержимое toggle' }],
+        content: 'Toggle',
+        children: [{ type: 'paragraph', content: 'Toggle content' }],
       }),
     ]);
 
@@ -169,14 +169,14 @@ describe('Editor', () => {
     });
 
     const collapse = await screen.findByRole('button', { name: 'Collapse toggle' });
-    const details = screen.getByText('Переключатель').closest('[data-type="details"]');
+    const details = screen.getByText('Toggle').closest('[data-type="details"]');
     const content = details?.querySelector('[data-type="detailsContent"]');
 
     await waitFor(() => expect(details).toHaveClass('is-open'));
     expect(collapse).toHaveAttribute('aria-expanded', 'true');
     expect(details).toHaveAttribute('data-block-id', TOGGLE_ID);
     expect(content).not.toHaveAttribute('hidden');
-    expect(screen.getByText('Содержимое toggle')).toBeInTheDocument();
+    expect(screen.getByText('Toggle content')).toBeInTheDocument();
 
     fireEvent.click(collapse);
 
@@ -193,10 +193,10 @@ describe('Editor', () => {
     expect(content).not.toHaveAttribute('hidden');
   });
 
-  it('переключает чек-лист и зачёркивает выполненную задачу', async () => {
+  it('toggles the checklist and strikes through a completed task', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
-    mockBlockResponse([block(TODO_ID, 'a0', { type: 'toDo', checked: false, content: 'Задача' })]);
+    mockBlockResponse([block(TODO_ID, 'a0', { type: 'toDo', checked: false, content: 'Task' })]);
 
     renderWithProviders(<Editor pageId={PAGE_ID} workspaceId={WORKSPACE_ID} />, gateway, {
       databases: createFakeDatabaseRepository(),
@@ -207,18 +207,18 @@ describe('Editor', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('checkbox', { name: 'Uncheck' })).toBeChecked();
-      expect(screen.getByText('Задача').closest('li')).toHaveAttribute('data-checked', 'true');
+      expect(screen.getByText('Task').closest('li')).toHaveAttribute('data-checked', 'true');
     });
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Uncheck' }));
 
     await waitFor(() => {
       expect(screen.getByRole('checkbox', { name: 'Check' })).not.toBeChecked();
-      expect(screen.getByText('Задача').closest('li')).toHaveAttribute('data-checked', 'false');
+      expect(screen.getByText('Task').closest('li')).toHaveAttribute('data-checked', 'false');
     });
   });
 
-  it('показывает подсказку в пустом чек-листе', async () => {
+  it('shows the placeholder in an empty checklist', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([block(TODO_ID, 'a0', { type: 'toDo', checked: false, content: '' })]);
@@ -234,7 +234,7 @@ describe('Editor', () => {
     });
   });
 
-  it('показывает подсказку в текущей пустой строке', async () => {
+  it('shows the placeholder on the current empty line', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: '' })]);
@@ -250,7 +250,7 @@ describe('Editor', () => {
     });
   });
 
-  it('открывает подстраницу по клику на её ссылку', async () => {
+  it('opens a sub-page by clicking its link', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([
@@ -273,7 +273,7 @@ describe('Editor', () => {
     expect(routerPush).toHaveBeenCalledWith(`/workspaces/${WORKSPACE_ID}/${SUB_PAGE_ID}`);
   });
 
-  it('рендерит видео, файл и эмодзи из контракта', async () => {
+  it('renders video, file and emoji from the contract', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([
@@ -281,7 +281,7 @@ describe('Editor', () => {
         type: 'video',
         fileId: null,
         url: 'https://example.com/clip.mp4',
-        caption: 'Ролик',
+        caption: 'Clip',
       }),
       block('00000000-0000-4000-8000-000000000202', 'a1', {
         type: 'file',
@@ -309,7 +309,7 @@ describe('Editor', () => {
     });
 
     expect(video.getAttribute('src')).toBe('https://example.com/clip.mp4');
-    expect(screen.getByDisplayValue('Ролик')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Clip')).toBeInTheDocument();
 
     const link = screen.getByRole('link', { name: /doc.pdf/ });
 
@@ -319,7 +319,7 @@ describe('Editor', () => {
     expect(screen.getByRole('button', { name: '🚀' })).toHaveAttribute('title', 'Change emoji');
   });
 
-  it('slash-меню открывается по «/» и переживает ререндер', async () => {
+  it('opens the slash menu on "/" and survives a rerender', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: '' })]);
@@ -352,7 +352,7 @@ describe('Editor', () => {
     }
   });
 
-  it('вставляет базу данных из slash-меню и создаёт её строку', async () => {
+  it('inserts a database from the slash menu and creates its row', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: '' })]);
@@ -386,7 +386,7 @@ describe('Editor', () => {
     }
   });
 
-  it('вставляет график из slash-меню и открывает его представление', async () => {
+  it('inserts a chart from the slash menu and opens its view', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: '' })]);
@@ -420,7 +420,7 @@ describe('Editor', () => {
     }
   });
 
-  it('рендерит блок базы данных через модуль databases', async () => {
+  it('renders a database block through the databases module', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([
@@ -440,7 +440,7 @@ describe('Editor', () => {
     expect(document.querySelector(`[data-database-id="${DATABASE_ID}"]`)).not.toBeNull();
   });
 
-  it('файловый блок добирает имя и размер через HEAD', async () => {
+  it('fetches file block name and size via HEAD', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
 
@@ -487,13 +487,13 @@ describe('Editor', () => {
     expect(await screen.findByText('1.2 MB')).toBeInTheDocument();
   });
 
-  it('гидратирует цвета блока в data-атрибуты', async () => {
+  it('hydrates block colors into data attributes', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([
       block(PARAGRAPH_ID, 'a0', {
         type: 'paragraph',
-        content: 'Цветной текст',
+        content: 'Colored text',
         color: 'red',
         backgroundColor: 'yellow',
       }),
@@ -503,15 +503,15 @@ describe('Editor', () => {
       databases: createFakeDatabaseRepository(),
     });
 
-    await screen.findByText('Цветной текст');
+    await screen.findByText('Colored text');
 
-    const paragraph = screen.getByText('Цветной текст').closest('p');
+    const paragraph = screen.getByText('Colored text').closest('p');
 
     expect(paragraph).toHaveAttribute('data-color', 'red');
     expect(paragraph).toHaveAttribute('data-background-color', 'yellow');
   });
 
-  it('показывает подсказку и кастомный маркер в пустом пункте списка', async () => {
+  it('shows the placeholder and a custom marker in an empty list item', async () => {
     const gateway = gatewayStub();
     gateway.accessToken.mockResolvedValue('jwt');
     mockBlockResponse([block(BULLET_ID, 'a0', { type: 'bulletedListItem', content: '' })]);

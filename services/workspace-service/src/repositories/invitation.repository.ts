@@ -37,7 +37,7 @@ export class InvitationRepository {
     const [row] = await this.db.insert(invitations).values(invitation).returning();
 
     if (!row) {
-      throw new Error('D1 вернул пустой результат при вставке приглашения');
+      throw new Error('D1 returned an empty result while inserting an invitation');
     }
 
     return this.toInvitation(row);

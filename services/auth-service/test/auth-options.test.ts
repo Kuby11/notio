@@ -20,7 +20,7 @@ function deps(overrides: Partial<Parameters<typeof buildAuthOptions>[1]> = {}) {
 }
 
 describe('buildAuthOptions', () => {
-  it('включает OAuth-провайдер только с полной парой ключей', () => {
+  it('enables an OAuth provider only with a full pair of keys', () => {
     const withoutSecrets = buildAuthOptions(
       { ...env, GITHUB_CLIENT_ID: 'id', GITHUB_CLIENT_SECRET: '' },
       deps(),
@@ -29,7 +29,7 @@ describe('buildAuthOptions', () => {
     expect(withoutSecrets.socialProviders?.['github']).toBeUndefined();
   });
 
-  it('подключает провайдера, когда заданы id и secret', () => {
+  it('wires up a provider when id and secret are set', () => {
     const options = buildAuthOptions(
       {
         ...env,
@@ -51,7 +51,7 @@ describe('buildAuthOptions', () => {
     });
   });
 
-  it('доверяет своему origin и явно перечисленным', () => {
+  it('trusts its own origin and explicitly listed ones', () => {
     const options = buildAuthOptions(
       { ...env, TRUSTED_ORIGINS: 'http://localhost:3000, ,https://notio.dev' },
       deps(),
@@ -64,13 +64,13 @@ describe('buildAuthOptions', () => {
     ]);
   });
 
-  it('не дублирует origin, если он уже указан в списке', () => {
+  it('does not duplicate an origin already present in the list', () => {
     const options = buildAuthOptions({ ...env, TRUSTED_ORIGINS: 'http://localhost:8787' }, deps());
 
     expect(options.trustedOrigins).toEqual(['http://localhost:8787']);
   });
 
-  it('работает без переменных лимитов и списка origin', () => {
+  it('works without limit variables and the origin list', () => {
     const options = buildAuthOptions(
       {
         ...env,
@@ -86,13 +86,13 @@ describe('buildAuthOptions', () => {
     expect(options.rateLimit?.window).toBe(60);
   });
 
-  it('берёт лимиты из окружения, а при мусоре — из значений по умолчанию', () => {
+  it('takes limits from the environment and falls back to defaults on garbage', () => {
     const configured = buildAuthOptions(
       { ...env, RATE_LIMIT_MAX_REQUESTS: '5', RATE_LIMIT_WINDOW_SECONDS: '30' },
       deps(),
     );
     const broken = buildAuthOptions(
-      { ...env, RATE_LIMIT_MAX_REQUESTS: 'много', RATE_LIMIT_WINDOW_SECONDS: '' },
+      { ...env, RATE_LIMIT_MAX_REQUESTS: 'not-a-number', RATE_LIMIT_WINDOW_SECONDS: '' },
       deps(),
     );
 
@@ -102,7 +102,7 @@ describe('buildAuthOptions', () => {
     expect(broken.rateLimit?.window).toBe(60);
   });
 
-  it('ставит Secure-cookie только в production', () => {
+  it('sets the Secure cookie only in production', () => {
     expect(
       buildAuthOptions({ ...env, ENVIRONMENT: 'production' }, deps()).advanced?.useSecureCookies,
     ).toBe(true);
@@ -111,24 +111,24 @@ describe('buildAuthOptions', () => {
     ).toBe(false);
   });
 
-  it('включает самообслуживание аккаунта: смену почты и удаление', () => {
+  it('enables account self-service: email change and deletion', () => {
     const options = buildAuthOptions(env, deps());
 
     expect(options.user?.changeEmail?.enabled).toBe(true);
     expect(options.user?.deleteUser?.enabled).toBe(true);
   });
 
-  it('пишет логи через переданный логгер', () => {
+  it('logs through the injected logger', () => {
     const lines: string[] = [];
     const options = buildAuthOptions(env, deps({ log: (message) => lines.push(message) }));
     const logger = options.logger;
 
-    logger?.log?.('error', 'что-то сломалось');
+    logger?.log?.('error', 'something broke');
 
     expect(lines[0]).toContain('auth-service');
   });
 
-  it('связывает парольный аккаунт с настроенными провайдерами по почте', () => {
+  it('links a password account with the configured providers by email', () => {
     const options = buildAuthOptions(
       {
         ...env,
@@ -140,13 +140,13 @@ describe('buildAuthOptions', () => {
       deps(),
     );
 
-    // Без явного доверия вход через провайдера по уже занятой почте
-    // отклоняется — пользователь видит ошибку вместо входа.
+    // Without explicit trust, a provider sign-in with an already taken email
+    // is refused — the user sees an error instead of signing in.
     expect(options.account?.accountLinking?.enabled).toBe(true);
     expect(options.account?.accountLinking?.trustedProviders).toEqual(['github', 'google']);
   });
 
-  it('не доверяет провайдеру без ключей', () => {
+  it('does not trust a provider without keys', () => {
     const options = buildAuthOptions(
       { ...env, GITHUB_CLIENT_ID: '', GITHUB_CLIENT_SECRET: '', GOOGLE_CLIENT_ID: '' },
       deps(),
@@ -155,24 +155,24 @@ describe('buildAuthOptions', () => {
     expect(options.account?.accountLinking?.trustedProviders).toEqual([]);
   });
 
-  it('возвращает ошибки аутентификации на страницу входа приложения', () => {
+  it('sends authentication errors back to the app login page', () => {
     const options = buildAuthOptions(env, deps({ frontendUrl: 'http://localhost:3000/' }));
 
-    // У gateway нет UI: его /api/auth/error — тупик, из которого не вернуться.
+    // The gateway has no UI: its /api/auth/error is a dead end with no way back.
     expect(options.onAPIError?.errorURL).toBe('http://localhost:3000/login');
   });
 });
 
 describe('createAuth', () => {
-  it('переиспользует экземпляр для одного и того же окружения', () => {
+  it('reuses the instance for the same environment', () => {
     expect(createAuth(env)).toBe(createAuth(env));
   });
 
-  it('подставляет адрес фронтенда по умолчанию, если он не задан', () => {
+  it('falls back to the default frontend address when none is set', () => {
     expect(() => createAuth({ ...env, FRONTEND_URL: undefined })).not.toThrow();
   });
 
-  it('собирает отдельный экземпляр при подмене зависимостей', () => {
+  it('builds a separate instance when dependencies are swapped', () => {
     const messages: string[] = [];
     const withMail = createAuth(env, {
       mailSender: createLoggingMailSender((message) => messages.push(message)),

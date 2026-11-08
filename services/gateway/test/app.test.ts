@@ -25,7 +25,7 @@ beforeEach(() => {
 });
 
 describe('gateway index', () => {
-  it('отдаёт индекс публичного API по /', async () => {
+  it('serves the public API index on /', async () => {
     const response = await request('/');
     const body = (await response.json()) as { name: string; endpoints: { path: string }[] };
 
@@ -34,7 +34,7 @@ describe('gateway index', () => {
     expect(body.endpoints.map((endpoint) => endpoint.path)).toContain('/api/health');
   });
 
-  it('не вызывает внутренние сервисы для индекса и liveness', async () => {
+  it('does not call internal services for the index and liveness', async () => {
     const pages = responderMock(healthyPagesServiceResponse);
     const auth = responderMock(defaultAuthResponder);
     const env = createEnv({ pages, auth });
@@ -48,7 +48,7 @@ describe('gateway index', () => {
 });
 
 describe('gateway /api/health', () => {
-  it('агрегирует состояние gateway и всех внутренних сервисов', async () => {
+  it('aggregates the state of the gateway and all internal services', async () => {
     const response = await request('/api/health', undefined, createEnv());
     const body = (await response.json()) as { status: string; services: { service: string }[] };
 
@@ -62,13 +62,13 @@ describe('gateway /api/health', () => {
     ]);
   });
 
-  it('доступен без токена: мониторинг не должен зависеть от авторизации', async () => {
+  it('is reachable without a token: monitoring must not depend on authorization', async () => {
     const response = await request('/api/health');
 
     expect(response.status).toBe(200);
   });
 
-  it('отдаёт 503 и degraded, если сервис ответил ошибкой', async () => {
+  it('answers 503 and degraded when a service responded with an error', async () => {
     const response = await request(
       '/api/health',
       undefined,
@@ -80,13 +80,13 @@ describe('gateway /api/health', () => {
     expect(body.services[1]?.error).toContain('HTTP 500');
   });
 
-  it('не падает, если Service Binding недоступен', async () => {
+  it('does not crash when a Service Binding is unavailable', async () => {
     const response = await request(
       '/api/health',
       undefined,
       createEnv({
         auth: () => {
-          throw new Error('binding недоступен');
+          throw new Error('binding unavailable');
         },
       }),
     );
@@ -97,15 +97,15 @@ describe('gateway /api/health', () => {
   });
 });
 
-describe('gateway обработка ошибок', () => {
-  it('возвращает problem+json для неизвестного маршрута', async () => {
+describe('gateway error handling', () => {
+  it('returns problem+json for an unknown route', async () => {
     const response = await request('/nope');
 
     expect(response.status).toBe(404);
     expect(await problemOf(response)).toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('проставляет requestId в problem details', async () => {
+  it('puts the requestId into problem details', async () => {
     const response = await request('/nope', {
       headers: { [INTERNAL_HEADERS.REQUEST_ID]: 'req-777' },
     });
@@ -113,23 +113,23 @@ describe('gateway обработка ошибок', () => {
     expect(await problemOf(response)).toMatchObject({ requestId: 'req-777' });
   });
 
-  it('не выдаёт детали необработанной ошибки наружу', async () => {
+  it('does not leak unhandled error details outward', async () => {
     const app = (await import('../src/app')).createGatewayApp();
     app.get('/boom', () => {
-      throw new Error('секретные детали системы');
+      throw new Error('secret system details');
     });
 
     const response = await app.request('/boom', {}, createEnv());
     const text = await response.text();
 
     expect(response.status).toBe(500);
-    expect(text).not.toContain('секретные детали');
+    expect(text).not.toContain('secret system details');
     expect(JSON.parse(text)).toMatchObject({ code: 'INTERNAL_ERROR' });
   });
 });
 
-describe('публичные маршруты аутентификации', () => {
-  it('пропускает /api/auth/* без токена', async () => {
+describe('public authentication routes', () => {
+  it('lets /api/auth/* through without a token', async () => {
     const auth = responderMock(defaultAuthResponder);
 
     const response = await request('/api/auth/get-session', undefined, createEnv({ auth }));
@@ -138,7 +138,7 @@ describe('публичные маршруты аутентификации', () 
     expect(auth).toHaveBeenCalled();
   });
 
-  it('не пропускает /api/pages без токена', async () => {
+  it('does not let /api/pages through without a token', async () => {
     const response = await request('/api/pages');
 
     expect(response.status).toBe(401);
@@ -146,8 +146,8 @@ describe('публичные маршруты аутентификации', () 
   });
 });
 
-describe('проверка токена', () => {
-  it('пропускает запрос с валидным токеном', async () => {
+describe('token verification', () => {
+  it('lets a request with a valid token through', async () => {
     const token = await issueToken();
 
     const response = await request('/api/pages', { headers: AUTHORIZATION(token) }, createEnv());
@@ -155,7 +155,7 @@ describe('проверка токена', () => {
     expect(response.status).toBe(200);
   });
 
-  it('отклоняет токен с чужой подписью', async () => {
+  it('rejects a token signed by someone else', async () => {
     const foreign = responderMock(() => Response.json({ keys: [] }));
 
     const response = await request(
@@ -168,18 +168,18 @@ describe('проверка токена', () => {
     expect(await problemOf(response)).toMatchObject({ code: 'UNAUTHENTICATED' });
   });
 
-  it('отклоняет истёкший токен', async () => {
+  it('rejects an expired token', async () => {
     const expired = await issueToken({ expiresInSeconds: -60 });
 
     const response = await request('/api/pages', { headers: AUTHORIZATION(expired) }, createEnv());
 
     expect(response.status).toBe(401);
     expect(await problemOf(response)).toMatchObject({
-      detail: expect.stringContaining('недействителен'),
+      detail: expect.stringContaining('invalid'),
     });
   });
 
-  it('отклоняет мусор вместо токена', async () => {
+  it('rejects garbage in place of a token', async () => {
     const response = await request(
       '/api/pages',
       { headers: { authorization: 'Bearer not-a-jwt' } },
@@ -189,7 +189,7 @@ describe('проверка токена', () => {
     expect(response.status).toBe(401);
   });
 
-  it('отклоняет токен без префикса Bearer', async () => {
+  it('rejects a token without the Bearer prefix', async () => {
     const token = await issueToken();
 
     const response = await request(
@@ -201,7 +201,7 @@ describe('проверка токена', () => {
     expect(response.status).toBe(401);
   });
 
-  it('отвечает 401, если auth-service не отдал JWKS', async () => {
+  it('answers 401 when auth-service does not serve JWKS', async () => {
     const auth: AuthResponder = failingJwksResponder;
 
     const response = await request(
@@ -213,7 +213,7 @@ describe('проверка токена', () => {
     expect(response.status).toBe(401);
   });
 
-  it('берёт JWKS у auth-service один раз и кеширует', async () => {
+  it('fetches JWKS from auth-service once and caches it', async () => {
     const auth = responderMock(defaultAuthResponder);
     const env = createEnv({ auth });
     const token = await issueToken();

@@ -385,7 +385,6 @@
       "sameEmail": "Это уже ваш адрес почты",
       "changePassword": "Пароль",
       "passwordHint": "Не короче {count} символов. После смены пароля другие устройства остаются в системе.",
-      "currentPassword": "Текущий пароль",
       "newPassword": "Новый пароль",
       "repeatPassword": "Повторите новый пароль",
       "changePasswordButton": "Сменить пароль",

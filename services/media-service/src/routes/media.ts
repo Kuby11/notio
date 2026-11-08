@@ -53,7 +53,7 @@ export function createMediaRoutes(): Hono<AppEnv> {
     if (!actorId) {
       // The gateway always passes a signed identity after JWT;
       // an empty header means the service was called bypassing the gateway.
-      throw new ForbiddenError('Не удалось определить пользователя по контексту запроса');
+      throw new ForbiddenError('Could not identify the user from the request context');
     }
 
     IdSchema.parse(actorId);
@@ -63,13 +63,13 @@ export function createMediaRoutes(): Hono<AppEnv> {
     const file = form.get('file');
 
     if (typeof workspaceId !== 'string') {
-      throw new ValidationError('workspaceId обязателен');
+      throw new ValidationError('workspaceId is required');
     }
 
     const parsedWorkspaceId = IdSchema.parse(workspaceId);
 
     if (!(file instanceof File)) {
-      throw new ValidationError('file обязателен и должен быть файлом');
+      throw new ValidationError('file is required and must be a file');
     }
 
     const meta = await createMediaService(c.env).upload({

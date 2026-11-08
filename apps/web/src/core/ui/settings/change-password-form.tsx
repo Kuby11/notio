@@ -11,9 +11,15 @@ import { Label } from '@/shared/ui/label';
 import { toast } from '@/shared/ui/toast';
 import { SettingsGroup } from './settings-layout';
 
+/**
+ * Password change without the current password, as in Notion: the fresh
+ * session is the proof of identity, the service rejects stale sessions.
+ * Accounts created through OAuth have no password: the service answers with
+ * a dedicated code, which the form explains instead of showing a generic
+ * failure.
+ */
 const ChangePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1),
     newPassword: z.string().min(MIN_PASSWORD_LENGTH),
     repeatPassword: z.string().min(1),
   })
@@ -24,11 +30,6 @@ const ChangePasswordSchema = z
 
 type ChangePasswordFields = z.infer<typeof ChangePasswordSchema>;
 
-/**
- * Password change. Accounts created through OAuth have no password: the
- * service answers with a dedicated code, which the form explains instead of
- * showing a generic failure.
- */
 export function ChangePasswordForm() {
   const t = useTranslations('settings.profile');
   const { changePassword } = useAuth();
@@ -40,17 +41,14 @@ export function ChangePasswordForm() {
     formState: { errors },
   } = useForm<ChangePasswordFields>({
     resolver: zodResolver(ChangePasswordSchema),
-    defaultValues: { currentPassword: '', newPassword: '', repeatPassword: '' },
+    defaultValues: { newPassword: '', repeatPassword: '' },
   });
 
   const errorCode = changePassword.error === null ? null : authErrorCode(changePassword.error);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      await changePassword.mutateAsync({
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword,
-      });
+      await changePassword.mutateAsync({ newPassword: values.newPassword });
       reset();
       toast(t('passwordChanged'), 'success');
     } catch {
@@ -65,23 +63,6 @@ export function ChangePasswordForm() {
     >
       <form className="flex flex-col gap-4 py-3" onSubmit={onSubmit} noValidate>
         <div className="grid max-w-md gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="profile-current-password">{t('currentPassword')}</Label>
-            <Input
-              id="profile-current-password"
-              type="password"
-              autoComplete="current-password"
-              aria-invalid={errors.currentPassword !== undefined}
-              {...register('currentPassword')}
-              className="border-0"
-            />
-            {errors.currentPassword !== undefined ? (
-              <p role="alert" className="text-destructive text-xs">
-                {t('errors.required')}
-              </p>
-            ) : null}
-          </div>
-
           <div className="space-y-1">
             <Label htmlFor="profile-new-password">{t('newPassword')}</Label>
             <Input

@@ -57,7 +57,7 @@ export interface AuthGateway {
    */
   changeEmail(newEmail: string): Promise<void>;
   /** Password change for accounts that have one (email sign-up, not OAuth). */
-  changePassword(input: { currentPassword: string; newPassword: string }): Promise<void>;
+  changePassword(input: { newPassword: string }): Promise<void>;
   /** Irreversible account deletion: the session and the user row go away. */
   deleteAccount(): Promise<void>;
 }

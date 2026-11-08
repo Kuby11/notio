@@ -54,7 +54,7 @@ function view(type: DatabaseView['type'] = 'chart_vertical'): DatabaseView {
 }
 
 describe('buildChartData', () => {
-  it('считает строки по статусу по умолчанию', () => {
+  it('counts rows by status by default', () => {
     const data = buildChartData(
       [row('a', 'todo'), row('b', 'done'), row('c', 'todo')],
       [TEXT, STATUS],
@@ -68,7 +68,7 @@ describe('buildChartData', () => {
     ]);
   });
 
-  it('использует явную группировку представления', () => {
+  it('uses the explicit view grouping', () => {
     const data = buildChartData(
       [row('a', 'todo'), row('b', 'done')],
       [TEXT, STATUS],
@@ -79,7 +79,7 @@ describe('buildChartData', () => {
     expect(data.map((item) => item.value)).toEqual([1, 1]);
   });
 
-  it('группирует по текстовому свойству, когда оно выбрано', () => {
+  it('groups by a text property when it is selected', () => {
     const notes: DatabaseProperty = { id: 'notes', name: 'Notes', type: 'text' };
     const rows = [
       { ...row('a', 'todo'), properties: { notes: 'alpha' } },
@@ -100,7 +100,7 @@ describe('buildChartData', () => {
     ]);
   });
 
-  it('сортирует подписи по названию, когда это выбрано в настройках', () => {
+  it('sorts labels by title when chosen in the settings', () => {
     const data = buildChartData(
       [row('a', 'todo'), row('b', 'done'), row('c', 'todo')],
       [TEXT, STATUS],
@@ -111,7 +111,7 @@ describe('buildChartData', () => {
     expect(data.map((item) => item.name)).toEqual(['Done', 'To-do']);
   });
 
-  it('не группирует, когда в настройках явно выбрано «Нет»', () => {
+  it('does not group when None is explicitly chosen in the settings', () => {
     const data = buildChartData(
       [row('a', 'todo'), row('b', 'done')],
       [TEXT, STATUS],
@@ -122,7 +122,7 @@ describe('buildChartData', () => {
     expect(data).toEqual([{ name: 'All rows', value: 2 }]);
   });
 
-  it('показывает одну строку, когда группировать не по чему', () => {
+  it('shows a single series when there is nothing to group by', () => {
     const data = buildChartData([row('a', 'todo'), row('b', 'done')], [TEXT], view(), {
       all: 'All rows',
       empty: 'No value',
@@ -132,7 +132,7 @@ describe('buildChartData', () => {
     expect(chartGroupProperty([TEXT], view())).toBeNull();
   });
 
-  it('агрегирует числовое свойство и делит значения по второму измерению', () => {
+  it('aggregates a numeric property and splits values across a second dimension', () => {
     const rows = [
       { ...row('a', 'todo'), properties: { status: 'todo', amount: 10, owner: 'Ann' } },
       { ...row('b', 'todo'), properties: { status: 'todo', amount: 5, owner: 'Bob' } },

@@ -385,7 +385,6 @@
       "sameEmail": "This is already your email address",
       "changePassword": "Password",
       "passwordHint": "At least {count} characters. Changing the password keeps other devices signed in.",
-      "currentPassword": "Current password",
       "newPassword": "New password",
       "repeatPassword": "Repeat new password",
       "changePasswordButton": "Change password",

@@ -33,23 +33,23 @@ class InMemoryAuthGateway implements AuthGateway {
   }
 
   async signUp(): Promise<void> {
-    throw new Error('не используется');
+    throw new Error('not used in this test');
   }
 
   async signIn(): Promise<void> {
-    throw new Error('не используется');
+    throw new Error('not used in this test');
   }
 
   async signInWithProvider(): Promise<void> {
-    throw new Error('не используется');
+    throw new Error('not used in this test');
   }
 
   async signOut(): Promise<void> {
-    throw new Error('не используется');
+    throw new Error('not used in this test');
   }
 
   async currentSession(): Promise<AuthSession | null> {
-    throw new Error('не используется');
+    throw new Error('not used in this test');
   }
 }
 
@@ -72,18 +72,18 @@ class DeferredAuthGateway extends InMemoryAuthGateway {
 }
 
 describe('createAccessToken', () => {
-  it('возвращает токен активной сессии', async () => {
+  it('returns the token of an active session', async () => {
     const gateway = new InMemoryAuthGateway();
     gateway.token = 'jwt-token';
 
     await expect(createAccessToken(gateway).execute()).resolves.toBe('jwt-token');
   });
 
-  it('возвращает null без сессии', async () => {
+  it('returns null without a session', async () => {
     await expect(createAccessToken(new InMemoryAuthGateway()).execute()).resolves.toBeNull();
   });
 
-  it('кеширует токен на TTL и не дёргает сервис повторно', async () => {
+  it('caches the token for the TTL and does not hit the service again', async () => {
     const gateway = new InMemoryAuthGateway();
     gateway.token = 'jwt-token';
     let now = 1_000;
@@ -95,7 +95,7 @@ describe('createAccessToken', () => {
     expect(gateway.calls).toBe(1);
   });
 
-  it('объединяет одновременные запросы токена в один in-flight промис', async () => {
+  it('merges concurrent token requests into one in-flight promise', async () => {
     const gateway = new DeferredAuthGateway();
     const token = createAccessToken(gateway, () => 0);
 
@@ -114,7 +114,7 @@ describe('createAccessToken', () => {
     expect(gateway.calls).toBe(1);
   });
 
-  it('не возвращает в кеш ответ, начатый до clear()', async () => {
+  it('does not cache a response started before clear()', async () => {
     const gateway = new DeferredAuthGateway();
     const token = createAccessToken(gateway, () => 0);
 
@@ -133,7 +133,7 @@ describe('createAccessToken', () => {
     await expect(fresh).resolves.toBe('fresh-token');
   });
 
-  it('обновляет токен после истечения TTL', async () => {
+  it('refreshes the token after the TTL expires', async () => {
     const gateway = new InMemoryAuthGateway();
     gateway.token = 'jwt-first';
     let now = 0;
@@ -147,7 +147,7 @@ describe('createAccessToken', () => {
     expect(gateway.calls).toBe(2);
   });
 
-  it('сбрасывает кеш по clear: после выхода токен спрашивают заново', async () => {
+  it('resets the cache on clear: after sign-out the token is fetched again', async () => {
     const gateway = new InMemoryAuthGateway();
     gateway.token = 'jwt-token';
     const token = createAccessToken(gateway, () => 0);
@@ -159,7 +159,7 @@ describe('createAccessToken', () => {
     expect(gateway.calls).toBe(2);
   });
 
-  it('не кеширует отсутствие токена: выход из аккаунта не «прилипает»', async () => {
+  it('does not cache a missing token: sign-out does not stick', async () => {
     const gateway = new InMemoryAuthGateway();
     const token = createAccessToken(gateway, () => 0);
 

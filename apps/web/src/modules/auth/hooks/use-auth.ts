@@ -63,8 +63,7 @@ export function useAuth() {
   });
 
   const changePassword = useMutation({
-    mutationFn: (input: { currentPassword: string; newPassword: string }) =>
-      auth.gateway.changePassword(input),
+    mutationFn: (input: { newPassword: string }) => auth.gateway.changePassword(input),
   });
 
   /** Account deletion ends the session on the server, so the client state goes with it. */

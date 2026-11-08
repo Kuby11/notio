@@ -21,9 +21,9 @@ const EXPECTED: Record<WorkspaceRole, readonly WorkspacePermissionName[]> = {
 
 type WorkspacePermissionName = (typeof WORKSPACE_PERMISSIONS)[number];
 
-describe('матрица прав', () => {
+describe('permission matrix', () => {
   it.each(Object.entries(EXPECTED))(
-    'роль %s получает ровно перечисленные права',
+    'role %s gets exactly the listed permissions',
     (role, expected) => {
       const actual = WORKSPACE_PERMISSIONS.filter((permission) =>
         roleCan(role as WorkspaceRole, permission),
@@ -33,7 +33,7 @@ describe('матрица прав', () => {
     },
   );
 
-  it('ни одна роль не получает права, которого нет в списке', () => {
+  it('no role gets a permission that is not in the list', () => {
     const unknown = 'workspace:delete-everything' as WorkspacePermissionName;
 
     for (const role of ['owner', 'editor', 'viewer'] as const) {
@@ -41,13 +41,13 @@ describe('матрица прав', () => {
     }
   });
 
-  it('editor не управляет участниками и приглашениями', () => {
+  it('editor cannot manage members or invitations', () => {
     expect(roleCan('editor', 'member:manage')).toBe(false);
     expect(roleCan('editor', 'invitation:manage')).toBe(false);
     expect(roleCan('editor', 'workspace:archive')).toBe(false);
   });
 
-  it('viewer только читает', () => {
+  it('viewer can only read', () => {
     expect(roleCan('viewer', 'workspace:write')).toBe(false);
     expect(roleCan('viewer', 'page:write')).toBe(false);
     expect(roleCan('viewer', 'workspace:read')).toBe(true);
