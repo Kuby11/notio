@@ -15,7 +15,7 @@ export interface Bindings {
   BETTER_AUTH_URL: string;
   /** Frontend address: after sign-in and email confirmation the user lands there, not on the gateway. */
   FRONTEND_URL?: string;
-  /** Общий родительский домен web+gateway для cookie сессии (prod). */
+  /** Shared parent domain of web+gateway for the session cookie (prod). */
   COOKIE_DOMAIN?: string;
   BETTER_AUTH_SECRET: string;
   RATE_LIMIT_MAX_REQUESTS?: string;
@@ -29,6 +29,16 @@ export interface Bindings {
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  /**
+   * EmailJS for real email delivery (email confirmation, password reset):
+   * service id, template id, public and private keys (the private key is
+   * required for server-side calls). Until they are set, emails are
+   * "sent" to the worker log — the link is visible in the console.
+   */
+  EMAILJS_SERVICE_ID?: string;
+  EMAILJS_TEMPLATE_ID?: string;
+  EMAILJS_PUBLIC_KEY?: string;
+  EMAILJS_PRIVATE_KEY?: string;
 }
 
 export type AppEnv = {
@@ -44,7 +54,7 @@ export function requireAuthSecret(env: Bindings): string {
 
   if (!secret) {
     throw new Error(
-      'BETTER_AUTH_SECRET не задан. Локально: добавьте его в .dev.vars, в production: wrangler secret put BETTER_AUTH_SECRET',
+      'BETTER_AUTH_SECRET is not set. Locally: add it to .dev.vars; in production: wrangler secret put BETTER_AUTH_SECRET',
     );
   }
 

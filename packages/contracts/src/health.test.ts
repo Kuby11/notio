@@ -26,29 +26,29 @@ const degradedPages: ServiceHealth = {
 };
 
 describe('ServiceHealthSchema', () => {
-  it('принимает корректное состояние сервиса', () => {
+  it('accepts a valid service state', () => {
     expect(ServiceHealthSchema.parse(gateway)).toEqual(gateway);
   });
 
-  it('отклоняет неизвестный сервис', () => {
+  it('rejects an unknown service', () => {
     expect(() => ServiceHealthSchema.parse({ ...gateway, service: 'unknown-service' })).toThrow();
   });
 
-  it('отклоняет неизвестный статус', () => {
+  it('rejects an unknown status', () => {
     expect(() => ServiceHealthSchema.parse({ ...gateway, status: 'down' })).toThrow();
   });
 
-  it('отклоняет отрицательную задержку', () => {
+  it('rejects a negative latency', () => {
     expect(() => ServiceHealthSchema.parse({ ...gateway, latencyMs: -1 })).toThrow();
   });
 
-  it('отклоняет пустую версию', () => {
+  it('rejects an empty version', () => {
     expect(() => ServiceHealthSchema.parse({ ...gateway, version: '' })).toThrow();
   });
 });
 
 describe('HealthResponseSchema', () => {
-  it('принимает агрегированный ответ', () => {
+  it('accepts an aggregated response', () => {
     const payload = {
       status: 'ok',
       version: '0.1.0',
@@ -59,7 +59,7 @@ describe('HealthResponseSchema', () => {
     expect(HealthResponseSchema.parse(payload)).toEqual(payload);
   });
 
-  it('отклоняет ответ без сервисов', () => {
+  it('rejects a response without services', () => {
     expect(() =>
       HealthResponseSchema.parse({
         status: 'ok',
@@ -70,18 +70,18 @@ describe('HealthResponseSchema', () => {
     ).toThrow();
   });
 
-  it('отклоняет некорректный timestamp', () => {
+  it('rejects an invalid timestamp', () => {
     expect(() =>
       HealthResponseSchema.parse({
         status: 'ok',
         version: '0.1.0',
-        timestamp: 'вчера',
+        timestamp: 'yesterday',
         services: [gateway],
       }),
     ).toThrow();
   });
 
-  it('типизирует известные сервисы и статусы как литеральные объединения', () => {
+  it('types known services and statuses as literal unions', () => {
     expect(SERVICE_NAMES).toEqual([
       'gateway',
       'pages-service',
@@ -94,21 +94,21 @@ describe('HealthResponseSchema', () => {
 });
 
 describe('aggregateStatus', () => {
-  it('возвращает ok, когда все сервисы ok', () => {
+  it('returns ok when all services are ok', () => {
     expect(aggregateStatus([gateway, { ...gateway, service: 'pages-service' }])).toBe('ok');
   });
 
-  it('возвращает degraded, когда сервис упал', () => {
+  it('returns degraded when a service is down', () => {
     expect(aggregateStatus([gateway, degradedPages])).toBe('degraded');
   });
 
-  it('не деградирует из-за пустого списка сервисов', () => {
+  it('does not degrade on an empty service list', () => {
     expect(aggregateStatus([])).toBe('ok');
   });
 });
 
 describe('healthStatusCode', () => {
-  it('отдаёт 200 для ok и 503 для degraded', () => {
+  it('returns 200 for ok and 503 for degraded', () => {
     expect(healthStatusCode('ok')).toBe(200);
     expect(healthStatusCode('degraded')).toBe(503);
   });

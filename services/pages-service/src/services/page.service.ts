@@ -76,11 +76,11 @@ export class PageService {
     const source = await this.pages.findById(id);
 
     if (!source) {
-      throw new NotFoundError('Страница не найдена');
+      throw new NotFoundError('Page not found');
     }
 
     if (source.isTrashed) {
-      throw new ConflictError('Нельзя дублировать страницу в корзине');
+      throw new ConflictError('A page in the trash cannot be duplicated');
     }
 
     const bounds = await this.pages.findPositionBounds(source.workspaceId, source.parentId, id);
@@ -170,13 +170,13 @@ export class PageService {
     const page = await this.pages.findById(id);
 
     if (!page) {
-      throw new NotFoundError('Страница не найдена');
+      throw new NotFoundError('Page not found');
     }
 
     if (workspaceId !== undefined && page.workspaceId !== workspaceId) {
       // A foreign workspace answers exactly like a missing page:
       // otherwise foreign data could be discovered by brute force through codes.
-      throw new NotFoundError('Страница не найдена');
+      throw new NotFoundError('Page not found');
     }
 
     return page;
@@ -188,7 +188,7 @@ export class PageService {
     const updated = await this.pages.updateById(id, patch, this.now());
 
     if (!updated) {
-      throw new NotFoundError('Страница не найдена');
+      throw new NotFoundError('Page not found');
     }
 
     return updated;
@@ -205,7 +205,7 @@ export class PageService {
     const page = await this.getPage(id, workspaceId);
 
     if (page.isTrashed) {
-      throw new ConflictError('Нельзя перемещать страницу из корзины');
+      throw new ConflictError('A page in the trash cannot be moved');
     }
 
     await this.assertParentIsUsable(workspaceId, input.parentId);
@@ -224,7 +224,7 @@ export class PageService {
     );
 
     if (!updated) {
-      throw new NotFoundError('Страница не найдена');
+      throw new NotFoundError('Page not found');
     }
 
     return updated;
@@ -241,7 +241,7 @@ export class PageService {
     }
 
     if (newParentId === pageId) {
-      throw new ConflictError('Нельзя переместить страницу внутрь самой себя');
+      throw new ConflictError('A page cannot be moved inside itself');
     }
 
     let current: string | null = newParentId;
@@ -250,13 +250,13 @@ export class PageService {
     while (current !== null) {
       if (visited.has(current)) {
         // The cycle already exists in the data — do not make it worse.
-        throw new ConflictError('Обнаружен цикл в дереве страниц');
+        throw new ConflictError('A cycle in the page tree was detected');
       }
 
       visited.add(current);
 
       if (current === pageId) {
-        throw new ConflictError('Нельзя переместить страницу внутрь собственного потомка');
+        throw new ConflictError('A page cannot be moved inside its own descendant');
       }
 
       const parent = await this.pages.findById(current);
@@ -278,15 +278,15 @@ export class PageService {
     const parent = await this.pages.findById(parentId);
 
     if (!parent) {
-      throw new NotFoundError('Родительская страница не найдена');
+      throw new NotFoundError('Parent page not found');
     }
 
     if (parent.workspaceId !== workspaceId) {
-      throw new ForbiddenError('Родительская страница принадлежит другому workspace');
+      throw new ForbiddenError('The parent page belongs to another workspace');
     }
 
     if (parent.isTrashed) {
-      throw new ConflictError('Нельзя создавать страницу внутри страницы в корзине');
+      throw new ConflictError('A page cannot be created inside a page in the trash');
     }
   }
 }
@@ -300,7 +300,7 @@ export function requireActorId(actorId: string | undefined | null): string {
   if (!actorId) {
     // Identity signing arrives together with auth-service.
     // For now this is a deliberate "fail closed": no context — no write.
-    throw new ForbiddenError('Не удалось определить пользователя по контексту запроса');
+    throw new ForbiddenError('Could not identify the user from the request context');
   }
 
   return IdSchema.parse(actorId);

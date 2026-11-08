@@ -45,8 +45,75 @@ export function createUnconfiguredMailSender(): MailSender {
   return {
     send: async ({ kind }) => {
       throw new Error(
-        `Отправка письма (${kind}) не настроена: подключите Email Sending или внешнего провайдера`,
+        `Mail sending (${kind}) is not configured: connect Email Sending or an external provider`,
       );
+    },
+  };
+}
+
+const EMAILJS_API = 'https://api.emailjs.com/api/v1.0/email/send';
+
+/** Subjects for the two letters the service sends. */
+const EMAILJS_SUBJECTS: Record<OutboundMail['kind'], string> = {
+  VERIFY_EMAIL: 'Confirm your email for notio',
+  RESET_PASSWORD: 'Reset your password for notio',
+};
+
+/** The lead line of the letter: what happened and how long the link lives. */
+const EMAILJS_LEADS: Record<OutboundMail['kind'], string> = {
+  VERIFY_EMAIL:
+    'Confirm your email address by clicking the button below. The link is valid for 24 hours.',
+  RESET_PASSWORD:
+    'You requested a password reset — click the button below. The link is valid for 1 hour.',
+};
+
+/**
+ * Real transport: EmailJS over its REST API (a server call, so the private
+ * key — accessToken — is required along with the public one).
+ *
+ * The letter's look lives in the EmailJS template; the service only hands it
+ * variables. The template must use them:
+ * `To` = {{to_email}}, the body may include {{message}}, {{subject}} and
+ * {{action_url}} (see emailjs-template.html).
+ *
+ * `fetch` is injectable for tests. A provider failure rejects the send —
+ * Better Auth surfaces it instead of pretending the letter is on its way.
+ */
+export function createEmailJSMailSender(
+  options: {
+    serviceId: string;
+    templateId: string;
+    publicKey: string;
+    privateKey: string;
+  },
+  fetchFn: (input: string, init?: RequestInit) => Promise<Response> = fetch,
+): MailSender {
+  return {
+    send: async ({ to, subject, actionUrl, kind }) => {
+      const response = await fetchFn(EMAILJS_API, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          service_id: options.serviceId,
+          template_id: options.templateId,
+          user_id: options.publicKey,
+          accessToken: options.privateKey,
+          template_params: {
+            to_email: to,
+            subject: subject || EMAILJS_SUBJECTS[kind],
+            action_url: actionUrl,
+            message: EMAILJS_LEADS[kind],
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const detail = await response.text().catch(() => '');
+
+        throw new Error(
+          `EmailJS rejected the email (${kind}, ${String(response.status)}): ${detail.slice(0, 300)}`,
+        );
+      }
     },
   };
 }

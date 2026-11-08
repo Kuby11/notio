@@ -64,8 +64,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 const SAVED: Block[] = [
-  block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: 'Первый' }),
-  block(HEADING_ID, 'a1', { type: 'heading', level: 1, content: 'Заголовок' }),
+  block(PARAGRAPH_ID, 'a0', { type: 'paragraph', content: 'First' }),
+  block(HEADING_ID, 'a1', { type: 'heading', level: 1, content: 'Heading' }),
 ];
 
 let stored: Block[];
@@ -134,7 +134,7 @@ beforeEach(() => {
         return jsonResponse(updated);
       }
 
-      throw new Error(`Неожиданный запрос: ${method} ${url}`);
+      throw new Error(`Unexpected request: ${method} ${url}`);
     }),
   );
 });
@@ -160,8 +160,8 @@ function renderEditorHook() {
   return renderHook(() => useEditor(PAGE_ID, WORKSPACE_ID), { wrapper });
 }
 
-describe('useEditor: подстраницы', () => {
-  it('создаёт дочернюю страницу с parentId = текущая', async () => {
+describe('useEditor: sub-pages', () => {
+  it('creates a child page with parentId set to the current page', async () => {
     const { result } = renderEditorHook();
 
     await waitFor(() => expect(result.current.document.data).toHaveLength(2));
@@ -186,15 +186,15 @@ describe('useEditor: подстраницы', () => {
   });
 });
 
-describe('useEditor: автосохранение', () => {
-  it('отправляет изменения через 1000 мс и обновляет статус', async () => {
+describe('useEditor: autosave', () => {
+  it('sends changes after 1000 ms and updates the status', async () => {
     const { result } = renderEditorHook();
 
     await waitFor(() => expect(result.current.document.data).toHaveLength(2));
 
     act(() => {
       result.current.autosave.schedule(
-        documentOf(paragraph(PARAGRAPH_ID, 'Изменено'), heading(HEADING_ID, 'Заголовок')),
+        documentOf(paragraph(PARAGRAPH_ID, 'Changed'), heading(HEADING_ID, 'Heading')),
       );
     });
 
@@ -206,7 +206,7 @@ describe('useEditor: автосохранение', () => {
         const patch = calls.find((call) => call.method === 'PATCH');
 
         expect(patch?.body).toEqual({
-          content: { type: 'paragraph', content: [{ text: 'Изменено' }] },
+          content: { type: 'paragraph', content: [{ text: 'Changed' }] },
         });
       },
       { timeout: 2_500 },
@@ -215,14 +215,14 @@ describe('useEditor: автосохранение', () => {
     await waitFor(() => expect(result.current.autosave.status).toBe('saved'));
   });
 
-  it('склеивает частые изменения в один запрос', async () => {
+  it('merges frequent changes into a single request', async () => {
     const { result } = renderEditorHook();
 
     await waitFor(() => expect(result.current.document.data).toHaveLength(2));
 
     act(() => {
       result.current.autosave.schedule(
-        documentOf(paragraph(PARAGRAPH_ID, 'Первая правка'), heading(HEADING_ID, 'Заголовок')),
+        documentOf(paragraph(PARAGRAPH_ID, 'First edit'), heading(HEADING_ID, 'Heading')),
       );
     });
 
@@ -230,7 +230,7 @@ describe('useEditor: автосохранение', () => {
 
     act(() => {
       result.current.autosave.schedule(
-        documentOf(paragraph(PARAGRAPH_ID, 'Вторая правка'), heading(HEADING_ID, 'Заголовок')),
+        documentOf(paragraph(PARAGRAPH_ID, 'Second edit'), heading(HEADING_ID, 'Heading')),
       );
     });
 
@@ -240,11 +240,11 @@ describe('useEditor: автосохранение', () => {
 
     const [patch] = calls.filter((call) => call.method === 'PATCH');
     expect(patch?.body).toEqual({
-      content: { type: 'paragraph', content: [{ text: 'Вторая правка' }] },
+      content: { type: 'paragraph', content: [{ text: 'Second edit' }] },
     });
   });
 
-  it('создаёт новый блок и ставит его на место в документе', async () => {
+  it('creates a new block and puts it in its place in the document', async () => {
     const { result } = renderEditorHook();
 
     await waitFor(() => expect(result.current.document.data).toHaveLength(2));
@@ -252,9 +252,9 @@ describe('useEditor: автосохранение', () => {
     act(() => {
       result.current.autosave.schedule(
         documentOf(
-          paragraph(PARAGRAPH_ID, 'Первый'),
-          paragraph(CLIENT_ID, 'Новый'),
-          heading(HEADING_ID, 'Заголовок'),
+          paragraph(PARAGRAPH_ID, 'First'),
+          paragraph(CLIENT_ID, 'New'),
+          heading(HEADING_ID, 'Heading'),
         ),
       );
     });
@@ -269,19 +269,19 @@ describe('useEditor: автосохранение', () => {
 
     expect(create?.body).toEqual({
       pageId: PAGE_ID,
-      content: { type: 'paragraph', content: [{ text: 'Новый' }] },
+      content: { type: 'paragraph', content: [{ text: 'New' }] },
     });
     expect(move?.url).toContain(HEADING_ID);
     expect(move?.body).toEqual({ afterBlockId: CREATED_ID });
   });
 
-  it('удаляет блоки, которых больше нет в документе', async () => {
+  it('deletes blocks that are no longer in the document', async () => {
     const { result } = renderEditorHook();
 
     await waitFor(() => expect(result.current.document.data).toHaveLength(2));
 
     act(() => {
-      result.current.autosave.schedule(documentOf(paragraph(PARAGRAPH_ID, 'Первый')));
+      result.current.autosave.schedule(documentOf(paragraph(PARAGRAPH_ID, 'First')));
     });
 
     await waitFor(() => expect(calls.filter((call) => call.method === 'DELETE')).toHaveLength(1), {

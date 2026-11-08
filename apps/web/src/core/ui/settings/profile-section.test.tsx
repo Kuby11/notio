@@ -25,8 +25,8 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-describe('секция профиля', () => {
-  it('после сохранения показывает состояние, которое вернул сервис', async () => {
+describe('profile section', () => {
+  it('after saving shows the state returned by the service', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub({
       currentSession: sessionOf(SESSION),
@@ -46,19 +46,19 @@ describe('секция профиля', () => {
 
     const input = await screen.findByLabelText('Full name');
     await user.clear(input);
-    await user.type(input, 'Ваня');
+    await user.type(input, 'Vanya');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
-      expect(gateway.updateUser).toHaveBeenCalledWith({ name: 'Ваня' });
+      expect(gateway.updateUser).toHaveBeenCalledWith({ name: 'Vanya' });
     });
 
-    expect(await screen.findByDisplayValue('Ваня')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('Vanya')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(await screen.findByText('Profile updated')).toBeInTheDocument();
   });
 
-  it('показывает ошибку, если сохранить профиль не удалось', async () => {
+  it('shows an error when saving the profile fails', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub({
       currentSession: sessionOf(SESSION),
@@ -77,13 +77,13 @@ describe('секция профиля', () => {
 
     const input = await screen.findByLabelText('Full name');
     await user.clear(input);
-    await user.type(input, 'Ваня');
+    await user.type(input, 'Vanya');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Service is unreachable. Check your connection',
     );
     // The field keeps what the user typed: nothing was stored.
-    expect(screen.getByLabelText('Full name')).toHaveValue('Ваня');
+    expect(screen.getByLabelText('Full name')).toHaveValue('Vanya');
   });
 });

@@ -2,11 +2,29 @@ import { betterAuth } from 'better-auth';
 import type { Auth } from 'better-auth';
 import { createAuthDatabase } from '../db/auth-db';
 import type { Bindings } from '../env';
-import { createLoggingMailSender } from './mailer';
+import { createEmailJSMailSender, createLoggingMailSender, type MailSender } from './mailer';
 import { buildAuthOptions, type AuthDependencies } from './options';
 import { createKvSecondaryStorage } from './secondary-storage';
 
 const instances = new WeakMap<Bindings, Auth>();
+
+/**
+ * The mail transport: EmailJS when all four keys are configured, otherwise
+ * the letters go to the worker log — the flow stays walkable before the
+ * provider is set up.
+ */
+function selectMailSender(env: Bindings): MailSender {
+  const serviceId = env.EMAILJS_SERVICE_ID?.trim();
+  const templateId = env.EMAILJS_TEMPLATE_ID?.trim();
+  const publicKey = env.EMAILJS_PUBLIC_KEY?.trim();
+  const privateKey = env.EMAILJS_PRIVATE_KEY?.trim();
+
+  if (serviceId && templateId && publicKey && privateKey) {
+    return createEmailJSMailSender({ serviceId, templateId, publicKey, privateKey });
+  }
+
+  return createLoggingMailSender((message) => console.log(message));
+}
 
 /**
  * Better Auth reads bindings from the request environment, so the instance is
@@ -26,7 +44,7 @@ export function createAuth(env: Bindings, dependencies?: Partial<AuthDependencie
     buildAuthOptions(env, {
       database: createAuthDatabase(env),
       secondaryStorage: createKvSecondaryStorage(env.RATE_LIMIT),
-      mailSender: createLoggingMailSender((message) => console.log(message)),
+      mailSender: selectMailSender(env),
       publicUrl: env.BETTER_AUTH_URL,
       frontendUrl: env.FRONTEND_URL ?? 'http://localhost:3000',
       ...dependencies,

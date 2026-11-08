@@ -15,7 +15,7 @@ const page = {
   id: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
   workspaceId: '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
   parentId: null,
-  title: 'Страница',
+  title: 'Page',
   position: 'a0',
   isFavorite: false,
   isTrashed: false,
@@ -33,7 +33,7 @@ const eventBase = {
 };
 
 describe('PageSchema', () => {
-  it('принимает вычисляемый hasChildren только в списках дерева', () => {
+  it('accepts a computed hasChildren only in tree lists', () => {
     expect(PageSchema.parse({ ...page, hasChildren: true })).toMatchObject({
       hasChildren: true,
     });
@@ -42,25 +42,25 @@ describe('PageSchema', () => {
 });
 
 describe('UserSchema', () => {
-  it('требует корректный email и непустое имя', () => {
+  it('requires a valid email and a non-empty name', () => {
     const user = {
       id: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
       email: 'user@notio.dev',
-      name: 'Аня',
+      name: 'Ann',
       createdAt: '2026-10-18T12:00:00.000Z',
     };
 
     expect(UserSchema.parse(user)).toEqual(user);
-    expect(() => UserSchema.parse({ ...user, email: 'не-почта' })).toThrow();
+    expect(() => UserSchema.parse({ ...user, email: 'not-an-email' })).toThrow();
     expect(() => UserSchema.parse({ ...user, name: '' })).toThrow();
   });
 
-  it('опционально принимает imageUrl только как URL', () => {
+  it('optionally accepts imageUrl only as a URL', () => {
     expect(() =>
       UserSchema.parse({
         id: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
         email: 'user@notio.dev',
-        name: 'Аня',
+        name: 'Ann',
         imageUrl: 'javascript:alert(1)',
         createdAt: '2026-10-18T12:00:00.000Z',
       }),
@@ -68,10 +68,10 @@ describe('UserSchema', () => {
   });
 });
 
-describe('WorkspaceSchema и роли', () => {
+describe('WorkspaceSchema and roles', () => {
   const workspace = {
     id: '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
-    name: 'Команда notio',
+    name: 'notio team',
     slug: 'notio-team',
     ownerId: '2f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
     archivedAt: null,
@@ -79,11 +79,11 @@ describe('WorkspaceSchema и роли', () => {
     updatedAt: '2026-10-18T12:00:00.000Z',
   };
 
-  it('принимает рабочее пространство со слагом', () => {
+  it('accepts a workspace with a slug', () => {
     expect(WorkspaceSchema.parse(workspace)).toEqual(workspace);
   });
 
-  it('описывает роли owner/editor/viewer и матрицу прав', () => {
+  it('describes the owner/editor/viewer roles and the permission matrix', () => {
     expect(WORKSPACE_ROLES).toEqual(['owner', 'editor', 'viewer']);
     expect(roleCan('owner', 'member:manage')).toBe(true);
     expect(roleCan('editor', 'member:manage')).toBe(false);
@@ -92,7 +92,7 @@ describe('WorkspaceSchema и роли', () => {
     expect(roleCan('viewer', 'page:write')).toBe(false);
   });
 
-  it('каждой роли соответствует непустой набор прав из общего списка', () => {
+  it('every role has a non-empty set of permissions from the shared list', () => {
     const permissions = new Set(Object.values(ROLE_PERMISSIONS).flat());
 
     for (const role of WORKSPACE_ROLES) {
@@ -115,14 +115,14 @@ describe('FileMetaSchema', () => {
     createdAt: '2026-10-18T12:00:00.000Z',
   };
 
-  it('хранит ключ объекта R2, а не публичный URL', () => {
+  it('stores the R2 object key, not a public URL', () => {
     expect(FileMetaSchema.parse(file)).toEqual(file);
     expect(() =>
       FileMetaSchema.parse({ ...file, key: 'https://cdn.notio.dev/file.png' }),
     ).not.toThrow();
   });
 
-  it('отклоняет отрицательный размер', () => {
+  it('rejects a negative size', () => {
     expect(() => FileMetaSchema.parse({ ...file, sizeBytes: -1 })).toThrow();
   });
 });
@@ -130,7 +130,7 @@ describe('FileMetaSchema', () => {
 describe('PageListQuerySchema', () => {
   const workspaceId = '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f';
 
-  it('по умолчанию показывает корень без корзины', () => {
+  it('shows the root without the trash by default', () => {
     expect(PageListQuerySchema.parse({ workspaceId })).toMatchObject({
       parentId: null,
       includeTrashed: false,
@@ -138,7 +138,7 @@ describe('PageListQuerySchema', () => {
     });
   });
 
-  it('разбирает строковые query-параметры', () => {
+  it('parses string query parameters', () => {
     const parsed = PageListQuerySchema.parse({
       workspaceId,
       includeTrashed: 'true',
@@ -149,23 +149,23 @@ describe('PageListQuerySchema', () => {
     expect(parsed).toMatchObject({ includeTrashed: true, limit: 10, cursor: 'a0V' });
   });
 
-  it('не путает "false" с true', () => {
+  it('does not confuse "false" with true', () => {
     expect(PageListQuerySchema.parse({ workspaceId, includeTrashed: 'false' }).includeTrashed).toBe(
       false,
     );
   });
 
-  it('ограничивает limit диапазоном 1..100', () => {
+  it('bounds limit to the 1..100 range', () => {
     expect(() => PageListQuerySchema.parse({ workspaceId, limit: '0' })).toThrow();
     expect(() => PageListQuerySchema.parse({ workspaceId, limit: '101' })).toThrow();
-    expect(() => PageListQuerySchema.parse({ workspaceId, limit: 'много' })).toThrow();
+    expect(() => PageListQuerySchema.parse({ workspaceId, limit: 'lots' })).toThrow();
   });
 
-  it('требует корректный workspaceId', () => {
+  it('requires a valid workspaceId', () => {
     expect(() => PageListQuerySchema.parse({ workspaceId: 'ws' })).toThrow();
   });
 
-  it('BooleanQuerySchema отвергает мусор', () => {
+  it('BooleanQuerySchema rejects garbage', () => {
     expect(() => BooleanQuerySchema.parse('yes')).toThrow();
   });
 });
@@ -173,11 +173,11 @@ describe('PageListQuerySchema', () => {
 describe('PageFavoritesQuerySchema', () => {
   const workspaceId = '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f';
 
-  it('принимает запрос избранного по workspace', () => {
+  it('accepts a favorites query for a workspace', () => {
     expect(PageFavoritesQuerySchema.parse({ workspaceId })).toEqual({ workspaceId });
   });
 
-  it('требует корректный workspaceId', () => {
+  it('requires a valid workspaceId', () => {
     expect(() => PageFavoritesQuerySchema.parse({ workspaceId: 'ws' })).toThrow();
   });
 });
@@ -185,23 +185,23 @@ describe('PageFavoritesQuerySchema', () => {
 describe('PageTrashQuerySchema', () => {
   const workspaceId = '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f';
 
-  it('принимает запрос корзины по workspace', () => {
+  it('accepts a trash query for a workspace', () => {
     expect(PageTrashQuerySchema.parse({ workspaceId })).toEqual({ workspaceId });
   });
 
-  it('требует корректный workspaceId', () => {
+  it('requires a valid workspaceId', () => {
     expect(() => PageTrashQuerySchema.parse({ workspaceId: 'ws' })).toThrow();
   });
 });
 
 describe('PageEventSchema', () => {
-  it('принимает page.created с полной сущностью страницы', () => {
+  it('accepts page.created with the full page entity', () => {
     const event = { ...eventBase, type: 'page.created', payload: { page } };
 
     expect(PageEventSchema.parse(event)).toEqual(event);
   });
 
-  it('принимает остальные типы событий', () => {
+  it('accepts the remaining event types', () => {
     expect(
       PageEventSchema.parse({
         ...eventBase,
@@ -223,13 +223,13 @@ describe('PageEventSchema', () => {
     ).toMatchObject({ type: 'page.moved' });
   });
 
-  it('отклоняет payload, не соответствующий типу', () => {
+  it('rejects a payload that does not match the type', () => {
     expect(() =>
       PageEventSchema.parse({ ...eventBase, type: 'page.updated', payload: { page } }),
     ).toThrow();
   });
 
-  it('PAGE_EVENT_TYPES совпадает с типами схемы', () => {
+  it('PAGE_EVENT_TYPES matches the schema types', () => {
     expect([...PAGE_EVENT_TYPES]).toEqual([
       'page.created',
       'page.updated',

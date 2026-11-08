@@ -8,7 +8,7 @@ function fakeDbBinding(): D1Database {
 const schema = { pages: { name: 'pages' } } as unknown as Record<string, unknown>;
 
 describe('createDb', () => {
-  it('создаёт клиент поверх переданного биндинга D1', () => {
+  it('creates a client on top of the given D1 binding', () => {
     const db = createDb({ DB: fakeDbBinding() }, schema);
 
     expect(db.query).toBeDefined();
@@ -16,7 +16,7 @@ describe('createDb', () => {
     expect(db.insert).toBeTypeOf('function');
   });
 
-  it('принимает окружение с дополнительными полями', () => {
+  it('accepts an environment with extra fields', () => {
     const env = { DB: fakeDbBinding(), ENVIRONMENT: 'test', SERVICE_VERSION: '0.1.0' };
 
     expect(() => createDb(env, schema)).not.toThrow();

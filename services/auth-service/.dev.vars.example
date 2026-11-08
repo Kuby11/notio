@@ -7,3 +7,24 @@ BETTER_AUTH_SECRET=dev-only-secret-notio-auth-service-change-me
 # GITHUB_CLIENT_SECRET=
 # GOOGLE_CLIENT_ID=
 # GOOGLE_CLIENT_SECRET=
+
+# Локальная топология поверх [vars] из wrangler.jsonc (там — прод).
+# В dev стек целиком локальный: gateway на :8787, фронт на :3000.
+# COOKIE_DOMAIN пуст — cookie сессии остаётся на localhost; непустое
+# значение браузер на localhost отбросит (чужой домен).
+ENVIRONMENT=development
+BETTER_AUTH_URL=http://localhost:8787
+FRONTEND_URL=http://localhost:3000
+TRUSTED_ORIGINS=http://localhost:3000
+COOKIE_DOMAIN=
+
+# Реальная отправка писем через EmailJS. Нужны четыре значения из аккаунта
+# EmailJS: Service ID, Template ID, Public Key и Private Key (серверный вызов
+# без Private Key отклоняется). Шаблон письма должен использовать переменные:
+# поле To = {{to_email}}, в теме/теле — {{subject}} и {{action_url}}.
+# Пока ключи не заданы, ссылки подтверждения печатаются в лог воркера.
+# В production: wrangler secret put EMAILJS_PRIVATE_KEY (остальные — vars).
+# EMAILJS_SERVICE_ID=
+# EMAILJS_TEMPLATE_ID=
+# EMAILJS_PUBLIC_KEY=
+# EMAILJS_PRIVATE_KEY=
