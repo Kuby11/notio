@@ -7,7 +7,7 @@ import { requireAuthSecret, type Bindings } from '../src/env';
 const env = workerEnv as Bindings;
 
 describe('createAuthServiceApp', () => {
-  it('отвечает problem+json на неизвестный маршрут', async () => {
+  it('answers problem+json for an unknown route', async () => {
     const { createAuthServiceApp } = await import('../src/app');
 
     const response = await createAuthServiceApp().request('/nope', {}, env);
@@ -17,14 +17,14 @@ describe('createAuthServiceApp', () => {
     expect(await response.json()).toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('отдаёт публичные профили по id через внутренний маршрут', async () => {
+  it('serves public profiles by id through the internal route', async () => {
     const { createAuthServiceApp } = await import('../src/app');
     const userId = '00000000-0000-4000-8000-00000000000a';
 
     await env.DB.prepare(
       'INSERT INTO user (id, name, email, email_verified, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)',
     )
-      .bind(userId, 'Аня', 'user@notio.dev', Date.now(), Date.now())
+      .bind(userId, 'Anya', 'user@notio.dev', Date.now(), Date.now())
       .run();
 
     const response = await createAuthServiceApp().request(
@@ -39,10 +39,10 @@ describe('createAuthServiceApp', () => {
     };
 
     expect(body.items).toHaveLength(1);
-    expect(body.items[0]).toMatchObject({ id: userId, email: 'user@notio.dev', name: 'Аня' });
+    expect(body.items[0]).toMatchObject({ id: userId, email: 'user@notio.dev', name: 'Anya' });
   });
 
-  it('отдаёт пустой список без id', async () => {
+  it('serves an empty list without ids', async () => {
     const { createAuthServiceApp } = await import('../src/app');
 
     const response = await createAuthServiceApp().request('/internal/users?ids=', {}, env);
@@ -51,7 +51,7 @@ describe('createAuthServiceApp', () => {
     expect(await response.json()).toEqual({ items: [] });
   });
 
-  it('отдаёт пустой список, когда параметр ids отсутствует', async () => {
+  it('serves an empty list when the ids parameter is missing', async () => {
     const { createAuthServiceApp } = await import('../src/app');
 
     const response = await createAuthServiceApp().request('/internal/users', {}, env);
@@ -60,7 +60,7 @@ describe('createAuthServiceApp', () => {
     expect(await response.json()).toEqual({ items: [] });
   });
 
-  it('не выдаёт детали сбоя наружу, а логирует их', async () => {
+  it('does not leak failure details and logs them instead', async () => {
     const { createAuthServiceApp } = await import('../src/app');
     const errors: unknown[] = [];
     const originalError = console.error;
@@ -75,11 +75,11 @@ describe('createAuthServiceApp', () => {
     console.error = originalError;
 
     expect(response.status).toBe(500);
-    expect(await response.text()).not.toContain('BETTER_AUTH_SECRET не задан');
+    expect(await response.text()).not.toContain('BETTER_AUTH_SECRET is not set');
     expect(errors.length).toBeGreaterThan(0);
   });
 
-  it('отдаёт ответ самого Better Auth на путь без суффикса', async () => {
+  it('serves the Better Auth response on the bare path', async () => {
     const { createAuthServiceApp } = await import('../src/app');
 
     const response = await createAuthServiceApp().request('/api/auth', {}, env);
@@ -91,12 +91,12 @@ describe('createAuthServiceApp', () => {
   });
 });
 
-describe('секрет Better Auth', () => {
-  it('возвращает заданный секрет', () => {
+describe('Better Auth secret', () => {
+  it('returns the configured secret', () => {
     expect(requireAuthSecret({ ...env, BETTER_AUTH_SECRET: ' value ' })).toBe('value');
   });
 
-  it('падает, если секрет не задан: сервис не должен стартовать вслепую', () => {
+  it('fails when the secret is not set: the service must not start blindly', () => {
     expect(() => requireAuthSecret({ ...env, BETTER_AUTH_SECRET: '   ' })).toThrow(
       /BETTER_AUTH_SECRET/,
     );
@@ -104,14 +104,14 @@ describe('секрет Better Auth', () => {
 });
 
 describe('MailSender', () => {
-  it('в dev пишет письмо в лог, а не отправляет', async () => {
+  it('in dev writes the email to the log instead of sending it', async () => {
     const logs: string[] = [];
     const sender = createLoggingMailSender((message) => logs.push(message));
 
     await sender.send({
       to: 'user@notio.dev',
       kind: 'VERIFY_EMAIL',
-      subject: 'Подтвердите почту',
+      subject: 'Confirm your email',
       actionUrl: 'http://localhost:8787/api/auth/verify-email?token=abc',
     });
 
@@ -120,20 +120,20 @@ describe('MailSender', () => {
     expect(logs[0]).toContain('user@notio.dev');
   });
 
-  it('в production без провайдера честно падает', async () => {
+  it('in production fails honestly when no provider is configured', async () => {
     await expect(
       createUnconfiguredMailSender().send({
         to: 'user@notio.dev',
         kind: 'RESET_PASSWORD',
-        subject: 'Восстановление пароля',
+        subject: 'Password reset',
         actionUrl: 'http://localhost:8787/reset',
       }),
-    ).rejects.toThrow(/не настроена/);
+    ).rejects.toThrow(/not configured/);
   });
 });
 
-describe('вторичное хранилище на KV', () => {
-  it('кладёт значения с TTL не меньше минимального для KV', async () => {
+describe('KV secondary storage', () => {
+  it('stores values with a TTL no shorter than the KV minimum', async () => {
     const namespace = env.RATE_LIMIT;
 
     await createKvSecondaryStorage(namespace).set('cookie', 'payload', 10);
@@ -142,7 +142,7 @@ describe('вторичное хранилище на KV', () => {
     await namespace.delete('auth:cookie');
   });
 
-  it('читает и удаляет значение вместе', async () => {
+  it('reads and deletes the value together', async () => {
     const namespace = env.RATE_LIMIT;
     const storage = createKvSecondaryStorage(namespace);
 
@@ -151,7 +151,7 @@ describe('вторичное хранилище на KV', () => {
     expect(await namespace.get('auth:ticket')).toBeNull();
   });
 
-  it('считает обращения и создаёт счётчик с единицы', async () => {
+  it('counts calls and starts the counter at one', async () => {
     const namespace = env.RATE_LIMIT;
     const storage = createKvSecondaryStorage(namespace);
 
@@ -161,7 +161,7 @@ describe('вторичное хранилище на KV', () => {
     await namespace.delete('auth:counter');
   });
 
-  it('удаляет значение по ключу', async () => {
+  it('deletes the value by key', async () => {
     const namespace = env.RATE_LIMIT;
     const storage = createKvSecondaryStorage(namespace);
 
@@ -171,7 +171,7 @@ describe('вторичное хранилище на KV', () => {
     expect(await namespace.get('auth:temporary')).toBeNull();
   });
 
-  it('ставит значение без явного TTL', async () => {
+  it('stores a value without an explicit TTL', async () => {
     const namespace = env.RATE_LIMIT;
     const storage = createKvSecondaryStorage(namespace);
 
@@ -181,7 +181,7 @@ describe('вторичное хранилище на KV', () => {
     await namespace.delete('auth:no-ttl');
   });
 
-  it('начинает счётчик с единицы, если в хранилище лежит мусор', async () => {
+  it('starts the counter at one when the storage holds garbage', async () => {
     const namespace = env.RATE_LIMIT;
     const storage = createKvSecondaryStorage(namespace);
 

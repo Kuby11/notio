@@ -51,10 +51,10 @@ afterEach(() => {
 });
 
 describe('AppLayout', () => {
-  it('не показывает кнопку разворачивания, пока панель открыта', () => {
+  it('shows no expand button while the panel is open', () => {
     renderWithProviders(
       <AppLayout workspaceId={WORKSPACE_ID}>
-        <div>контент</div>
+        <div>content</div>
       </AppLayout>,
       gatewayStub(),
     );
@@ -62,13 +62,13 @@ describe('AppLayout', () => {
     expect(screen.queryByRole('button', { name: 'Open sidebar' })).not.toBeInTheDocument();
   });
 
-  it('даёт любой странице оболочки кнопку разворачивания и место под неё', async () => {
+  it('gives every shell page an expand button and room for it', async () => {
     const user = userEvent.setup();
     useSidebarStore.setState({ collapsed: true });
 
     renderWithProviders(
       <AppLayout workspaceId={WORKSPACE_ID}>
-        <div>контент</div>
+        <div>content</div>
       </AppLayout>,
       gatewayStub(),
     );

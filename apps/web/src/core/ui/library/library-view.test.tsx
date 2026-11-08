@@ -45,11 +45,11 @@ function page(id: string, title: string, overrides: Record<string, unknown> = {}
   };
 }
 
-const ROOT = page('00000000-0000-4000-8000-0000000000a1', 'Проект', {
+const ROOT = page('00000000-0000-4000-8000-0000000000a1', 'Project', {
   hasChildren: true,
   isFavorite: true,
 });
-const CHILD = page('00000000-0000-4000-8000-0000000000a2', 'Заметки', {
+const CHILD = page('00000000-0000-4000-8000-0000000000a2', 'Notes', {
   parentId: ROOT.id,
   createdBy: OTHER_USER,
 });
@@ -75,7 +75,7 @@ function stubFetch() {
                 workspaceId: WORKSPACE_ID,
                 userId: OTHER_USER,
                 role: 'editor',
-                user: { id: OTHER_USER, email: 'boris@notio.dev', name: 'Борис' },
+                user: { id: OTHER_USER, email: 'boris@notio.dev', name: 'Boris' },
                 createdAt: '2026-10-01T10:00:00.000Z',
                 updatedAt: '2026-10-01T10:00:00.000Z',
               },
@@ -108,59 +108,59 @@ function renderLibrary() {
 }
 
 describe('LibraryView', () => {
-  it('показывает все страницы workspace с автором и источником', async () => {
+  it('shows all workspace pages with author and source', async () => {
     renderLibrary();
 
     const table = await screen.findByRole('table', { name: 'Pages in this workspace' });
 
     // Wait for the rows: the table itself renders while the list is loading.
-    await within(table).findByText('Заметки');
+    await within(table).findByText('Notes');
     const rows = within(table).getAllByRole('row');
 
     // Header plus both pages: the nested one is visible without expanding.
     expect(rows).toHaveLength(3);
     // The parent title also appears in the child's "Source" cell.
-    expect(within(table).getAllByText('Проект').length).toBeGreaterThan(0);
+    expect(within(table).getAllByText('Project').length).toBeGreaterThan(0);
     expect(within(table).getByText('Anna')).toBeInTheDocument();
-    expect(within(table).getByText('Борис')).toBeInTheDocument();
+    expect(within(table).getByText('Boris')).toBeInTheDocument();
     // The root page has no parent: its source is "private".
     expect(within(table).getByText('Private')).toBeInTheDocument();
   });
 
-  it('сворачивает ветку по шеврону', async () => {
+  it('collapses a branch via the chevron', async () => {
     const user = userEvent.setup();
     renderLibrary();
 
-    await screen.findByText('Заметки');
-    await user.click(screen.getByRole('button', { name: 'Collapse “Проект”' }));
+    await screen.findByText('Notes');
+    await user.click(screen.getByRole('button', { name: 'Collapse “Project”' }));
 
-    expect(screen.queryByText('Заметки')).not.toBeInTheDocument();
-    expect(screen.getByText('Проект')).toBeInTheDocument();
+    expect(screen.queryByText('Notes')).not.toBeInTheDocument();
+    expect(screen.getByText('Project')).toBeInTheDocument();
   });
 
-  it('фильтрует по избранному', async () => {
+  it('filters by favorites', async () => {
     const user = userEvent.setup();
     renderLibrary();
 
-    await screen.findByText('Заметки');
+    await screen.findByText('Notes');
     await user.click(screen.getByRole('button', { name: 'Favorites' }));
 
-    expect(screen.getByText('Проект')).toBeInTheDocument();
-    expect(screen.queryByText('Заметки')).not.toBeInTheDocument();
+    expect(screen.getByText('Project')).toBeInTheDocument();
+    expect(screen.queryByText('Notes')).not.toBeInTheDocument();
   });
 
   it('searches by title', async () => {
     const user = userEvent.setup();
     renderLibrary();
 
-    await screen.findByText('Заметки');
+    await screen.findByText('Notes');
     await user.click(screen.getByRole('button', { name: 'Search pages' }));
-    await user.type(screen.getByRole('searchbox', { name: 'Search pages…' }), 'Замет');
+    await user.type(screen.getByRole('searchbox', { name: 'Search pages…' }), 'Not');
 
     const table = screen.getByRole('table', { name: 'Pages in this workspace' });
 
     // Only the matching page is left: header plus one row.
-    expect(within(table).getByText('Заметки')).toBeInTheDocument();
+    expect(within(table).getByText('Notes')).toBeInTheDocument();
     expect(within(table).getAllByRole('row')).toHaveLength(2);
   });
 });

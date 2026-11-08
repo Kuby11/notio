@@ -11,8 +11,8 @@ import {
   type WorkspaceBody,
 } from './helpers';
 
-describe('список workspace', () => {
-  it('создаёт личное пространство, если у пользователя их ещё нет', async () => {
+describe('workspace list', () => {
+  it('creates a personal workspace when the user has none yet', async () => {
     const userId = newUserId();
 
     const response = await call('/workspaces', { userId });
@@ -20,23 +20,23 @@ describe('список workspace', () => {
 
     expect(response.status).toBe(200);
     expect(body.items).toHaveLength(1);
-    expect(body.items[0]?.name).toBe('Личное пространство');
+    expect(body.items[0]?.name).toBe('Personal workspace');
   });
 
-  it('возвращает только активные пространства пользователя', async () => {
+  it('returns only the active workspaces of the user', async () => {
     const userId = newUserId();
-    const first = await createWorkspace(userId, 'Первый');
-    await createWorkspace(userId, 'Второй');
+    const first = await createWorkspace(userId, 'First');
+    await createWorkspace(userId, 'Second');
     await call(`/workspaces/${first.id}`, { method: 'DELETE', userId });
 
     const body = await jsonOf<{ items: WorkspaceBody[] }>(await call('/workspaces', { userId }));
 
-    expect(body.items.map((item) => item.name)).toEqual(['Второй']);
+    expect(body.items.map((item) => item.name)).toEqual(['Second']);
   });
 });
 
-describe('создание и чтение', () => {
-  it('делает создателя владельцем и транслитерирует slug', async () => {
+describe('creation and reading', () => {
+  it('makes the creator the owner and transliterates the slug', async () => {
     const userId = newUserId();
     const workspace = await createWorkspace(userId, 'Мой офис');
 
@@ -49,7 +49,7 @@ describe('создание и чтение', () => {
     expect(members.items).toEqual([expect.objectContaining({ userId, role: 'owner' })]);
   });
 
-  it('добавляет номер к занятому slug', async () => {
+  it('appends a number to a taken slug', async () => {
     const userId = newUserId();
     await createWorkspace(userId, 'Команда');
     const second = await createWorkspace(newUserId(), 'Команда');
@@ -57,10 +57,10 @@ describe('создание и чтение', () => {
     expect(second.slug).toBe('komanda-2');
   });
 
-  it('не показывает чужой workspace и не подтверждает его существование', async () => {
+  it('hides a foreign workspace and does not confirm its existence', async () => {
     const owner = newUserId();
     const stranger = newUserId();
-    const workspace = await createWorkspace(owner, 'Чужое');
+    const workspace = await createWorkspace(owner, 'Foreign');
 
     const existingButForbidden = await call(`/workspaces/${workspace.id}`, { userId: stranger });
     const missing = await call(`/workspaces/${newUserId()}`, { userId: stranger });
@@ -72,14 +72,14 @@ describe('создание и чтение', () => {
     expect(await existingButForbidden.json()).toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('не принимает запрос без идентичности актора', async () => {
+  it('rejects a request without an actor identity', async () => {
     const response = await call('/workspaces');
 
     expect(response.status).toBe(403);
     expect(await response.json()).toMatchObject({ code: 'FORBIDDEN' });
   });
 
-  it('отвечает 400 на некорректное тело', async () => {
+  it('responds 400 to an invalid body', async () => {
     const response = await call('/workspaces', { body: { name: '' }, userId: newUserId() });
 
     expect(response.status).toBe(400);
@@ -87,21 +87,21 @@ describe('создание и чтение', () => {
   });
 });
 
-describe('изменение workspace', () => {
-  it('переименовать может только владелец: у editor нет права на настройки', async () => {
+describe('workspace update', () => {
+  it('only the owner can rename: editor has no settings permission', async () => {
     const owner = newUserId();
     const editor = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     await giveRole(workspace.id, editor, 'editor');
 
     const ownerRename = await call(`/workspaces/${workspace.id}`, {
       method: 'PATCH',
-      body: { name: 'Проект А' },
+      body: { name: 'Project A' },
       userId: owner,
     });
     const editorRename = await call(`/workspaces/${workspace.id}`, {
       method: 'PATCH',
-      body: { name: 'Проект Б' },
+      body: { name: 'Project B' },
       userId: editor,
     });
 
@@ -109,15 +109,15 @@ describe('изменение workspace', () => {
     expect(editorRename.status).toBe(403);
   });
 
-  it('запрещает viewer менять workspace', async () => {
+  it('forbids viewer from changing the workspace', async () => {
     const owner = newUserId();
     const viewer = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     await giveRole(workspace.id, viewer, 'viewer');
 
     const response = await call(`/workspaces/${workspace.id}`, {
       method: 'PATCH',
-      body: { name: 'Проект Б' },
+      body: { name: 'Project B' },
       userId: viewer,
     });
 
@@ -125,9 +125,9 @@ describe('изменение workspace', () => {
     expect(await response.json()).toMatchObject({ code: 'FORBIDDEN' });
   });
 
-  it('требует хотя бы одно поле в PATCH', async () => {
+  it('requires at least one field in PATCH', async () => {
     const owner = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
 
     const response = await call(`/workspaces/${workspace.id}`, {
       method: 'PATCH',
@@ -139,11 +139,11 @@ describe('изменение workspace', () => {
   });
 });
 
-describe('архив и восстановление', () => {
-  it('архивирует только владелец и скрывает пространство от участников', async () => {
+describe('archive and restore', () => {
+  it('only the owner archives, and the workspace is hidden from members', async () => {
     const owner = newUserId();
     const editor = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     await giveRole(workspace.id, editor, 'editor');
 
     const editorDelete = await call(`/workspaces/${workspace.id}`, {
@@ -161,9 +161,9 @@ describe('архив и восстановление', () => {
     expect(editorRead.status).toBe(404);
   });
 
-  it('возвращает пространство из архива до истечения срока', async () => {
+  it('restores the workspace from the archive before retention expires', async () => {
     const owner = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     await call(`/workspaces/${workspace.id}`, { method: 'DELETE', userId: owner });
 
     const restored = await call(`/workspaces/${workspace.id}/restore`, {
@@ -175,9 +175,9 @@ describe('архив и восстановление', () => {
     expect((await jsonOf<WorkspaceBody>(restored)).archivedAt).toBeNull();
   });
 
-  it('cron удаляет архивное пространство после срока ретенции', async () => {
+  it('cron deletes the archived workspace after the retention period', async () => {
     const owner = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     await call(`/workspaces/${workspace.id}`, { method: 'DELETE', userId: owner });
 
     // The service clock is moved past the retention period: the archive "aged".
@@ -190,9 +190,9 @@ describe('архив и восстановление', () => {
     expect(await new WorkspaceRepository(TEST_ENV).findById(workspace.id)).toBeNull();
   });
 
-  it('cron не трогает свежий архив и активные пространства', async () => {
+  it('cron leaves a fresh archive and active workspaces alone', async () => {
     const owner = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     await call(`/workspaces/${workspace.id}`, { method: 'DELETE', userId: owner });
 
     const removed = await createWorkspaceService(TEST_ENV, () => new Date()).purgeExpired();

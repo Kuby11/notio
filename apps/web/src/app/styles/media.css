@@ -126,6 +126,16 @@
   object-fit: cover;
 }
 
+/*
+ * Wide: the image has left the column (a percent of the container, supplied
+ * by the node view in px) but keeps its natural aspect — no 16:9 frame.
+ * max-width: none, as in full width: the base clamp would stop the figure
+ * at the column edge.
+ */
+.tiptap figure.notio-image.is-wide {
+  max-width: none;
+}
+
 .tiptap figure.notio-image .notio-image-frame {
   display: block;
   position: relative;

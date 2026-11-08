@@ -55,6 +55,20 @@ export const ImageBlock = Node.create({
         renderHTML: (attributes: Record<string, unknown>) =>
           attributes['fullWidth'] === true ? { 'data-full-width': 'true' } : {},
       },
+      // Wide mode: a percent of the editor container (the image has left the
+      // column but is not full-width yet). Mutually exclusive with the others.
+      wideWidth: {
+        default: null,
+        parseHTML: (element: HTMLElement) => {
+          const value = element.getAttribute('data-wide-width');
+
+          return value === null ? null : Number.parseInt(value, 10);
+        },
+        renderHTML: (attributes: Record<string, unknown>) =>
+          typeof attributes['wideWidth'] === 'number'
+            ? { 'data-wide-width': String(attributes['wideWidth']) }
+            : {},
+      },
       // Service flag "source replacement in progress": not serialised, switches on
       // the upload card over an existing block (the "Replace" action).
       replacing: {
@@ -187,6 +201,7 @@ export function mediaFigureHTML(
   const src = url || (fileId ? `/api/media/files/${fileId}` : '');
   const caption = typeof node.attrs['caption'] === 'string' ? node.attrs['caption'] : '';
   const width = typeof node.attrs['width'] === 'number' ? node.attrs['width'] : null;
+  const wideWidth = typeof node.attrs['wideWidth'] === 'number' ? node.attrs['wideWidth'] : null;
   const fullWidth = node.attrs['fullWidth'] === true;
 
   return [
@@ -194,7 +209,11 @@ export function mediaFigureHTML(
     mergeAttributes(HTMLAttributes, {
       'data-block-type': blockType,
       'data-full-width': fullWidth ? 'true' : 'false',
-      ...(width !== null && !fullWidth ? { style: `width: ${width}%` } : {}),
+      ...(wideWidth !== null && !fullWidth ? { 'data-wide-width': String(wideWidth) } : {}),
+      // The wide percent is of the container, the fallback lives in the column:
+      // max-width clamps it to the column edge until the node view measures.
+      ...(wideWidth !== null && !fullWidth ? { style: `width: ${wideWidth}%` } : {}),
+      ...(width !== null && wideWidth === null && !fullWidth ? { style: `width: ${width}%` } : {}),
     }),
     src ? ['img', { src, alt: caption || label }] : ['span', {}, label],
     ['figcaption', {}, caption],

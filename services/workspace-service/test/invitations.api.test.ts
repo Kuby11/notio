@@ -21,11 +21,11 @@ async function invite(workspaceId: string, ownerId: string, role: 'editor' | 'vi
   return jsonOf<InvitationBody>(response);
 }
 
-describe('приглашения по ссылке', () => {
-  it('выдаёт ссылку и добавляет принявшего с ролью приглашения', async () => {
+describe('invitation links', () => {
+  it('issues a link and adds the acceptor with the invitation role', async () => {
     const owner = newUserId();
     const guest = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     const invitation = await invite(workspace.id, owner, 'viewer');
 
     expect(invitation.token).toMatch(/^[0-9a-f]{64}$/);
@@ -47,9 +47,9 @@ describe('приглашения по ссылке', () => {
     expect(list.items.map((item) => item.id)).toContain(workspace.id);
   });
 
-  it('заполняет профиль участника данными из auth-service', async () => {
+  it('fills the member profile from auth-service data', async () => {
     const owner = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
 
     const members = await jsonOf<{ items: { user: { id: string; email: string } }[] }>(
       await call(`/workspaces/${workspace.id}/members`, { userId: owner }),
@@ -58,11 +58,11 @@ describe('приглашения по ссылке', () => {
     expect(members.items[0]?.user.email).toBe(`${owner}@notio.test`);
   });
 
-  it('не принимает одну ссылку дважды', async () => {
+  it('does not accept the same link twice', async () => {
     const owner = newUserId();
     const first = newUserId();
     const second = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     const invitation = await invite(workspace.id, owner);
 
     await call('/invitations/accept', { body: { token: invitation.token }, userId: first });
@@ -76,10 +76,10 @@ describe('приглашения по ссылке', () => {
     expect(await new MemberRepository(TEST_ENV).findRole(workspace.id, second)).toBeNull();
   });
 
-  it('отказывает по истёкшей ссылке', async () => {
+  it('rejects an expired link', async () => {
     const owner = newUserId();
     const guest = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     const invitation = await invite(workspace.id, owner);
 
     // The link has expired: the scenario clock is moved past INVITATION_TTL_DAYS.
@@ -92,7 +92,7 @@ describe('приглашения по ссылке', () => {
     expect(await new MemberRepository(TEST_ENV).findRole(workspace.id, guest)).toBeNull();
   });
 
-  it('не находит несуществующий токен', async () => {
+  it('does not find a nonexistent token', async () => {
     const response = await call('/invitations/accept', {
       body: { token: 'a'.repeat(64) },
       userId: newUserId(),
@@ -101,10 +101,10 @@ describe('приглашения по ссылке', () => {
     expect(response.status).toBe(404);
   });
 
-  it('не выдаёт приглашение без права владельца', async () => {
+  it('does not issue an invitation without the owner right', async () => {
     const owner = newUserId();
     const editor = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     await new MemberRepository(TEST_ENV).upsert(
       workspace.id,
       editor,
@@ -120,9 +120,9 @@ describe('приглашения по ссылке', () => {
     expect(response.status).toBe(403);
   });
 
-  it('не выдаёт роль owner через приглашение', async () => {
+  it('does not grant the owner role through an invitation', async () => {
     const owner = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
 
     const response = await call(`/workspaces/${workspace.id}/invitations`, {
       body: { role: 'owner' },
@@ -132,9 +132,9 @@ describe('приглашения по ссылке', () => {
     expect(response.status).toBe(400);
   });
 
-  it('уважает лимит активных приглашений', async () => {
+  it('respects the active invitation limit', async () => {
     const owner = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     const max = Number.parseInt(TEST_ENV.MAX_ACTIVE_INVITATIONS ?? '20', 10);
 
     for (let index = 0; index < max; index += 1) {
@@ -150,10 +150,10 @@ describe('приглашения по ссылке', () => {
     expect(await overflow.json()).toMatchObject({ code: 'CONFLICT' });
   });
 
-  it('позволяет владельцу отозвать приглашение', async () => {
+  it('lets the owner revoke an invitation', async () => {
     const owner = newUserId();
     const guest = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     const invitation = await invite(workspace.id, owner);
 
     const revoked = await call(`/workspaces/${workspace.id}/invitations/${invitation.token}`, {
@@ -169,10 +169,10 @@ describe('приглашения по ссылке', () => {
     expect(acceptAfterRevoke.status).toBe(404);
   });
 
-  it('не показывает приглашения постороннему', async () => {
+  it('hides invitations from a stranger', async () => {
     const owner = newUserId();
     const stranger = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     await invite(workspace.id, owner);
 
     const response = await call(`/workspaces/${workspace.id}/invitations`, { userId: stranger });
@@ -181,11 +181,11 @@ describe('приглашения по ссылке', () => {
   });
 });
 
-describe('управление участниками', () => {
-  it('меняет роль участника', async () => {
+describe('member management', () => {
+  it('changes the role of a member', async () => {
     const owner = newUserId();
     const editor = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     const link = await invite(workspace.id, owner);
 
     await call('/invitations/accept', { body: { token: link.token }, userId: editor });
@@ -200,9 +200,9 @@ describe('управление участниками', () => {
     expect(await new MemberRepository(TEST_ENV).findRole(workspace.id, editor)).toBe('viewer');
   });
 
-  it('не даёт удалить последнего владельца', async () => {
+  it('does not allow removing the last owner', async () => {
     const owner = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
 
     const demote = await call(`/workspaces/${workspace.id}/members/${owner}`, {
       method: 'PATCH',
@@ -219,10 +219,10 @@ describe('управление участниками', () => {
     expect(await new MemberRepository(TEST_ENV).findRole(workspace.id, owner)).toBe('owner');
   });
 
-  it('позволяет передать владение второму участнику и убрать первого', async () => {
+  it('lets ownership pass to a second member and the first be demoted', async () => {
     const first = newUserId();
     const second = newUserId();
-    const workspace = await createWorkspace(first, 'Проект');
+    const workspace = await createWorkspace(first, 'Project');
     await new MemberRepository(TEST_ENV).upsert(
       workspace.id,
       second,
@@ -246,10 +246,10 @@ describe('управление участниками', () => {
     expect(await new MemberRepository(TEST_ENV).findRole(workspace.id, first)).toBe('editor');
   });
 
-  it('удаляет участника по инициативе владельца', async () => {
+  it('removes a member at the initiative of the owner', async () => {
     const owner = newUserId();
     const guest = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     const link = await invite(workspace.id, owner);
     await call('/invitations/accept', { body: { token: link.token }, userId: guest });
 
@@ -262,10 +262,10 @@ describe('управление участниками', () => {
     expect(await new MemberRepository(TEST_ENV).findRole(workspace.id, guest)).toBeNull();
   });
 
-  it('не даёт editor управлять участниками', async () => {
+  it('does not let editor manage members', async () => {
     const owner = newUserId();
     const editor = newUserId();
-    const workspace = await createWorkspace(owner, 'Проект');
+    const workspace = await createWorkspace(owner, 'Project');
     await new MemberRepository(TEST_ENV).upsert(
       workspace.id,
       editor,

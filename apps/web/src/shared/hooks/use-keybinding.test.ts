@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe('useKeybinding', () => {
-  it('вызывает обработчик на совпадение модификатора и клавиши', () => {
+  it('calls the handler on a matching modifier and key', () => {
     const handler = vi.fn<(event: KeyboardEvent) => void>();
     renderHook(() => useKeybinding('mod+k', handler));
 
@@ -23,7 +23,7 @@ describe('useKeybinding', () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it('игнорирует нажатия без модификатора и чужие клавиши', () => {
+  it('ignores presses without a modifier and other keys', () => {
     const handler = vi.fn<(event: KeyboardEvent) => void>();
     renderHook(() => useKeybinding('mod+k', handler));
 
@@ -33,7 +33,7 @@ describe('useKeybinding', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it('не срабатывает на автоповтор при удержании', () => {
+  it('does not fire on auto-repeat while the key is held', () => {
     const handler = vi.fn<(event: KeyboardEvent) => void>();
     renderHook(() => useKeybinding('mod+/', handler));
 
@@ -42,7 +42,7 @@ describe('useKeybinding', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it('отменяет стандартное поведение браузера на совпадении', () => {
+  it('prevents the default browser behaviour on a match', () => {
     const handler = vi.fn<(event: KeyboardEvent) => void>();
     renderHook(() => useKeybinding('mod+k', handler));
 
@@ -51,7 +51,7 @@ describe('useKeybinding', () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
-  it('не перехватывает события при выключенном подписчике', () => {
+  it('does not intercept events while the subscriber is disabled', () => {
     const handler = vi.fn<(event: KeyboardEvent) => void>();
     renderHook(() => useKeybinding('mod+k', handler, { enabled: false }));
 
@@ -60,7 +60,7 @@ describe('useKeybinding', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it('снимает слушатель при размонтировании', () => {
+  it('removes the listener on unmount', () => {
     const handler = vi.fn<(event: KeyboardEvent) => void>();
     const { unmount } = renderHook(() => useKeybinding('mod+k', handler));
 
@@ -72,7 +72,7 @@ describe('useKeybinding', () => {
 });
 
 describe('useModKeyLabel', () => {
-  it('показывает Ctrl на не-Apple платформах', () => {
+  it('shows Ctrl on non-Apple platforms', () => {
     const { result } = renderHook(() => useModKeyLabel());
 
     // jsdom reports a non-Apple platform, matching Windows/Linux users.

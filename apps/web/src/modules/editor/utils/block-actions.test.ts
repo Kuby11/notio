@@ -45,7 +45,7 @@ function blockAt(current: Editor, position: number) {
   const block = findBlockAtPosition(current, position);
 
   if (!block) {
-    throw new Error(`Блок на позиции ${position} не найден`);
+    throw new Error(`Block at position ${position} not found`);
   }
 
   return block;
@@ -65,26 +65,26 @@ function optionOf(id: string): TurnIntoOption {
   const option = TURN_INTO_OPTIONS.find((entry) => entry.id === id);
 
   if (!option) {
-    throw new Error(`Опция ${id} не найдена`);
+    throw new Error(`Option ${id} not found`);
   }
 
   return option;
 }
 
 describe('turnIntoBlock', () => {
-  it('превращает заголовок в цитату, сохраняя текст', () => {
+  it('turns a heading into a quote, keeping the text', () => {
     editor = createEditor({
       type: 'heading',
       attrs: { level: 1 },
-      content: [{ type: 'text', text: 'Заголовок' }],
+      content: [{ type: 'text', text: 'Heading' }],
     });
 
     expect(turnIntoBlock(editor, firstBlock(editor), optionOf('quote'))).toBe(true);
     expect(blockTypeNames(editor)).toEqual(['blockquote']);
-    expect(editor.state.doc.textContent).toBe('Заголовок');
+    expect(editor.state.doc.textContent).toBe('Heading');
   });
 
-  it('превращает элемент нумерованного списка в цитату, поднимая его из списка', () => {
+  it('turns a numbered list item into a quote, lifting it out of the list', () => {
     editor = createEditor({
       type: 'orderedList',
       content: [
@@ -101,12 +101,12 @@ describe('turnIntoBlock', () => {
     expect(editor.state.doc.textContent).toBe('Step');
   });
 
-  it('превращает toggle в текст, разворачивая дочерние блоки', () => {
+  it('turns a toggle into text, unfolding its child blocks', () => {
     editor = createEditor({
       type: 'details',
       attrs: { open: true },
       content: [
-        { type: 'detailsSummary', content: [{ type: 'text', text: 'Заголовок' }] },
+        { type: 'detailsSummary', content: [{ type: 'text', text: 'Heading' }] },
         {
           type: 'detailsContent',
           content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Child' }] }],
@@ -117,10 +117,10 @@ describe('turnIntoBlock', () => {
     turnIntoBlock(editor, firstBlock(editor), optionOf('text'));
 
     expect(blockTypeNames(editor)).toEqual(['paragraph', 'paragraph']);
-    expect(editor.state.doc.textContent).toBe('ЗаголовокChild');
+    expect(editor.state.doc.textContent).toBe('HeadingChild');
   });
 
-  it('превращает абзац в код и обратно без потери текста', () => {
+  it('turns a paragraph into code and back without losing text', () => {
     editor = createEditor({ type: 'paragraph', content: [{ type: 'text', text: 'const x = 1;' }] });
 
     turnIntoBlock(editor, firstBlock(editor), optionOf('code'));
@@ -136,18 +136,18 @@ describe('turnIntoBlock', () => {
     expect(editor.state.doc.textContent).toBe('const x = 1;');
   });
 
-  it('не делает ничего, если блок уже имеет выбранный тип', () => {
+  it('does nothing when the block already has the selected type', () => {
     editor = createEditor({
       type: 'heading',
       attrs: { level: 2 },
-      content: [{ type: 'text', text: 'Заголовок' }],
+      content: [{ type: 'text', text: 'Heading' }],
     });
 
     expect(turnIntoBlock(editor, firstBlock(editor), optionOf('heading2'))).toBe(true);
     expect(blockTypeNames(editor)).toEqual(['heading']);
   });
 
-  it('отказывается превращать атомарный блок', () => {
+  it('refuses to turn an atomic block', () => {
     editor = createEditor({ type: 'horizontalRule' });
 
     expect(turnIntoBlock(editor, firstBlock(editor), optionOf('text'))).toBe(false);
@@ -155,7 +155,7 @@ describe('turnIntoBlock', () => {
 });
 
 describe('currentTurnIntoOptionId / canTurnInto / canColorBlock', () => {
-  it('соотносит узлы с опциями превращения', () => {
+  it('maps nodes to turn-into options', () => {
     editor = createEditor({
       type: 'bulletList',
       content: [
@@ -173,7 +173,7 @@ describe('currentTurnIntoOptionId / canTurnInto / canColorBlock', () => {
     expect(canColorBlock(item.node)).toBe(true);
   });
 
-  it('code-блок можно превратить, но нельзя раскрасить', () => {
+  it('a code block can be turned into but not colored', () => {
     editor = createEditor({ type: 'codeBlock', content: [{ type: 'text', text: 'code' }] });
 
     expect(currentTurnIntoOptionId(firstBlock(editor))).toBe('code');
@@ -182,8 +182,8 @@ describe('currentTurnIntoOptionId / canTurnInto / canColorBlock', () => {
   });
 });
 
-describe('медиа-действия блока', () => {
-  it('превращает изображение в файл, перенося источник', () => {
+describe('block media actions', () => {
+  it('turns an image into a file, moving the source over', () => {
     editor = createEditor({
       type: 'image',
       attrs: {
@@ -207,7 +207,7 @@ describe('медиа-действия блока', () => {
     expect(canUseMediaActions(file!)).toBe(true);
   });
 
-  it('у изображения цель превращения одна — файл', () => {
+  it('gives an image a single turn-into target: file', () => {
     editor = createEditor({
       type: 'image',
       attrs: { fileId: '00000000-0000-4000-8000-000000000010', url: null, caption: null },
@@ -218,7 +218,7 @@ describe('медиа-действия блока', () => {
     ]);
   });
 
-  it('замена источника включает и выключает карточку', () => {
+  it('toggles the replace-source card on and off', () => {
     editor = createEditor({
       type: 'image',
       attrs: { fileId: '00000000-0000-4000-8000-000000000010', url: null, caption: null },
@@ -232,7 +232,7 @@ describe('медиа-действия блока', () => {
     expect(editor.state.doc.firstChild?.type.name).toBe('image');
   });
 
-  it('без источника медиа-действия недоступны', () => {
+  it('makes media actions unavailable without a source', () => {
     editor = createEditor({ type: 'image', attrs: { fileId: null, url: null, caption: null } });
 
     expect(canUseMediaActions(editor.state.doc.firstChild!)).toBe(false);
@@ -240,10 +240,10 @@ describe('медиа-действия блока', () => {
 });
 
 describe('deleteBlockAt', () => {
-  it('удаляет блок из середины документа', () => {
+  it('deletes a block from the middle of the document', () => {
     editor = new Editor({
       extensions: editorExtensions,
-      content: '<p>Первый</p><p>Второй</p><p>Третий</p>',
+      content: '<p>First</p><p>Second</p><p>Third</p>',
     });
 
     const second = findBlockAtPosition(editor, editor.state.doc.child(0).nodeSize);
@@ -254,10 +254,10 @@ describe('deleteBlockAt', () => {
       deleteBlockAt(editor, second);
     }
 
-    expect(editor.state.doc.textContent).toBe('ПервыйТретий');
+    expect(editor.state.doc.textContent).toBe('FirstThird');
   });
 
-  it('оставляет пустой абзац при удалении последнего блока', () => {
+  it('leaves an empty paragraph after deleting the last block', () => {
     editor = createEditor({ type: 'paragraph', content: [{ type: 'text', text: 'One' }] });
 
     deleteBlockAt(editor, firstBlock(editor));
@@ -268,7 +268,7 @@ describe('deleteBlockAt', () => {
 });
 
 describe('duplicateBlockAt', () => {
-  it('дублирует блок и назначает копии новый blockId', () => {
+  it('duplicates a block and assigns the copy a new blockId', () => {
     editor = createEditor({ type: 'paragraph', content: [{ type: 'text', text: 'Text' }] });
 
     duplicateBlockAt(editor, firstBlock(editor));
@@ -287,7 +287,7 @@ describe('duplicateBlockAt', () => {
 });
 
 describe('setBlockColors', () => {
-  it('ставит и сбрасывает цвета блока', () => {
+  it('sets and resets block colors', () => {
     editor = createEditor({ type: 'paragraph', content: [{ type: 'text', text: 'Text' }] });
 
     const block = firstBlock(editor);

@@ -69,6 +69,24 @@ describe('media blocks: renderHTML fallbacks', () => {
     expect(html).not.toContain('width: 80%');
   });
 
+  it('renders a wide image with the container-percent attribute', () => {
+    const current = createEditor({
+      type: 'doc',
+      content: [
+        {
+          type: 'image',
+          attrs: { url: 'https://example.com/a.png', caption: '', wideWidth: 75 },
+        },
+      ],
+    });
+
+    const html = current.getHTML();
+
+    expect(html).toContain('data-wide-width="75"');
+    expect(html).toContain('width: 75%');
+    expect(html).toContain('data-full-width="false"');
+  });
+
   it('renders a placeholder for an image without a source', () => {
     const current = createEditor({ type: 'doc', content: [{ type: 'image' }] });
 

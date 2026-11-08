@@ -11,7 +11,7 @@ const page = {
   id: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
   workspaceId: '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
   parentId: null,
-  title: 'Дорожная карта',
+  title: 'Roadmap',
   icon: '🗺️',
   position: 'a0',
   isFavorite: false,
@@ -22,28 +22,28 @@ const page = {
 };
 
 describe('PageSchema', () => {
-  it('принимает корректную страницу', () => {
+  it('accepts a valid page', () => {
     expect(PageSchema.parse(page)).toEqual(page);
   });
 
-  it('требует parentId: null для корневой страницы, а не отсутствия поля', () => {
+  it('requires parentId: null for a root page, not a missing field', () => {
     const { parentId: _parentId, ...withoutParentId } = page;
 
     expect(() => PageSchema.parse(withoutParentId)).toThrow();
   });
 
-  it('отклоняет пустой parentId и title длиннее 500 символов', () => {
+  it('rejects an empty parentId and a title longer than 500 characters', () => {
     expect(() => PageSchema.parse({ ...page, parentId: '' })).toThrow();
     expect(() => PageSchema.parse({ ...page, title: 'x'.repeat(501) })).toThrow();
   });
 
-  it('разрешает пустой title — новая страница ещё не названа', () => {
+  it('allows an empty title — a new page is not named yet', () => {
     expect(PageSchema.parse({ ...page, title: '' }).title).toBe('');
   });
 });
 
 describe('CreatePageInputSchema', () => {
-  it('подставляет значения по умолчанию', () => {
+  it('fills in default values', () => {
     const parsed = CreatePageInputSchema.parse({
       workspaceId: '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
     });
@@ -51,22 +51,22 @@ describe('CreatePageInputSchema', () => {
     expect(parsed).toMatchObject({ parentId: null, title: '' });
   });
 
-  it('отклоняет неизвестный workspaceId', () => {
+  it('rejects an unknown workspaceId', () => {
     expect(() => CreatePageInputSchema.parse({ workspaceId: 'workspace-1' })).toThrow();
   });
 });
 
 describe('UpdatePageInputSchema', () => {
-  it('принимает частичное обновление', () => {
+  it('accepts a partial update', () => {
     expect(UpdatePageInputSchema.parse({ isFavorite: true })).toEqual({ isFavorite: true });
   });
 
-  it('отклоняет пустой объект и поля без изменений', () => {
+  it('rejects an empty object', () => {
     expect(() => UpdatePageInputSchema.parse({})).toThrow();
     expect(() => UpdatePageInputSchema.parse({ title: 'x'.repeat(501) })).toThrow();
   });
 
-  it('разрешает явный null для иконки и обложки', () => {
+  it('allows explicit null for the icon and cover', () => {
     expect(UpdatePageInputSchema.parse({ icon: null, coverFileId: null })).toEqual({
       icon: null,
       coverFileId: null,
@@ -75,7 +75,7 @@ describe('UpdatePageInputSchema', () => {
 });
 
 describe('MovePageInputSchema', () => {
-  it('требует parentId (в том числе null) и разрешает afterPageId', () => {
+  it('requires parentId (including null) and allows afterPageId', () => {
     expect(MovePageInputSchema.parse({ parentId: null })).toEqual({ parentId: null });
     expect(
       MovePageInputSchema.parse({
@@ -87,24 +87,24 @@ describe('MovePageInputSchema', () => {
 });
 
 describe('BlockContentSchema', () => {
-  it('различает блоки по типу', () => {
-    expect(BlockContentSchema.parse({ type: 'paragraph', content: 'текст' })).toEqual({
+  it('distinguishes blocks by type', () => {
+    expect(BlockContentSchema.parse({ type: 'paragraph', content: 'text' })).toEqual({
       type: 'paragraph',
-      content: 'текст',
+      content: 'text',
     });
     expect(
-      BlockContentSchema.parse({ type: 'heading', level: 2, content: 'Заголовок' }),
+      BlockContentSchema.parse({ type: 'heading', level: 2, content: 'Heading' }),
     ).toMatchObject({ level: 2 });
     expect(
-      BlockContentSchema.parse({ type: 'heading', level: 4, content: 'Заголовок 4' }),
+      BlockContentSchema.parse({ type: 'heading', level: 4, content: 'Heading 4' }),
     ).toMatchObject({ level: 4 });
     expect(BlockContentSchema.parse({ type: 'divider' })).toEqual({ type: 'divider' });
   });
 
-  it('проверяет поля конкретного типа', () => {
+  it('validates type-specific fields', () => {
     expect(() => BlockContentSchema.parse({ type: 'heading', level: 5, content: 'x' })).toThrow();
     expect(() => BlockContentSchema.parse({ type: 'paragraph' })).toThrow();
-    expect(() => BlockContentSchema.parse({ type: 'divider', content: 'лишнее' })).toThrow();
+    expect(() => BlockContentSchema.parse({ type: 'divider', content: 'extra' })).toThrow();
     expect(() =>
       BlockContentSchema.parse({
         type: 'video',
@@ -124,24 +124,24 @@ describe('BlockContentSchema', () => {
     ).toThrow();
   });
 
-  it('принимает пресеты цвета текстовых блоков и отвергает чужие значения', () => {
+  it('accepts text-block colour presets and rejects foreign values', () => {
     expect(
       BlockContentSchema.parse({
         type: 'paragraph',
-        content: 'текст',
+        content: 'text',
         color: 'red',
         backgroundColor: 'blue',
       }),
-    ).toEqual({ type: 'paragraph', content: 'текст', color: 'red', backgroundColor: 'blue' });
+    ).toEqual({ type: 'paragraph', content: 'text', color: 'red', backgroundColor: 'blue' });
     expect(() =>
-      BlockContentSchema.parse({ type: 'paragraph', content: 'текст', color: 'magenta' }),
+      BlockContentSchema.parse({ type: 'paragraph', content: 'text', color: 'magenta' }),
     ).toThrow();
     expect(() =>
       BlockContentSchema.parse({ type: 'code', language: null, content: 'x', color: 'red' }),
     ).toThrow();
   });
 
-  it('принимает геометрию таблицы и отвергает чужие значения', () => {
+  it('accepts table geometry and rejects foreign values', () => {
     expect(
       BlockContentSchema.parse({
         type: 'table',
@@ -165,17 +165,17 @@ describe('BlockContentSchema', () => {
     ).toThrow();
   });
 
-  it('разрешает вложенные блоки и свёрнутость toggle', () => {
+  it('allows nested blocks and a collapsed toggle', () => {
     const toggle = {
       type: 'toggle',
-      content: 'Переключатель',
+      content: 'Toggle',
       open: false,
       children: [
-        { type: 'paragraph', content: 'Внутри' },
+        { type: 'paragraph', content: 'Inside' },
         {
           type: 'toggle',
-          content: 'Вложенный',
-          children: [{ type: 'toDo', checked: true, content: 'Задача' }],
+          content: 'Nested',
+          children: [{ type: 'toDo', checked: true, content: 'Task' }],
         },
       ],
     };
@@ -183,7 +183,7 @@ describe('BlockContentSchema', () => {
     expect(BlockContentSchema.parse(toggle)).toEqual(toggle);
   });
 
-  it('требует источник у медиа-блоков и nullable caption', () => {
+  it('requires a source on media blocks and a nullable caption', () => {
     expect(() => BlockContentSchema.parse({ type: 'image', caption: null })).toThrow();
     expect(() =>
       BlockContentSchema.parse({
@@ -211,7 +211,7 @@ describe('BlockContentSchema', () => {
     ).toMatchObject({ url: 'https://example.com/clip.mp4' });
   });
 
-  it('покрыт всеми типами из BLOCK_TYPES', () => {
+  it('covers every type from BLOCK_TYPES', () => {
     const samples: Record<string, unknown> = {
       paragraph: { type: 'paragraph', content: '' },
       heading: { type: 'heading', level: 1, content: '' },
@@ -226,6 +226,7 @@ describe('BlockContentSchema', () => {
         fileId: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
         url: null,
         caption: null,
+        wideWidth: 75,
         fullWidth: true,
       },
       video: { type: 'video', fileId: null, url: 'https://example.com/clip.mp4', caption: null },
@@ -257,13 +258,13 @@ describe('BlockContentSchema', () => {
 });
 
 describe('BlockSchema', () => {
-  it('требует pageId, позицию и согласованный content', () => {
+  it('requires a pageId, a position and matching content', () => {
     const block = {
       id: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
       pageId: '1f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',
       type: 'paragraph',
       position: 'a0',
-      content: { type: 'paragraph', content: 'текст' },
+      content: { type: 'paragraph', content: 'text' },
       createdAt: '2026-10-18T12:00:00.000Z',
       updatedAt: '2026-10-18T12:00:00.000Z',
     };
@@ -273,8 +274,8 @@ describe('BlockSchema', () => {
 });
 
 describe('CreateBlockInputSchema', () => {
-  it('не принимает блок без валидного content', () => {
-    expect(() => CreateBlockInputSchema.parse({ pageId: 'не-uuid' })).toThrow();
+  it('rejects a block without valid content', () => {
+    expect(() => CreateBlockInputSchema.parse({ pageId: 'not-a-uuid' })).toThrow();
     expect(() =>
       CreateBlockInputSchema.parse({
         pageId: '9f1c0e2a-3b4d-4c5e-8f90-1a2b3c4d5e6f',

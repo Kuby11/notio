@@ -25,17 +25,17 @@ export interface TurnIntoOption {
 
 /** Turning changes the type of the row, not the whole document content. */
 export const TURN_INTO_OPTIONS: readonly TurnIntoOption[] = [
-  { id: 'text', label: 'Текст', icon: '¶', kind: 'paragraph' },
-  { id: 'heading1', label: 'Заголовок 1', icon: 'H1', kind: 'heading', headingLevel: 1 },
-  { id: 'heading2', label: 'Заголовок 2', icon: 'H2', kind: 'heading', headingLevel: 2 },
-  { id: 'heading3', label: 'Заголовок 3', icon: 'H3', kind: 'heading', headingLevel: 3 },
-  { id: 'heading4', label: 'Заголовок 4', icon: 'H4', kind: 'heading', headingLevel: 4 },
-  { id: 'toDo', label: 'Список задач', icon: '☑', kind: 'toDo' },
-  { id: 'bulletedList', label: 'Маркированный список', icon: '•', kind: 'bulletList' },
-  { id: 'numberedList', label: 'Нумерованный список', icon: '1.', kind: 'orderedList' },
-  { id: 'toggle', label: 'Toggle-список', icon: '▸', kind: 'toggle' },
-  { id: 'quote', label: 'Цитата', icon: '❝', kind: 'quote' },
-  { id: 'code', label: 'Код', icon: '</>', kind: 'code' },
+  { id: 'text', label: 'Text', icon: '¶', kind: 'paragraph' },
+  { id: 'heading1', label: 'Heading 1', icon: 'H1', kind: 'heading', headingLevel: 1 },
+  { id: 'heading2', label: 'Heading 2', icon: 'H2', kind: 'heading', headingLevel: 2 },
+  { id: 'heading3', label: 'Heading 3', icon: 'H3', kind: 'heading', headingLevel: 3 },
+  { id: 'heading4', label: 'Heading 4', icon: 'H4', kind: 'heading', headingLevel: 4 },
+  { id: 'toDo', label: 'To-do list', icon: '☑', kind: 'toDo' },
+  { id: 'bulletedList', label: 'Bulleted list', icon: '•', kind: 'bulletList' },
+  { id: 'numberedList', label: 'Numbered list', icon: '1.', kind: 'orderedList' },
+  { id: 'toggle', label: 'Toggle list', icon: '▸', kind: 'toggle' },
+  { id: 'quote', label: 'Quote', icon: '❝', kind: 'quote' },
+  { id: 'code', label: 'Code', icon: '</>', kind: 'code' },
 ];
 
 /** Types that can be turned into another row type. */
@@ -248,7 +248,7 @@ export function turnIntoBlock(
         ...node.attrs,
         fileId: source.fileId,
         url: source.url,
-        name: typeof caption === 'string' && caption.length > 0 ? caption : 'Изображение',
+        name: typeof caption === 'string' && caption.length > 0 ? caption : 'Image',
         sizeBytes: null,
       }),
     );

@@ -212,6 +212,7 @@ export function ImageView({ node, editor, updateAttributes }: ReactNodeViewProps
   const { fileId, url } = mediaStateOf(node);
   const caption = typeof node.attrs['caption'] === 'string' ? node.attrs['caption'] : '';
   const width = typeof node.attrs['width'] === 'number' ? node.attrs['width'] : null;
+  const wideWidth = typeof node.attrs['wideWidth'] === 'number' ? node.attrs['wideWidth'] : null;
   const fullWidth = node.attrs['fullWidth'] === true;
   const replacing = node.attrs['replacing'] === true;
   const { busy, uploadFile } = useMediaUpload(editor, updateAttributes, 'image');
@@ -227,13 +228,20 @@ export function ImageView({ node, editor, updateAttributes }: ReactNodeViewProps
 
   const figureRef = useRef<HTMLElement | null>(null);
 
-  // Sizes for full-width: the workspace width and the column's offset from it.
-  // Recomputed on window and sidebar resize.
-  const [fullBleed, setFullBleed] = useState<{ width: number; marginLeft: number } | null>(null);
+  // Measured geometry of the breakout modes (full-width and wide): the
+  // container's width and the column's offset from it. Recomputed on window
+  // and sidebar resize.
+  const [bleed, setBleed] = useState<{
+    containerWidth: number;
+    containerLeft: number;
+    columnLeft: number;
+  } | null>(null);
+
+  const breakout = fullWidth || wideWidth !== null;
 
   useEffect(() => {
-    if (!fullWidth) {
-      setFullBleed(null);
+    if (!breakout) {
+      setBleed(null);
 
       return;
     }
@@ -249,11 +257,10 @@ export function ImageView({ node, editor, updateAttributes }: ReactNodeViewProps
       const columnRect = column.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
 
-      // Negative margin: the column is narrower than the container and centred, so the
-      // figure edge must line up with the workspace edge without leaving the screen.
-      setFullBleed({
-        width: containerRect.width,
-        marginLeft: containerRect.left - columnRect.left,
+      setBleed({
+        containerWidth: containerRect.width,
+        containerLeft: containerRect.left,
+        columnLeft: columnRect.left,
       });
     };
 
@@ -268,12 +275,13 @@ export function ImageView({ node, editor, updateAttributes }: ReactNodeViewProps
       observer.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [fullWidth]);
+  }, [breakout]);
 
   /**
-   * Resize by the side handle, as in Notion: drag inside the column — percent;
-   * go past the column — the image spans the full workspace width (16:9);
-   * drag back — the percent returns.
+   * Resize by the side handle, as in Notion, in three states: drag inside the
+   * column — a percent of it; past the column edge — wide (a percent of the
+   * container, centred, natural aspect); past the container edge — full-width
+   * (16:9). Dragging back walks the states in reverse.
    */
   function startResize(event: React.PointerEvent<HTMLSpanElement>, side: 'left' | 'right'): void {
     // Resize handles do not work on a locked page.
@@ -296,7 +304,19 @@ export function ImageView({ node, editor, updateAttributes }: ReactNodeViewProps
       right: columnBox.right,
       width: columnBox.width,
     };
-    const startState = { fullWidth, width };
+    const container = figureRef.current?.closest('[data-editor-container]');
+    const containerBox = container?.getBoundingClientRect();
+
+    if (!containerBox || containerBox.width === 0) {
+      return;
+    }
+
+    const containerRect = {
+      left: containerBox.left,
+      right: containerBox.right,
+      width: containerBox.width,
+    };
+    const startState = { fullWidth, width, wideWidth };
 
     // Pinned edge: for the right handle it is the figure's left edge, for the left one —
     // the right. The width is computed absolutely from it, so the image grows
@@ -317,12 +337,16 @@ export function ImageView({ node, editor, updateAttributes }: ReactNodeViewProps
         clientX: moveEvent.clientX,
         state: startState,
         column: columnRect,
+        container: containerRect,
         anchorPx,
       });
 
+      // All three attributes explicitly: the state machine switches between
+      // them, a stale value would keep the old state rendering.
       updateAttributes({
         fullWidth: next.fullWidth,
-        ...(next.width !== null ? { width: next.width } : {}),
+        width: next.width,
+        wideWidth: next.wideWidth,
       });
     }
 
@@ -348,11 +372,23 @@ export function ImageView({ node, editor, updateAttributes }: ReactNodeViewProps
     event.preventDefault();
     event.stopPropagation();
 
-    const next = resizeImageByKeyboard({ side, key: event.key, state: { fullWidth, width } });
+    const columnBox = figureRef.current?.closest('.ProseMirror')?.getBoundingClientRect();
+    const containerBox = figureRef.current
+      ?.closest('[data-editor-container]')
+      ?.getBoundingClientRect();
+    const next = resizeImageByKeyboard({
+      side,
+      key: event.key,
+      state: { fullWidth, width, wideWidth },
+      ...(columnBox && containerBox && containerBox.width > 0
+        ? { containerRatio: containerBox.width / columnBox.width }
+        : {}),
+    });
 
     updateAttributes({
       fullWidth: next.fullWidth,
-      ...(next.width !== null ? { width: next.width } : {}),
+      width: next.width,
+      wideWidth: next.wideWidth,
     });
   }
 
@@ -393,29 +429,49 @@ export function ImageView({ node, editor, updateAttributes }: ReactNodeViewProps
   // While dragging we pin the edge opposite the handle: width
   // in px from attrs (they update on every cursor move), the offset stays
   // fixed. After release the figure is centred by margins again.
-  const resizeStyle = resizing
-    ? {
-        width: `${((width ?? IMAGE_WIDTH_MAX) / 100) * resizing.columnWidth}px`,
-        ...(resizing.side === 'right'
-          ? { marginLeft: `${resizing.anchorPx}px`, marginRight: '0px' }
-          : { marginRight: `${resizing.columnWidth - resizing.anchorPx}px`, marginLeft: '0px' }),
-      }
-    : null;
+  // The wide mode is centred symmetrically instead — the bleed style below
+  // already follows the attrs, no pinning is needed.
+  const resizeStyle =
+    resizing && wideWidth === null
+      ? {
+          width: `${((width ?? IMAGE_WIDTH_MAX) / 100) * resizing.columnWidth}px`,
+          ...(resizing.side === 'right'
+            ? { marginLeft: `${resizing.anchorPx}px`, marginRight: '0px' }
+            : { marginRight: `${resizing.columnWidth - resizing.anchorPx}px`, marginLeft: '0px' }),
+        }
+      : null;
+
+  const wide = wideWidth !== null && !fullWidth;
+  const wideStyle =
+    wide && bleed
+      ? (() => {
+          const pxWidth = (wideWidth / 100) * bleed.containerWidth;
+          // Centred in the container: the column offset plus half of the
+          // leftover width on each side.
+          const margin =
+            bleed.containerLeft - bleed.columnLeft + (bleed.containerWidth - pxWidth) / 2;
+
+          return { width: `${pxWidth}px`, marginLeft: `${margin}px` };
+        })()
+      : null;
 
   const wrapperStyle = fullWidth
-    ? fullBleed
-      ? { width: `${fullBleed.width}px`, marginLeft: `${fullBleed.marginLeft}px` }
+    ? bleed
+      ? {
+          width: `${bleed.containerWidth}px`,
+          marginLeft: `${bleed.containerLeft - bleed.columnLeft}px`,
+        }
       : undefined
-    : (resizeStyle ?? (width ? { width: `${width}%` } : undefined));
+    : (wideStyle ?? resizeStyle ?? (width !== null ? { width: `${width}%` } : undefined));
 
-  // Explicit width (resize) or full-width: the image fills the frame entirely.
-  // Without it the figure hugs the image's natural size.
-  const hasExplicitWidth = fullWidth || width !== null;
+  // Explicit width (resize) or a breakout mode: the image fills the frame
+  // entirely. Without it the figure hugs the image's natural size.
+  const hasExplicitWidth = fullWidth || wide || width !== null;
 
   return (
     <NodeViewWrapper
       as="figure"
-      className={`notio-image${fullWidth ? ' is-full-width' : ''}${hasExplicitWidth ? ' has-width' : ''}`}
+      className={`notio-image${fullWidth ? ' is-full-width' : ''}${wide ? ' is-wide' : ''}${hasExplicitWidth ? ' has-width' : ''}`}
       style={wrapperStyle}
     >
       {/*
@@ -452,7 +508,11 @@ export function ImageView({ node, editor, updateAttributes }: ReactNodeViewProps
         ))}
         {resizing ? (
           <span className="notio-image-size-tooltip">
-            {fullWidth ? tResize('fullWidth') : `${width ?? IMAGE_WIDTH_MAX}%`}
+            {fullWidth
+              ? tResize('fullWidth')
+              : wide
+                ? `${wideWidth}%`
+                : `${width ?? IMAGE_WIDTH_MAX}%`}
           </span>
         ) : null}
       </span>
@@ -483,7 +543,7 @@ export function VideoView({ node, editor, updateAttributes }: ReactNodeViewProps
   const t = useTranslations('editor.media');
   const { fileId, url } = mediaStateOf(node);
   const caption = typeof node.attrs['caption'] === 'string' ? node.attrs['caption'] : '';
-  const { busy, uploadFile } = useMediaUpload(editor, updateAttributes, 'image');
+  const { busy, uploadFile } = useMediaUpload(editor, updateAttributes, 'video');
   const src = fileId ? mediaBridge(editor).fileUrl(fileId) : url;
 
   if (!src) {
@@ -547,7 +607,7 @@ export function FileView({ node, editor, updateAttributes }: ReactNodeViewProps)
   const { fileId, url } = mediaStateOf(node);
   const name = typeof node.attrs['name'] === 'string' ? node.attrs['name'] : t('file');
   const sizeBytes = typeof node.attrs['sizeBytes'] === 'number' ? node.attrs['sizeBytes'] : null;
-  const { busy, uploadFile } = useMediaUpload(editor, updateAttributes, 'image');
+  const { busy, uploadFile } = useMediaUpload(editor, updateAttributes, 'file');
   const bridge = mediaBridge(editor);
 
   function handleUpload(file: File): void {

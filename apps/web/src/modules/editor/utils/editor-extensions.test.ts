@@ -66,7 +66,7 @@ function textPosition(current: Editor, text: string): number {
   });
 
   if (found === -1) {
-    throw new Error(`Текст «${text}» не найден в документе`);
+    throw new Error(`Text "${text}" not found in the document`);
   }
 
   return found;
@@ -74,7 +74,7 @@ function textPosition(current: Editor, text: string): number {
 
 /**
  * A toggle block with a child paragraph and a neighbouring top-level block.
- * Dropping on "Вложенный" aligns inside the toggle, on "Снаружи" it does not.
+ * Dropping on "Inside" aligns inside the toggle, on "Outside" it does not.
  */
 function documentWithToggle(): Editor {
   const current = createEditor(DRAG_EXTENSIONS);
@@ -86,14 +86,14 @@ function documentWithToggle(): Editor {
         type: 'details',
         attrs: { open: true },
         content: [
-          { type: 'detailsSummary', content: [{ type: 'text', text: 'Заголовок' }] },
+          { type: 'detailsSummary', content: [{ type: 'text', text: 'Heading' }] },
           {
             type: 'detailsContent',
-            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Вложенный' }] }],
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Inside' }] }],
           },
         ],
       },
-      { type: 'paragraph', content: [{ type: 'text', text: 'Снаружи' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'Outside' }] },
     ],
   });
 
@@ -105,11 +105,11 @@ function dragOver(current: Editor): void {
 }
 
 describe('DropTargetHighlight', () => {
-  it('подсвечивает toggle, когда drop выровнен внутрь него', () => {
+  it('highlights the toggle when the drop is aligned inside it', () => {
     const current = documentWithToggle();
     const posAtCoords = vi.spyOn(current.view, 'posAtCoords');
 
-    posAtCoords.mockReturnValue({ pos: textPosition(current, 'Вложенный'), inside: -1 });
+    posAtCoords.mockReturnValue({ pos: textPosition(current, 'Inside'), inside: -1 });
     dragOver(current);
 
     expect(current.view.dom.querySelector('[data-type="details"]')).toHaveClass(
@@ -117,27 +117,27 @@ describe('DropTargetHighlight', () => {
     );
   });
 
-  it('снимает подсветку, когда drop уходит на блок без детей', () => {
+  it('removes the highlight when the drop moves to a block without children', () => {
     const current = documentWithToggle();
     const posAtCoords = vi.spyOn(current.view, 'posAtCoords');
 
-    posAtCoords.mockReturnValue({ pos: textPosition(current, 'Вложенный'), inside: -1 });
+    posAtCoords.mockReturnValue({ pos: textPosition(current, 'Inside'), inside: -1 });
     dragOver(current);
 
     const details = current.view.dom.querySelector('[data-type="details"]');
     expect(details).toHaveClass('notio-drop-target');
 
-    posAtCoords.mockReturnValue({ pos: textPosition(current, 'Снаружи'), inside: -1 });
+    posAtCoords.mockReturnValue({ pos: textPosition(current, 'Outside'), inside: -1 });
     dragOver(current);
 
     expect(details).not.toHaveClass('notio-drop-target');
   });
 
-  it('снимает подсветку после завершения перетаскивания', () => {
+  it('removes the highlight after the drag ends', () => {
     const current = documentWithToggle();
     const posAtCoords = vi.spyOn(current.view, 'posAtCoords');
 
-    posAtCoords.mockReturnValue({ pos: textPosition(current, 'Вложенный'), inside: -1 });
+    posAtCoords.mockReturnValue({ pos: textPosition(current, 'Inside'), inside: -1 });
     dragOver(current);
 
     const details = current.view.dom.querySelector('[data-type="details"]');
@@ -150,12 +150,12 @@ describe('DropTargetHighlight', () => {
 });
 
 describe('BlockIdGuard', () => {
-  it('выдаёт id блокам, пришедшим без него', () => {
+  it('assigns ids to blocks that arrive without one', () => {
     const current = createEditor();
 
     current.commands.setContent({
       type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Привет' }] }],
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }],
     });
 
     const [blockId] = blockIds(current);
@@ -163,12 +163,12 @@ describe('BlockIdGuard', () => {
     expect(blockId).not.toBeNull();
   });
 
-  it('даёт разные id двум половинам разделённого блока', () => {
+  it('gives different ids to the two halves of a split block', () => {
     const current = createEditor();
 
     current.commands.setContent({
       type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Привет' }] }],
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }],
     });
 
     current.commands.setTextSelection(4);
@@ -182,7 +182,7 @@ describe('BlockIdGuard', () => {
     expect(ids[0]).not.toBe(ids[1]);
   });
 
-  it('переносит placeholder на блок с курсором', () => {
+  it('moves the placeholder to the block with the cursor', () => {
     const current = createEditor();
 
     current.commands.setContent({
@@ -203,7 +203,7 @@ describe('BlockIdGuard', () => {
     expect(after[0]).toBe(current.view.nodeDOM(2));
   });
 
-  it('переносит placeholder между пустыми элементами списка', () => {
+  it('moves the placeholder between empty list items', () => {
     const current = createEditor();
 
     current.commands.setContent({
@@ -231,17 +231,18 @@ describe('BlockIdGuard', () => {
     expect(after[0]).toBe(current.view.nodeDOM(6));
   });
 
-  it('оставляет id при обычном изменении текста', () => {
+  it('keeps the id across a plain text change', () => {
     const current = createEditor();
 
     current.commands.setContent({
       type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Привет' }] }],
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }],
     });
 
     const [blockId] = blockIds(current);
 
-    current.commands.insertContentAt(7, '!');
+    // Position 6 is the end of the 'Hello' paragraph: an insert inside the block.
+    current.commands.insertContentAt(6, '!');
 
     expect(blockIds(current)).toEqual([blockId]);
   });
@@ -251,7 +252,7 @@ function commandOf(id: string): SlashCommand {
   const command = SLASH_COMMANDS.find((entry) => entry.id === id);
 
   if (!command) {
-    throw new Error(`Команда ${id} не найдена`);
+    throw new Error(`Command ${id} not found`);
   }
 
   return command;
@@ -269,8 +270,8 @@ function editorWithParagraph(text = 'Text'): Editor {
   return current;
 }
 
-describe('Slash-команды новых блоков', () => {
-  it('превращает строку в цитату', () => {
+describe('Slash commands for new blocks', () => {
+  it('turns a line into a quote', () => {
     const current = editorWithParagraph();
 
     applySlashCommand(current, commandOf('quote'), { from: 1, to: 2 });
@@ -278,7 +279,7 @@ describe('Slash-команды новых блоков', () => {
     expect(current.getJSON().content?.[0]?.type).toBe('blockquote');
   });
 
-  it('вставляет разделитель после строки', () => {
+  it('inserts a divider after a line', () => {
     const current = editorWithParagraph();
 
     // Cursor at the end of the line: the divider is inserted after the paragraph.
@@ -294,7 +295,7 @@ describe('Slash-команды новых блоков', () => {
     expect(current.state.doc.lastChild?.textContent).toBe('');
   });
 
-  it('вставляет таблицу 3×3 со строкой заголовка', () => {
+  it('inserts a 3x3 table with a header row', () => {
     const current = editorWithParagraph();
 
     applySlashCommand(current, commandOf('table'), { from: 1, to: 2 });
@@ -319,7 +320,7 @@ describe('Slash-команды новых блоков', () => {
     expect(cellTypes(2)).toEqual(['tableCell', 'tableCell', 'tableCell']);
   });
 
-  it('выходит из списка перед превращением в цитату', () => {
+  it('leaves the list before turning into a quote', () => {
     const current = createEditor();
 
     current.commands.setContent({
@@ -330,7 +331,7 @@ describe('Slash-команды новых блоков', () => {
           content: [
             {
               type: 'listItem',
-              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Пункт' }] }],
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Item' }] }],
             },
           ],
         },
@@ -348,24 +349,24 @@ describe('Slash-команды новых блоков', () => {
 });
 
 describe('SubPageBlock', () => {
-  it('рендерит ссылку на страницу и получает id блока от guard', () => {
+  it('renders a page link and receives the block id from the guard', () => {
     const current = createEditor();
     const pageId = '00000000-0000-4000-8000-000000000013';
 
     current.commands.setContent({
       type: 'doc',
-      content: [{ type: 'subPage', attrs: { pageId, title: 'Дочерняя', icon: '📄' } }],
+      content: [{ type: 'subPage', attrs: { pageId, title: 'Child', icon: '📄' } }],
     });
 
     const link = current.view.dom.querySelector('a[data-block-type="page"]');
 
     expect(link).not.toBeNull();
     expect(link?.getAttribute('data-page-id')).toBe(pageId);
-    expect(link?.textContent).toContain('Дочерняя');
+    expect(link?.textContent).toContain('Child');
     expect(blockIds(current)[0]).not.toBeNull();
   });
 
-  it('показывает заглушку создания, пока pageId нет', () => {
+  it('shows the creating stub while there is no pageId', () => {
     const current = createEditor();
 
     current.commands.setContent({
@@ -381,7 +382,7 @@ describe('SubPageBlock', () => {
 });
 
 describe('Table', () => {
-  it('обводит ячейку с курсором', () => {
+  it('outlines the cell with the cursor', () => {
     const current = createEditor();
 
     current.commands.setContent({
@@ -395,7 +396,7 @@ describe('Table', () => {
               content: [
                 {
                   type: 'tableCell',
-                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Ячейка' }] }],
+                  content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Cell' }] }],
                 },
               ],
             },
@@ -408,10 +409,10 @@ describe('Table', () => {
 
     const active = current.view.dom.querySelector('td.notio-active-cell, th.notio-active-cell');
 
-    expect(active?.textContent).toBe('Ячейка');
+    expect(active?.textContent).toBe('Cell');
   });
 
-  it('сохраняет colwidth и rowHeight в attrs ячеек и строк', () => {
+  it('keeps colwidth and rowHeight in cell and row attrs', () => {
     const current = createEditor();
 
     current.commands.setContent({

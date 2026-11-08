@@ -56,7 +56,7 @@ export async function probeService(env: Bindings, target: ServiceProbe): Promise
         service: target.service,
         status: 'degraded',
         version: UNKNOWN_VERSION,
-        error: `Сервис ответил HTTP ${response.status}`,
+        error: `Service responded with HTTP ${response.status}`,
       });
     }
 
@@ -67,7 +67,7 @@ export async function probeService(env: Bindings, target: ServiceProbe): Promise
         service: target.service,
         status: 'degraded',
         version: UNKNOWN_VERSION,
-        error: 'Ответ сервиса не соответствует HealthResponseSchema',
+        error: 'Service response does not match HealthResponseSchema',
       });
     }
 
@@ -81,7 +81,7 @@ export async function probeService(env: Bindings, target: ServiceProbe): Promise
       service: target.service,
       status: 'degraded',
       version: UNKNOWN_VERSION,
-      error: cause instanceof Error ? cause.message : 'Неизвестная ошибка вызова сервиса',
+      error: cause instanceof Error ? cause.message : 'Unknown error calling the service',
     });
   }
 }

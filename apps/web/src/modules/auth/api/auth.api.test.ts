@@ -43,8 +43,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('адаптер аутентификации', () => {
-  it('проверяет ответ регистрации Zod-схемой', async () => {
+describe('auth adapter', () => {
+  it('validates the sign-up response with a Zod schema', async () => {
     stubFetch(() => json({ token: null, user: USER }));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
@@ -53,7 +53,7 @@ describe('адаптер аутентификации', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('не пропускает ответ без обязательных полей', async () => {
+  it('rejects a response missing required fields', async () => {
     stubFetch(() => json({ token: null, user: { id: 'user-1' } }));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
@@ -62,7 +62,7 @@ describe('адаптер аутентификации', () => {
     ).rejects.toThrow();
   });
 
-  it('переводит отказ по неверному паролю в доменную ошибку', async () => {
+  it('maps an invalid-password rejection to a domain error', async () => {
     stubFetch(() =>
       json({ code: 'INVALID_EMAIL_OR_PASSWORD', message: 'Invalid email or password' }, 401),
     );
@@ -73,7 +73,7 @@ describe('адаптер аутентификации', () => {
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
   });
 
-  it('переводит неподтверждённую почту в доменную ошибку', async () => {
+  it('maps an unverified email to a domain error', async () => {
     stubFetch(() => json({ code: 'EMAIL_NOT_VERIFIED' }, 403));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
@@ -82,7 +82,7 @@ describe('адаптер аутентификации', () => {
     ).rejects.toMatchObject({ code: 'EMAIL_NOT_VERIFIED' });
   });
 
-  it('переводит превышение лимита в RATE_LIMITED', async () => {
+  it('maps rate limiting to RATE_LIMITED', async () => {
     stubFetch(() => json({ message: 'Too many requests' }, 429));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
@@ -91,7 +91,7 @@ describe('адаптер аутентификации', () => {
     ).rejects.toMatchObject({ code: 'RATE_LIMITED' });
   });
 
-  it('переводит наш 409 о занятом email в EMAIL_TAKEN', async () => {
+  it('maps our 409 about a taken email to EMAIL_TAKEN', async () => {
     stubFetch(() =>
       json(
         {
@@ -110,7 +110,7 @@ describe('адаптер аутентификации', () => {
     ).rejects.toMatchObject({ code: 'EMAIL_TAKEN' });
   });
 
-  it('превращает обрыв сети в NETWORK_ERROR, а не в «неверный пароль»', async () => {
+  it('turns a network drop into NETWORK_ERROR, not invalid credentials', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {
@@ -124,7 +124,7 @@ describe('адаптер аутентификации', () => {
     ).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
   });
 
-  it('после обновления профиля отдаёт состояние из сессии, а не тело ответа', async () => {
+  it('after a profile update returns state from the session, not the response body', async () => {
     // update-user answers `{ status: true }` — parsing used to fail on it.
     const fetchMock = stubFetch((url) => {
       if (url.includes('/update-user')) {
@@ -132,26 +132,26 @@ describe('адаптер аутентификации', () => {
       }
 
       return json({
-        user: { ...USER, name: 'Ваня' },
+        user: { ...USER, name: 'Vanya' },
         session: { id: 'session-1', expiresAt: '2026-10-19T00:00:00.000Z' },
       });
     });
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
-    const user = await gateway.updateUser({ name: 'Ваня' });
+    const user = await gateway.updateUser({ name: 'Vanya' });
 
-    expect(user.name).toBe('Ваня');
+    expect(user.name).toBe('Vanya');
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/update-user'))).toBe(true);
   });
 
-  it('падает, если после обновления профиля сессии уже нет', async () => {
+  it('fails if the session is gone after a profile update', async () => {
     stubFetch((url) => (url.includes('/update-user') ? json({ status: true }) : json(null)));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
-    await expect(gateway.updateUser({ name: 'Ваня' })).rejects.toMatchObject({ code: 'UNKNOWN' });
+    await expect(gateway.updateUser({ name: 'Vanya' })).rejects.toMatchObject({ code: 'UNKNOWN' });
   });
 
-  it('отправляет подтверждение смены почты и не ждёт тела пользователя', async () => {
+  it('submits the email change request and does not expect a user body', async () => {
     const fetchMock = stubFetch(() => json({ status: true }));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
@@ -159,38 +159,35 @@ describe('адаптер аутентификации', () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/api/auth/change-email');
   });
 
-  it('переводит неверный текущий пароль в INVALID_PASSWORD', async () => {
-    stubFetch(() => json({ code: 'INVALID_PASSWORD' }, 400));
+  it('sends the new password to the session endpoint without the current password', async () => {
+    const fetchMock = stubFetch(() => json({ status: true }));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
-    await expect(
-      gateway.changePassword({
-        currentPassword: 'old-password-12',
-        newPassword: 'new-password-34',
-      }),
-    ).rejects.toMatchObject({ code: 'INVALID_PASSWORD' });
+    await expect(gateway.changePassword({ newPassword: 'new-password-34' })).resolves.toBeUndefined();
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+
+    expect(String(url)).toContain('/api/auth/change-password/session');
+    expect(JSON.parse(String(init?.body))).toEqual({ newPassword: 'new-password-34' });
   });
 
-  it('объясняет отсутствие пароля у OAuth-аккаунта', async () => {
+  it('explains that an OAuth account has no password', async () => {
     stubFetch(() => json({ code: 'CREDENTIAL_ACCOUNT_NOT_FOUND' }, 400));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
     await expect(
-      gateway.changePassword({
-        currentPassword: 'old-password-12',
-        newPassword: 'new-password-34',
-      }),
+      gateway.changePassword({ newPassword: 'new-password-34' }),
     ).rejects.toMatchObject({ code: 'PASSWORD_NOT_SET' });
   });
 
-  it('просит войти заново, когда сессия слишком стара для удаления', async () => {
+  it('asks to sign in again when the session is too stale for deletion', async () => {
     stubFetch(() => json({ code: 'SESSION_NOT_FRESH' }, 403));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
     await expect(gateway.deleteAccount()).rejects.toMatchObject({ code: 'SESSION_EXPIRED' });
   });
 
-  it('удаляет аккаунт через delete-user', async () => {
+  it('deletes the account via delete-user', async () => {
     const fetchMock = stubFetch(() => json({ success: true, message: 'User deleted' }));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
@@ -198,14 +195,14 @@ describe('адаптер аутентификации', () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/api/auth/delete-user');
   });
 
-  it('возвращает null, когда сессии нет', async () => {
+  it('returns null when there is no session', async () => {
     stubFetch(() => json(null));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
     await expect(gateway.currentSession()).resolves.toBeNull();
   });
 
-  it('возвращает сессию активного пользователя', async () => {
+  it('returns the session of an active user', async () => {
     stubFetch(() =>
       json({
         user: USER,
@@ -220,14 +217,14 @@ describe('адаптер аутентификации', () => {
     expect(session?.expiresAt).toBe('2026-10-19T00:00:00.000Z');
   });
 
-  it('возвращает null, если ответ сессии не соответствует контракту', async () => {
+  it('returns null when the session response breaks the contract', async () => {
     stubFetch(() => json({ user: { id: 'user-1' }, session: { id: 'session-1' } }));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
     await expect(gateway.currentSession()).resolves.toBeNull();
   });
 
-  it('запрашивает JWT у сервиса и отдаёт строку токена', async () => {
+  it('requests a JWT from the service and returns the token string', async () => {
     const fetchMock = stubFetch(() => json({ token: 'jwt-token' }));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
@@ -236,7 +233,7 @@ describe('адаптер аутентификации', () => {
     expect(TokenResponseSchema.safeParse({ token: 'jwt-token' }).success).toBe(true);
   });
 
-  it('не путает сетевой сбой с «нет сессии»: токен просто null', async () => {
+  it('does not confuse a network failure with no session: the token is just null', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(async () => {
@@ -248,21 +245,21 @@ describe('адаптер аутентификации', () => {
     await expect(gateway.accessToken()).resolves.toBeNull();
   });
 
-  it('возвращает null, если сервис не выдал токен', async () => {
+  it('returns null when the service did not issue a token', async () => {
     stubFetch(() => json({}, 401));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
     await expect(gateway.accessToken()).resolves.toBeNull();
   });
 
-  it('возвращает null, если ответ не соответствует схеме токена', async () => {
+  it('returns null when the response does not match the token schema', async () => {
     stubFetch(() => json({ token: '' }));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
     await expect(gateway.accessToken()).resolves.toBeNull();
   });
 
-  it('превращает неожиданный код ошибки в UNKNOWN', async () => {
+  it('maps an unexpected error code to UNKNOWN', async () => {
     stubFetch(() => json({ code: 'SOMETHING_UNEXPECTED' }, 500));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
@@ -271,7 +268,7 @@ describe('адаптер аутентификации', () => {
     ).rejects.toMatchObject({ code: 'UNKNOWN' });
   });
 
-  it('не теряет сетевую ошибку при выходе из аккаунта', async () => {
+  it('does not swallow the network error when signing out', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(async () => {
@@ -283,7 +280,7 @@ describe('адаптер аутентификации', () => {
     await expect(gateway.signOut()).rejects.toMatchObject({ code: 'NETWORK_ERROR' });
   });
 
-  it('ходит только по адресу gateway', async () => {
+  it('only talks to the gateway address', async () => {
     const fetchMock = stubFetch(() => json({ token: 'jwt-token' }));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
@@ -293,7 +290,7 @@ describe('адаптер аутентификации', () => {
   });
 });
 
-describe('перевод кодов ошибок', () => {
+describe('error code mapping', () => {
   it.each([
     ['USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL', 'EMAIL_TAKEN'],
     ['EMAIL_TAKEN', 'EMAIL_TAKEN'],
@@ -301,7 +298,7 @@ describe('перевод кодов ошибок', () => {
     ['PASSWORD_TOO_LONG', 'WEAK_PASSWORD'],
     ['INVALID_EMAIL', 'INVALID_EMAIL'],
     ['INVALID_CREDENTIALS', 'INVALID_CREDENTIALS'],
-  ])('переводит %s в %s', async (serviceCode, expected) => {
+  ])('maps %s to %s', async (serviceCode, expected) => {
     stubFetch(() => json({ code: serviceCode }, 400));
     const gateway = createBetterAuthGateway({ baseUrl: BASE_URL });
 
@@ -310,36 +307,36 @@ describe('перевод кодов ошибок', () => {
     ).rejects.toMatchObject({ code: expected });
   });
 
-  it('остаётся UNKNOWN без кода и статуса', () => {
+  it('stays UNKNOWN without a code or status', () => {
     expect(authErrorFromPayload({}).code).toBe('UNKNOWN');
   });
 
-  it('считает 429 ограничением по частоте', () => {
+  it('treats 429 as rate limiting', () => {
     expect(authErrorFromStatus(429).code).toBe('RATE_LIMITED');
     expect(authErrorFromStatus(500).code).toBe('UNKNOWN');
     expect(authErrorFromStatus(500).message).toBe('UNKNOWN');
   });
 });
 
-describe('DTO-схемы', () => {
-  it('не принимает ответ без идентификатора пользователя', () => {
+describe('DTO schemas', () => {
+  it('rejects a response without a user id', () => {
     expect(
       SignUpResponseSchema.safeParse({ token: null, user: { email: 'user@notio.dev' } }).success,
     ).toBe(false);
   });
 
-  it('считает пустой ответ сессии валидным «нет сессии»', () => {
+  it('accepts an empty session response as a valid no-session', () => {
     expect(SessionResponseSchema.safeParse(null).success).toBe(true);
   });
 
-  it('принимает ошибку без кода и статуса', () => {
+  it('accepts an error without a code or status', () => {
     expect(AuthErrorResponseSchema.safeParse({}).success).toBe(true);
   });
 });
 
-describe('ошибки аутентификации', () => {
-  it('наследует Error и хранит код', () => {
-    const error = new AuthError('RATE_LIMITED', 'Слишком много попыток');
+describe('auth errors', () => {
+  it('extends Error and carries a code', () => {
+    const error = new AuthError('RATE_LIMITED', 'Too many attempts');
 
     expect(error).toBeInstanceOf(Error);
     expect(error.code).toBe('RATE_LIMITED');

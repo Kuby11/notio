@@ -7,14 +7,14 @@ import { AuthError } from '../../types/errors';
 import { RegisterForm } from './register-form';
 
 describe('RegisterForm', () => {
-  it('требует имя, почту и пароль достаточной длины', async () => {
+  it('requires a name, an email, and a password of sufficient length', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     renderWithProviders(<RegisterForm />, gateway);
 
-    await user.type(screen.getByLabelText('Name'), 'А');
-    await user.type(screen.getByLabelText('Email'), 'не-почта');
-    await user.type(screen.getByLabelText('Password'), 'коротко');
+    await user.type(screen.getByLabelText('Name'), 'A');
+    await user.type(screen.getByLabelText('Email'), 'not-an-email');
+    await user.type(screen.getByLabelText('Password'), 'short');
     await user.click(screen.getByRole('button', { name: 'Create account' }));
 
     expect(await screen.findByText('Name must be at least 2 characters')).toBeInTheDocument();
@@ -23,7 +23,7 @@ describe('RegisterForm', () => {
     expect(gateway.signUp).not.toHaveBeenCalled();
   });
 
-  it('создаёт аккаунт и просит подтвердить почту', async () => {
+  it('creates an account and asks to confirm the email', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub();
     renderWithProviders(<RegisterForm />, gateway);
@@ -43,7 +43,7 @@ describe('RegisterForm', () => {
     });
   });
 
-  it('показывает отказ сервира о занятом email', async () => {
+  it('shows the server rejection about a taken email', async () => {
     const user = userEvent.setup();
     const gateway = gatewayStub({
       signUp: failsWith(new AuthError('EMAIL_TAKEN', 'An account with this email already exists')),

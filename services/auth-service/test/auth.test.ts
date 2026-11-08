@@ -98,7 +98,7 @@ async function signUp(prefix: string): Promise<SignUpResult> {
   const email = uniqueEmail(prefix);
 
   const response = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, {
-    body: { email, password: 'correct-horse-battery', name: 'Аня' },
+    body: { email, password: 'correct-horse-battery', name: 'Anya' },
   });
 
   expect(response.status).toBe(200);
@@ -131,7 +131,7 @@ function cookieFrom(response: Response): string {
 }
 
 describe('auth-service /health', () => {
-  it('отвечает ok и описывает сервис', async () => {
+  it('answers ok and describes the service', async () => {
     const app = createTestApp([]);
     const response = await app.request('/health', {}, env);
 
@@ -143,14 +143,14 @@ describe('auth-service /health', () => {
   });
 });
 
-describe('регистрация и вход', () => {
-  it('регистрирует пользователя и отправляет письмо верификации', async () => {
+describe('sign-up and sign-in', () => {
+  it('registers a user and sends the verification email', async () => {
     const mail: OutboundMail[] = [];
     const app = createTestApp(mail);
     const email = uniqueEmail('sign-up');
 
     const response = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, {
-      body: { email, password: 'correct-horse-battery', name: 'Аня' },
+      body: { email, password: 'correct-horse-battery', name: 'Anya' },
     });
     const body = (await response.json()) as { user?: { email?: string; emailVerified?: boolean } };
 
@@ -163,11 +163,11 @@ describe('регистрация и вход', () => {
     expect(mail[0]?.actionUrl).toContain('/api/auth/verify-email');
   });
 
-  it('не создаёт второй аккаунт на тот же email и отвечает 409', async () => {
+  it('does not create a second account for the same email and answers 409', async () => {
     const mail: OutboundMail[] = [];
     const app = createTestApp(mail);
     const email = uniqueEmail('dupe');
-    const body = { email, password: 'correct-horse-battery', name: 'Глеб' };
+    const body = { email, password: 'correct-horse-battery', name: 'Gleb' };
 
     const first = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, { body });
     expect(first.status).toBe(200);
@@ -179,16 +179,16 @@ describe('регистрация и вход', () => {
     expect(second.status).toBe(409);
     expect(await second.clone().json()).toMatchObject({
       code: 'CONFLICT',
-      detail: 'Аккаунт с такой почтой уже существует',
+      detail: 'An account with this email already exists',
     });
     expect(await usersWithEmail(email)).toHaveLength(1);
   });
 
-  it('ловит занятую почту независимо от регистра', async () => {
+  it('catches a taken email regardless of case', async () => {
     const mail: OutboundMail[] = [];
     const app = createTestApp(mail);
     const email = uniqueEmail('Case');
-    const body = { password: 'correct-horse-battery', name: 'Маша' };
+    const body = { password: 'correct-horse-battery', name: 'Masha' };
 
     await call(app, `${AUTH_BASE_PATH}/sign-up/email`, { body: { ...body, email } });
     const second = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, {
@@ -198,7 +198,7 @@ describe('регистрация и вход', () => {
     expect(second.status).toBe(409);
   });
 
-  it('пропускает проверку занятости, если почты в теле нет', async () => {
+  it('skips the availability check when the body has no email', async () => {
     const mail: OutboundMail[] = [];
     const app = createTestApp(mail);
 
@@ -216,7 +216,7 @@ describe('регистрация и вход', () => {
     expect(nonStringEmail.status).toBe(400);
   });
 
-  it('не создаёт сессию до подтверждения почты', async () => {
+  it('does not create a session before the email is confirmed', async () => {
     const { app, email } = await signUp('unverified');
 
     const response = await signInWithPassword(app, email);
@@ -225,7 +225,7 @@ describe('регистрация и вход', () => {
     expect(response.headers.getSetCookie().join(';')).not.toContain('session_token');
   });
 
-  it('полный флоу: регистрация → подтверждение → вход → сессия → выход', async () => {
+  it('full flow: sign-up → verification → sign-in → session → sign-out', async () => {
     const { app, email, verificationUrl } = await signUp('flow');
 
     const verified = await verify(app, verificationUrl);
@@ -251,7 +251,7 @@ describe('регистрация и вход', () => {
     expect(sessionAfterSignOut === null || afterSignOut.status === 401).toBe(true);
   });
 
-  it('не пускает с неверным паролем', async () => {
+  it('rejects a wrong password', async () => {
     const { app, email, verificationUrl } = await signUp('wrong-pass');
     await verify(app, verificationUrl);
 
@@ -260,7 +260,7 @@ describe('регистрация и вход', () => {
     expect(response.status).toBe(401);
   });
 
-  it('не создаёт сессию для неизвестного пользователя', async () => {
+  it('does not create a session for an unknown user', async () => {
     const app = createTestApp([]);
 
     const response = await signInWithPassword(app, uniqueEmail('ghost'));
@@ -268,22 +268,22 @@ describe('регистрация и вход', () => {
     expect(response.status).toBe(401);
   });
 
-  it('отклоняет слишком короткий пароль', async () => {
+  it('rejects a too short password', async () => {
     const app = createTestApp([]);
 
     const response = await call(app, `${AUTH_BASE_PATH}/sign-up/email`, {
-      body: { email: uniqueEmail('short'), password: 'short', name: 'Короткий' },
+      body: { email: uniqueEmail('short'), password: 'short', name: 'Shorty' },
     });
 
     expect(response.status).toBe(400);
   });
 
-  it('нормализует email в нижний регистр', async () => {
+  it('normalizes the email to lower case', async () => {
     const app = createTestApp([]);
     const email = uniqueEmail('Case');
 
     await call(app, `${AUTH_BASE_PATH}/sign-up/email`, {
-      body: { email: email.toUpperCase(), password: 'correct-horse-battery', name: 'Маша' },
+      body: { email: email.toUpperCase(), password: 'correct-horse-battery', name: 'Masha' },
     });
 
     const stored = await env.DB.prepare('SELECT email FROM user').all<{ email: string }>();
@@ -293,8 +293,8 @@ describe('регистрация и вход', () => {
   });
 });
 
-describe('JWT и JWKS', () => {
-  it('отдаёт JWKS с ключами подписи', async () => {
+describe('JWT and JWKS', () => {
+  it('serves JWKS with signing keys', async () => {
     const app = createTestApp([]);
 
     const response = await call(app, JWKS_PATH);
@@ -304,7 +304,7 @@ describe('JWT и JWKS', () => {
     expect(Array.isArray(jwks.keys)).toBe(true);
   });
 
-  it('выдаёт JWT по сессии', async () => {
+  it('issues a JWT for a session', async () => {
     const { app, email, verificationUrl } = await signUp('token');
     await verify(app, verificationUrl);
 
@@ -317,7 +317,7 @@ describe('JWT и JWKS', () => {
     expect(body.token?.split('.')).toHaveLength(3);
   });
 
-  it('не выдаёт JWT без сессии', async () => {
+  it('does not issue a JWT without a session', async () => {
     const app = createTestApp([]);
 
     const response = await call(app, TOKEN_PATH);

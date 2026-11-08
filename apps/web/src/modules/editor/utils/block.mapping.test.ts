@@ -84,12 +84,12 @@ function normalizeBlocks<T extends { id: string; content: BlockContent }>(
 }
 
 const BLOCKS: Block[] = [
-  block('b1', { type: 'paragraph', content: 'Первый абзац' }),
-  block('b2', { type: 'heading', level: 2, content: 'Заголовок' }),
-  block('b3', { type: 'bulletedListItem', content: 'Пункт 1' }),
-  block('b4', { type: 'bulletedListItem', content: 'Пункт 2' }),
-  block('b5', { type: 'numberedListItem', content: 'Шаг 1' }),
-  block('b6', { type: 'toDo', checked: true, content: 'Сделать' }),
+  block('b1', { type: 'paragraph', content: 'First paragraph' }),
+  block('b2', { type: 'heading', level: 2, content: 'Heading' }),
+  block('b3', { type: 'bulletedListItem', content: 'Item 1' }),
+  block('b4', { type: 'bulletedListItem', content: 'Item 2' }),
+  block('b5', { type: 'numberedListItem', content: 'Step 1' }),
+  block('b6', { type: 'toDo', checked: true, content: 'Task' }),
   block('b7', { type: 'quote', content: 'Quote' }),
   block('b8', { type: 'code', language: 'ts', content: 'const x = 1;' }),
   block('b9', { type: 'divider' }),
@@ -99,27 +99,27 @@ const BLOCKS: Block[] = [
     url: null,
     caption: 'Caption',
   }),
-  block('b11', { type: 'toggle', content: 'Переключатель' }),
+  block('b11', { type: 'toggle', content: 'Toggle' }),
   block('b12', {
     type: 'table',
     headerRow: true,
     rows: [
       ['Name', 'Value'],
-      ['Один', '1'],
-      ['Два', '2'],
+      ['One', '1'],
+      ['Two', '2'],
     ],
   }),
   block('b13', {
     type: 'page',
     pageId: '00000000-0000-4000-8000-000000000013',
-    title: 'Дочерняя страница',
+    title: 'Child page',
     icon: '📄',
   }),
   block('b14', {
     type: 'video',
     fileId: null,
     url: 'https://example.com/clip.mp4',
-    caption: 'Ролик',
+    caption: 'Clip',
   }),
   block('b15', {
     type: 'file',
@@ -132,7 +132,7 @@ const BLOCKS: Block[] = [
 ];
 
 describe('blocksToEditorDocument', () => {
-  it('раскладывает все типы блоков в узлы Tiptap и сохраняет id', () => {
+  it('maps all block types into Tiptap nodes and keeps ids', () => {
     const document = blocksToEditorDocument(BLOCKS);
 
     expect(document.content.map((node) => node.type)).toEqual([
@@ -161,7 +161,7 @@ describe('blocksToEditorDocument', () => {
       {
         type: 'taskItem',
         attrs: { blockId: 'b6', checked: true },
-        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Сделать' }] }],
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Task' }] }],
       },
     ]);
     expect(document.content[7]).toMatchObject({ attrs: { blockId: 'b9' } });
@@ -171,10 +171,10 @@ describe('blocksToEditorDocument', () => {
     });
   });
 
-  it('преобразует переносы строк в hardBreak, кроме code', () => {
+  it('converts line breaks into hardBreak, except in code', () => {
     const document = blocksToEditorDocument([
-      block('b1', { type: 'paragraph', content: 'Первая\nВторая' }),
-      block('b2', { type: 'code', language: null, content: 'Первая\nВторая' }),
+      block('b1', { type: 'paragraph', content: 'First\nSecond' }),
+      block('b2', { type: 'code', language: null, content: 'First\nSecond' }),
     ]);
 
     expect(document.content[0]?.content?.map((node) => node.type)).toEqual([
@@ -182,17 +182,17 @@ describe('blocksToEditorDocument', () => {
       'hardBreak',
       'text',
     ]);
-    expect(document.content[1]?.content).toEqual([{ type: 'text', text: 'Первая\nВторая' }]);
+    expect(document.content[1]?.content).toEqual([{ type: 'text', text: 'First\nSecond' }]);
   });
 
-  it('вкладывает дочерние блоки в toggle и сохраняет свёрнутость', () => {
+  it('nests child blocks into a toggle and keeps its collapsed state', () => {
     const toggle = block('b1', {
       type: 'toggle',
-      content: 'Заголовок toggle',
+      content: 'Toggle heading',
       open: false,
       children: [
-        { type: 'paragraph', content: 'Текст внутри' },
-        { type: 'toDo', checked: true, content: 'Задача внутри' },
+        { type: 'paragraph', content: 'Text inside' },
+        { type: 'toDo', checked: true, content: 'Task inside' },
       ],
     });
 
@@ -215,12 +215,12 @@ describe('blocksToEditorDocument', () => {
     );
   });
 
-  it('принимает пустой документ без ключа content (полное удаление блоков)', () => {
+  it('accepts an empty document without a content key (full block removal)', () => {
     // PM serialises a childless document as {type:'doc'}: there is no content key.
     expect(editorDocumentToBlocks({ type: 'doc' })).toEqual([]);
   });
 
-  it('поддерживает заголовок четвёртого уровня', () => {
+  it('supports a fourth-level heading', () => {
     const heading = block('b1', { type: 'heading', level: 4, content: 'Heading 4' });
     const document = blocksToEditorDocument([heading]);
 
@@ -233,13 +233,13 @@ describe('blocksToEditorDocument', () => {
     ]);
   });
 
-  it('раскладывает таблицу в строки и распознаёт строку заголовка', () => {
+  it('maps a table into rows and detects the header row', () => {
     const table = block('b1', {
       type: 'table',
       headerRow: true,
       rows: [
         ['Name', 'Value'],
-        ['Один', '1'],
+        ['One', '1'],
       ],
     });
     const document = blocksToEditorDocument([table]);
@@ -258,11 +258,11 @@ describe('blocksToEditorDocument', () => {
     );
   });
 
-  it('сохраняет таблицу без строки заголовка как headerRow: false', () => {
+  it('keeps a table without a header row as headerRow: false', () => {
     const table = block('b1', {
       type: 'table',
       headerRow: false,
-      rows: [['Только', 'ячейки']],
+      rows: [['Just', 'cells']],
     });
 
     expect(editorDocumentToBlocks(blocksToEditorDocument([table]))).toEqual(
@@ -270,13 +270,13 @@ describe('blocksToEditorDocument', () => {
     );
   });
 
-  it('переносит ширины колонок и высоты строк таблицы', () => {
+  it('carries table column widths and row heights', () => {
     const table = block('b1', {
       type: 'table',
       headerRow: true,
       rows: [
         ['Name', 'Value'],
-        ['Один', '1'],
+        ['One', '1'],
       ],
       colWidths: [180, null],
       rowHeights: [null, 44],
@@ -295,7 +295,7 @@ describe('blocksToEditorDocument', () => {
     );
   });
 
-  it('переносит full-width изображения в attrs и обратно', () => {
+  it('carries full-width images into attrs and back', () => {
     const image = block('b1', {
       type: 'image',
       fileId: '00000000-0000-4000-8000-000000000010',
@@ -312,7 +312,7 @@ describe('blocksToEditorDocument', () => {
     expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: image.content }]);
   });
 
-  it('переносит ширину изображения в attrs и обратно', () => {
+  it('carries image width into attrs and back', () => {
     const image = block('b1', {
       type: 'image',
       fileId: '00000000-0000-4000-8000-000000000010',
@@ -327,10 +327,26 @@ describe('blocksToEditorDocument', () => {
     expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: image.content }]);
   });
 
-  it('переносит строчную формулу в inlineMath и обратно', () => {
+  it('carries a wide image (wideWidth) into attrs and back', () => {
+    const image = block('b1', {
+      type: 'image',
+      fileId: '00000000-0000-4000-8000-000000000010',
+      url: null,
+      caption: null,
+      wideWidth: 75,
+    });
+
+    const document = blocksToEditorDocument([image]);
+    const attrs = document.content[0]?.attrs ?? {};
+
+    expect(attrs).toMatchObject({ wideWidth: 75 });
+    expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: image.content }]);
+  });
+
+  it('carries an inline equation into inlineMath and back', () => {
     const rich = block('b1', {
       type: 'paragraph',
-      content: [{ text: 'Скорость света ' }, { math: 'c = 299\\,792\\,458' }, { text: ' м/с' }],
+      content: [{ text: 'Speed of light ' }, { math: 'c = 299\\,792\\,458' }, { text: ' m/s' }],
     });
 
     const document = blocksToEditorDocument([rich]);
@@ -345,12 +361,12 @@ describe('blocksToEditorDocument', () => {
     );
   });
 
-  it('строит колонки из детей и обрезает пустые хвостовые абзацы', () => {
+  it('builds columns from children and trims empty trailing paragraphs', () => {
     const columns = block('b1', {
       type: 'columns',
       columns: [
-        { children: [{ type: 'paragraph', content: [{ text: 'Слева', marks: [] }] }] },
-        { children: [{ type: 'paragraph', content: 'Справа' }] },
+        { children: [{ type: 'paragraph', content: [{ text: 'Left', marks: [] }] }] },
+        { children: [{ type: 'paragraph', content: 'Right' }] },
       ],
     });
 
@@ -360,13 +376,13 @@ describe('blocksToEditorDocument', () => {
     expect(list).toMatchObject({ type: 'columnsList', attrs: { blockId: 'b1' } });
     expect(list?.content?.[0]).toMatchObject({ type: 'columnsColumn' });
     expect(list?.content).toHaveLength(2);
-    expect(list?.content?.[0]?.content?.[0]?.content?.[0]).toMatchObject({ text: 'Слева' });
+    expect(list?.content?.[0]?.content?.[0]?.content?.[0]).toMatchObject({ text: 'Left' });
     expect(editorDocumentToBlocks(document)).toEqual(
       normalizeBlocks([columns]).map(({ id, content }) => ({ id, content })),
     );
   });
 
-  it('не сериализует вырожденные колонки из одной колонки', () => {
+  it('does not serialize degenerate single-column layouts', () => {
     const document: EditorDocument = {
       type: 'doc',
       content: [
@@ -381,7 +397,7 @@ describe('blocksToEditorDocument', () => {
     expect(editorDocumentToBlocks(document)).toEqual([]);
   });
 
-  it('переносит блочную формулу, ссылку на страницу и крошки в обе стороны', () => {
+  it('carries an equation block, a page link and breadcrumbs both ways', () => {
     const equation = block('b1', { type: 'equation', expression: 'e^{i\\pi} + 1 = 0' });
     const link = block('b2', {
       type: 'linkToPage',
@@ -408,7 +424,7 @@ describe('blocksToEditorDocument', () => {
     );
   });
 
-  it('не сериализует ссылку на страницу без выбранной страницы', () => {
+  it('does not serialize a page link without a selected page', () => {
     const document: EditorDocument = {
       type: 'doc',
       content: [{ type: 'pageLink', attrs: { blockId: 'b1', pageId: '' } }],
@@ -417,38 +433,38 @@ describe('blocksToEditorDocument', () => {
     expect(editorDocumentToBlocks(document)).toEqual([]);
   });
 
-  it('переносит инлайновые марки через PM-узлы в обе стороны', () => {
+  it('carries inline marks through PM nodes both ways', () => {
     const rich = block('b1', {
       type: 'paragraph',
       content: [
-        { text: 'Обычный ' },
-        { text: 'жирный', marks: [{ type: 'bold' }] },
-        { text: ' и ', marks: [] },
-        { text: 'красный', marks: [{ type: 'color', color: 'red' }] },
-        { text: ' и ', marks: [] },
-        { text: 'ссылка', marks: [{ type: 'link', href: 'https://example.com' }] },
+        { text: 'Plain ' },
+        { text: 'bold', marks: [{ type: 'bold' }] },
+        { text: ' and ', marks: [] },
+        { text: 'red', marks: [{ type: 'color', color: 'red' }] },
+        { text: ' and ', marks: [] },
+        { text: 'link', marks: [{ type: 'link', href: 'https://example.com' }] },
       ],
     });
 
     const document = blocksToEditorDocument([rich]);
     const textNode = document.content[0]?.content?.[1];
 
-    expect(textNode).toMatchObject({ type: 'text', text: 'жирный', marks: [{ type: 'bold' }] });
+    expect(textNode).toMatchObject({ type: 'text', text: 'bold', marks: [{ type: 'bold' }] });
     expect(editorDocumentToBlocks(document)).toEqual(
       normalizeBlocks([rich]).map(({ id, content }) => ({ id, content })),
     );
   });
 
-  it('переносит фон текста и зачёркивание в таблице', () => {
+  it('carries text background and strike-through in a table', () => {
     const table = block('b1', {
       type: 'table',
       headerRow: true,
       rows: [
         [
           [
-            { text: 'Ячейка ', marks: [] },
+            { text: 'Cell ', marks: [] },
             {
-              text: 'с фоном',
+              text: 'with background',
               marks: [{ type: 'backgroundColor', color: 'yellow' }, { type: 'strike' }],
             },
           ],
@@ -468,7 +484,7 @@ describe('blocksToEditorDocument', () => {
     );
   });
 
-  it('переносит блок базы данных в обе стороны', () => {
+  it('carries a database block both ways', () => {
     const database = block('b1', {
       type: 'database',
       databaseId: '00000000-0000-4000-8000-000000000020',
@@ -483,7 +499,7 @@ describe('blocksToEditorDocument', () => {
     expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: database.content }]);
   });
 
-  it('сохраняет выбранное представление блока базы данных', () => {
+  it('keeps the selected view of a database block', () => {
     const database = block('b1', {
       type: 'database',
       databaseId: '00000000-0000-4000-8000-000000000020',
@@ -503,7 +519,7 @@ describe('blocksToEditorDocument', () => {
     expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: database.content }]);
   });
 
-  it('переносит ссылку на базу данных-страницу в обе стороны', () => {
+  it('carries a page-style database link both ways', () => {
     const database = block('b1', {
       type: 'database',
       databaseId: '00000000-0000-4000-8000-000000000020',
@@ -519,32 +535,32 @@ describe('blocksToEditorDocument', () => {
     expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: database.content }]);
   });
 
-  it('рендерит ссылку на подстраницу с данными страницы', () => {
+  it('renders a sub-page link with page data', () => {
     const pageId = '00000000-0000-4000-8000-000000000013';
     const subPage = block('b1', {
       type: 'page',
       pageId,
-      title: 'Дочерняя страница',
+      title: 'Child page',
       icon: '📄',
     });
     const document = blocksToEditorDocument([subPage]);
 
     expect(document.content[0]).toEqual({
       type: 'subPage',
-      attrs: { blockId: 'b1', pageId, title: 'Дочерняя страница', icon: '📄' },
+      attrs: { blockId: 'b1', pageId, title: 'Child page', icon: '📄' },
     });
     expect(editorDocumentToBlocks(document)).toEqual([{ id: 'b1', content: subPage.content }]);
   });
 });
 
 describe('editorDocumentToBlocks', () => {
-  it('возвращает исходные блоки в прежнем порядке, нормализуя строки', () => {
+  it('returns the original blocks in their order, normalizing text', () => {
     const mapped = editorDocumentToBlocks(blocksToEditorDocument(BLOCKS));
 
     expect(mapped).toEqual(normalizeBlocks(BLOCKS.map(({ id, content }) => ({ id, content }))));
   });
 
-  it('сохраняет пустые блоки и пустые элементы списка', () => {
+  it('keeps empty blocks and empty list items', () => {
     const blocks = [
       block('b1', { type: 'paragraph', content: '' }),
       block('b2', { type: 'bulletedListItem', content: '' }),
@@ -555,7 +571,7 @@ describe('editorDocumentToBlocks', () => {
     );
   });
 
-  it('разворачивает вложенные списки в отдельные блоки', () => {
+  it('unfolds nested lists into separate blocks', () => {
     const document: EditorDocument = {
       type: 'doc',
       content: [
@@ -568,7 +584,7 @@ describe('editorDocumentToBlocks', () => {
               content: [
                 {
                   type: 'paragraph',
-                  content: [{ type: 'text', text: 'Родитель' }],
+                  content: [{ type: 'text', text: 'Parent' }],
                 },
                 {
                   type: 'bulletList',
@@ -579,7 +595,7 @@ describe('editorDocumentToBlocks', () => {
                       content: [
                         {
                           type: 'paragraph',
-                          content: [{ type: 'text', text: 'Ребёнок' }],
+                          content: [{ type: 'text', text: 'Child' }],
                         },
                       ],
                     },
@@ -594,13 +610,13 @@ describe('editorDocumentToBlocks', () => {
 
     expect(editorDocumentToBlocks(document)).toEqual(
       normalizeBlocks([
-        block('b1', { type: 'bulletedListItem', content: 'Родитель' }),
-        block('b2', { type: 'bulletedListItem', content: 'Ребёнок' }),
+        block('b1', { type: 'bulletedListItem', content: 'Parent' }),
+        block('b2', { type: 'bulletedListItem', content: 'Child' }),
       ]).map(({ id, content }) => ({ id, content })),
     );
   });
 
-  it('не создаёт image без fileId', () => {
+  it('does not create an image without fileId', () => {
     const document: EditorDocument = {
       type: 'doc',
       content: [{ type: 'image', attrs: { blockId: 'b1' } }],
@@ -609,7 +625,7 @@ describe('editorDocumentToBlocks', () => {
     expect(editorDocumentToBlocks(document)).toEqual([]);
   });
 
-  it('не сохраняет блок базы данных без id — база ещё создаётся', () => {
+  it('does not save a database block without an id — the database is still being created', () => {
     const document: EditorDocument = {
       type: 'doc',
       content: [{ type: 'databaseBlock', attrs: { blockId: 'b1', databaseId: '' } }],
@@ -618,7 +634,7 @@ describe('editorDocumentToBlocks', () => {
     expect(editorDocumentToBlocks(document)).toEqual([]);
   });
 
-  it('не создаёт подстраницу без pageId — страница ещё создаётся сервисом', () => {
+  it('does not create a sub-page without pageId — the page is still being created by the service', () => {
     const document: EditorDocument = {
       type: 'doc',
       content: [{ type: 'subPage', attrs: { blockId: 'b1', pageId: null } }],
@@ -627,7 +643,7 @@ describe('editorDocumentToBlocks', () => {
     expect(editorDocumentToBlocks(document)).toEqual([]);
   });
 
-  it('не сохраняет таблицу без строк', () => {
+  it('does not save a table without rows', () => {
     const document: EditorDocument = {
       type: 'doc',
       content: [{ type: 'table', attrs: { blockId: 'b1' }, content: [] }],
@@ -636,10 +652,10 @@ describe('editorDocumentToBlocks', () => {
     expect(editorDocumentToBlocks(document)).toEqual([]);
   });
 
-  it('переносит цвета текста и фона через attrs узлов', () => {
+  it('carries text and background colors through node attrs', () => {
     const blocks = [
       block('b1', { type: 'paragraph', content: 'Text', color: 'red', backgroundColor: 'blue' }),
-      block('b2', { type: 'bulletedListItem', content: 'Пункт', color: 'green' }),
+      block('b2', { type: 'bulletedListItem', content: 'Item', color: 'green' }),
       block('b3', { type: 'toggle', content: 'Toggle', backgroundColor: 'yellow' }),
     ];
 
@@ -653,7 +669,7 @@ describe('editorDocumentToBlocks', () => {
     );
   });
 
-  it('переносит цвета таблицы в attrs узла и обратно', () => {
+  it('carries table colors into node attrs and back', () => {
     const table = block('b1', {
       type: 'table',
       headerRow: true,
@@ -670,7 +686,7 @@ describe('editorDocumentToBlocks', () => {
     );
   });
 
-  it('игнорирует неизвестное значение цвета из attrs', () => {
+  it('ignores an unknown color value from attrs', () => {
     const document: EditorDocument = {
       type: 'doc',
       content: [{ type: 'paragraph', attrs: { blockId: 'b1', color: 'not-a-preset' } }],
@@ -683,7 +699,7 @@ describe('editorDocumentToBlocks', () => {
 });
 
 describe('findBlockIdAtSelection', () => {
-  it('возвращает id атомарного узла под выделением', () => {
+  it('returns the id of the atomic node under the selection', () => {
     const state = {
       doc: { nodeAt: () => ({ attrs: { blockId: 'image-1' } }) },
       selection: {
@@ -698,7 +714,7 @@ describe('findBlockIdAtSelection', () => {
     expect(findBlockIdAtSelection(state)).toBe('image-1');
   });
 
-  it('не выбирает соседний атом на границе текстового блока', () => {
+  it('does not pick a neighboring atom at a text block boundary', () => {
     const state = {
       doc: { nodeAt: () => ({ attrs: { blockId: 'image-1' } }) },
       selection: {
@@ -713,7 +729,7 @@ describe('findBlockIdAtSelection', () => {
     expect(findBlockIdAtSelection(state)).toBe('paragraph-1');
   });
 
-  it('поднимается к ближайшему предку с id', () => {
+  it('walks up to the nearest ancestor with an id', () => {
     const state = {
       doc: { nodeAt: () => null },
       selection: {
@@ -728,7 +744,7 @@ describe('findBlockIdAtSelection', () => {
     expect(findBlockIdAtSelection(state)).toBe('block-1');
   });
 
-  it('возвращает null, если id нет ни у узла, ни у предков', () => {
+  it('returns null when neither the node nor its ancestors have an id', () => {
     const state = {
       doc: { nodeAt: () => null },
       selection: {

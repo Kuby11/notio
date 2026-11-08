@@ -207,6 +207,13 @@ export interface ImageBlockContent {
   /** Image width as a percentage of the column (10–100); missing means 100%. */
   width?: number;
   /**
+   * Wide mode: the image breaks out of the text column and its width is
+   * `wideWidth` percent of the editor container (0–100; the value above the
+   * column share is what makes it "wide"). Natural aspect, centred. Mutually
+   * exclusive with `fullWidth` and the column-percent `width`.
+   */
+  wideWidth?: number;
+  /**
    * true — the image spans the full workspace width (breaking out of the text
    * column) with a 16:9 frame. `width` still holds the last column percentage
    * and is restored when the image is narrowed back down.
@@ -419,6 +426,7 @@ const BlockContentSchemaImpl: z.ZodType<BlockContent> = z
         url: HttpUrlSchema.nullable(),
         caption: z.string().max(500).nullable(),
         width: z.number().int().min(10).max(100).optional(),
+        wideWidth: z.number().int().min(10).max(100).optional(),
         fullWidth: z.boolean().optional(),
       }),
       z.strictObject({
@@ -495,7 +503,7 @@ const BlockContentSchemaImpl: z.ZodType<BlockContent> = z
     if (isMediaBlock && value.fileId === null && value.url === null) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Медиа-блок требует fileId или url',
+        message: 'Media block requires a fileId or a url',
         path: [],
       });
     }
@@ -529,7 +537,7 @@ export const UpdateBlockInputSchema = z
     type: BlockTypeSchema.optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
-    message: 'Нужно передать хотя бы одно изменяемое поле',
+    message: 'At least one editable field is required',
   });
 export type UpdateBlockInput = z.infer<typeof UpdateBlockInputSchema>;
 

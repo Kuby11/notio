@@ -16,7 +16,7 @@ import {
 } from './block';
 
 describe('registerBlock / getBlockDefinition', () => {
-  it('регистрирует тип и возвращает его определение', () => {
+  it('registers a type and returns its definition', () => {
     registerBlock({
       type: 'paragraph',
       label: 'Text',
@@ -29,7 +29,7 @@ describe('registerBlock / getBlockDefinition', () => {
     expect(listBlockDefinitions().map((definition) => definition.type)).toContain('paragraph');
   });
 
-  it('регистрирует все типы из контракта', () => {
+  it('registers all types from the contract', () => {
     expect(
       listBlockDefinitions()
         .map((definition) => definition.type)
@@ -37,13 +37,13 @@ describe('registerBlock / getBlockDefinition', () => {
     ).toEqual([...BLOCK_TYPES].toSorted());
   });
 
-  it('создаёт пустой блок зарегистрированного типа', () => {
+  it('creates an empty block of a registered type', () => {
     expect(createEmptyBlock('heading')).toEqual({ type: 'heading', level: 1, content: '' });
   });
 });
 
 describe('serializeDocument / deserializeDocument', () => {
-  it('сериализует и десериализует массив блоков', () => {
+  it('serializes and deserializes an array of blocks', () => {
     const blocks = [
       {
         id: 'b1',
@@ -63,29 +63,29 @@ describe('serializeDocument / deserializeDocument', () => {
     expect(restored[0]?.content).toEqual({ type: 'paragraph', content: 'Text' });
   });
 
-  it('мигрирует старые строковые блоки в paragraph', () => {
-    const restored = deserializeDocument(JSON.stringify(['старый текст']));
+  it('migrates legacy string blocks into paragraphs', () => {
+    const restored = deserializeDocument(JSON.stringify(['legacy text']));
 
     expect(restored).toHaveLength(1);
     expect(restored[0]?.type).toBe('paragraph');
-    expect(restored[0]?.content).toEqual({ type: 'paragraph', content: 'старый текст' });
+    expect(restored[0]?.content).toEqual({ type: 'paragraph', content: 'legacy text' });
   });
 
-  it('отклоняет не-массив', () => {
-    expect(() => deserializeDocument(JSON.stringify({ foo: 'bar' }))).toThrow(/массивом/);
+  it('rejects a non-array', () => {
+    expect(() => deserializeDocument(JSON.stringify({ foo: 'bar' }))).toThrow(/array of blocks/);
   });
 });
 
 describe('canMoveBlock', () => {
-  it('запрещает перемещение блока самого в себя', () => {
+  it('forbids moving a block into itself', () => {
     expect(canMoveBlock([], 'b1', 'b1')).toBe(false);
   });
 
-  it('разрешает перемещение к другому блоку', () => {
+  it('allows moving next to another block', () => {
     expect(canMoveBlock([], 'b1', 'b2')).toBe(true);
   });
 
-  it('разрешает перемещение в конец (null)', () => {
+  it('allows moving to the end (null)', () => {
     expect(canMoveBlock([], 'b1', null)).toBe(true);
   });
 });
@@ -103,13 +103,13 @@ function block(id: string, type: Block['type'], content: Block['content']): Bloc
 }
 
 describe('blockToText / contentToText', () => {
-  it('текст незарегистрированного типа берётся из content', () => {
+  it('takes text of an unregistered type from content', () => {
     const quote = block('b1', 'quote', { type: 'quote', content: 'Quote' });
 
     expect(blockToText(quote)).toBe('Quote');
   });
 
-  it('у блока без текстового содержимого текста нет', () => {
+  it('gives no text to a block without text content', () => {
     const divider = block('b2', 'divider', { type: 'divider' });
 
     expect(contentToText(divider.content)).toBe('');
@@ -174,7 +174,7 @@ describe('default definitions coverage', () => {
   });
 
   it('rejects an unregistered type', () => {
-    expect(() => createEmptyBlock('unknown' as never)).toThrow(/не зарегистрирован/);
+    expect(() => createEmptyBlock('unknown' as never)).toThrow(/is not registered/);
     expect(getBlockDefinition('unknown' as never)).toBeUndefined();
   });
 
@@ -192,13 +192,13 @@ describe('default definitions coverage', () => {
 });
 
 describe('toEditorText', () => {
-  it('собирает плоский текст документа и пропускает пустые строки', () => {
+  it('flattens document text and skips empty lines', () => {
     const blocks = [
-      block('b1', 'paragraph', { type: 'paragraph', content: 'Первая' }),
+      block('b1', 'paragraph', { type: 'paragraph', content: 'First' }),
       block('b2', 'paragraph', { type: 'paragraph', content: '' }),
-      block('b3', 'paragraph', { type: 'paragraph', content: 'Третья' }),
+      block('b3', 'paragraph', { type: 'paragraph', content: 'Third' }),
     ];
 
-    expect(toEditorText(blocks)).toBe('Первая\nТретья');
+    expect(toEditorText(blocks)).toBe('First\nThird');
   });
 });

@@ -115,7 +115,7 @@ export function createEmptyBlock(type: BlockType): BlockContent {
   const definition = registry.get(type);
 
   if (!definition) {
-    throw new Error(`Тип блока ${type} не зарегистрирован`);
+    throw new Error(`Block type ${type} is not registered`);
   }
 
   return definition.create();
@@ -142,7 +142,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'paragraph':
       return {
         type,
-        label: 'Текст',
+        label: 'Text',
         icon: '¶',
         create: () => ({ type, content: '' }),
         toText: contentText,
@@ -150,7 +150,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'heading':
       return {
         type,
-        label: 'Заголовок',
+        label: 'Heading',
         icon: 'H',
         create: () => ({ type, level: 1, content: '' }),
         toText: contentText,
@@ -158,7 +158,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'bulletedListItem':
       return {
         type,
-        label: 'Маркированный список',
+        label: 'Bulleted list',
         icon: '•',
         create: () => ({ type, content: '' }),
         toText: contentText,
@@ -166,7 +166,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'numberedListItem':
       return {
         type,
-        label: 'Нумерованный список',
+        label: 'Numbered list',
         icon: '1.',
         create: () => ({ type, content: '' }),
         toText: contentText,
@@ -174,7 +174,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'toDo':
       return {
         type,
-        label: 'Задача',
+        label: 'To-do',
         icon: '☑',
         create: () => ({ type, checked: false, content: '' }),
         toText: contentText,
@@ -182,7 +182,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'quote':
       return {
         type,
-        label: 'Цитата',
+        label: 'Quote',
         icon: '❝',
         create: () => ({ type, content: '' }),
         toText: contentText,
@@ -190,7 +190,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'code':
       return {
         type,
-        label: 'Код',
+        label: 'Code',
         icon: '</>',
         create: () => ({ type, language: null, content: '' }),
         toText: contentText,
@@ -198,7 +198,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'divider':
       return {
         type,
-        label: 'Разделитель',
+        label: 'Divider',
         icon: '—',
         create: () => ({ type }),
         toText: () => '',
@@ -206,7 +206,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'image':
       return {
         type,
-        label: 'Изображение',
+        label: 'Image',
         icon: '🖼',
         create: () => ({ type, fileId: null, url: null, caption: null }),
         toText: (content) => (content.type === 'image' ? (content.caption ?? '') : ''),
@@ -214,7 +214,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'video':
       return {
         type,
-        label: 'Видео',
+        label: 'Video',
         icon: '▶',
         create: () => ({ type, fileId: null, url: null, caption: null }),
         toText: (content) => (content.type === 'video' ? (content.caption ?? '') : ''),
@@ -222,15 +222,15 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'file':
       return {
         type,
-        label: 'Файл',
+        label: 'File',
         icon: '📎',
-        create: () => ({ type, fileId: null, url: null, name: 'Файл', sizeBytes: null }),
+        create: () => ({ type, fileId: null, url: null, name: 'File', sizeBytes: null }),
         toText: (content) => (content.type === 'file' ? content.name : ''),
       };
     case 'emoji':
       return {
         type,
-        label: 'Эмодзи',
+        label: 'Emoji',
         icon: '😀',
         create: () => ({ type, emoji: '⭐' }),
         toText: (content) => (content.type === 'emoji' ? content.emoji : ''),
@@ -238,7 +238,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'toggle':
       return {
         type,
-        label: 'Переключатель',
+        label: 'Toggle list',
         icon: '▸',
         create: () => ({ type, content: '' }),
         toText: contentText,
@@ -246,7 +246,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'table':
       return {
         type,
-        label: 'Таблица',
+        label: 'Table',
         icon: '▦',
         create: () => ({
           type,
@@ -263,7 +263,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'page':
       return {
         type,
-        label: 'Страница',
+        label: 'Page',
         icon: '📄',
         // The temporary id is replaced by the created page's id after the service responds.
         create: () => ({ type, pageId: newId(), title: '', icon: null }),
@@ -272,7 +272,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'columns':
       return {
         type,
-        label: 'Колонки',
+        label: 'Columns',
         icon: '◫',
         create: () => ({
           type,
@@ -291,7 +291,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'equation':
       return {
         type,
-        label: 'Формула',
+        label: 'Equation',
         icon: '∑',
         create: () => ({ type, expression: '' }),
         toText: (content) => (content.type === 'equation' ? content.expression : ''),
@@ -299,7 +299,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'linkToPage':
       return {
         type,
-        label: 'Ссылка на страницу',
+        label: 'Link to page',
         icon: '🔗',
         // pageId is filled in the picker dialog; without it the block is not saved.
         create: () => ({ type, pageId: '' }),
@@ -308,7 +308,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'breadcrumb':
       return {
         type,
-        label: 'Хлебные крошки',
+        label: 'Breadcrumb',
         icon: '⌂',
         create: () => ({ type }),
         toText: () => '',
@@ -316,7 +316,7 @@ export const DEFAULT_BLOCK_DEFINITIONS: readonly BlockDefinition[] = BLOCK_TYPES
     case 'database':
       return {
         type,
-        label: 'База данных',
+        label: 'Database',
         icon: '🗂',
         create: () => ({ type, databaseId: newId() }),
         toText: () => '',
@@ -357,7 +357,7 @@ export function deserializeDocument(json: string): Block[] {
   const parsed = JSON.parse(json);
 
   if (!Array.isArray(parsed)) {
-    throw new Error('Документ должен быть массивом блоков');
+    throw new Error('Document must be an array of blocks');
   }
 
   return parsed.map((entry) => {
@@ -801,6 +801,7 @@ function entryToNode(entry: ContentEntry): EditorNode | null {
           url: content.url,
           caption: content.caption,
           ...(content.width !== undefined ? { width: content.width } : {}),
+          ...(content.wideWidth !== undefined ? { wideWidth: content.wideWidth } : {}),
           ...(content.fullWidth !== undefined ? { fullWidth: content.fullWidth } : {}),
         },
       };
@@ -1225,6 +1226,7 @@ function nodeToContent(node: EditorNode): BlockContent | null {
       }
 
       const width = node.attrs?.['width'];
+      const wideWidth = node.attrs?.['wideWidth'];
 
       return {
         type: 'image',
@@ -1233,6 +1235,9 @@ function nodeToContent(node: EditorNode): BlockContent | null {
         caption: captionOf(node),
         ...(typeof width === 'number' && width >= 10 && width <= 100
           ? { width: Math.round(width) }
+          : {}),
+        ...(typeof wideWidth === 'number' && wideWidth >= 10 && wideWidth <= 100
+          ? { wideWidth: Math.round(wideWidth) }
           : {}),
         ...(node.attrs?.['fullWidth'] === true ? { fullWidth: true } : {}),
       };
@@ -1260,7 +1265,7 @@ function nodeToContent(node: EditorNode): BlockContent | null {
         type: 'file',
         fileId: source.fileId,
         url: source.url,
-        name: typeof name === 'string' && name.length > 0 ? name : 'Файл',
+        name: typeof name === 'string' && name.length > 0 ? name : 'File',
         sizeBytes: typeof sizeBytes === 'number' && Number.isFinite(sizeBytes) ? sizeBytes : null,
       };
     }

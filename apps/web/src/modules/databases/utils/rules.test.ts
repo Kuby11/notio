@@ -3,27 +3,27 @@ import type { Database, DatabaseProperty } from '@notio/contracts';
 import { assertValidDatabaseTitle, assertValidPropertyName, findTitleProperty } from './rules';
 
 describe('Database domain rules', () => {
-  it('валидирует название базы данных', () => {
+  it('validates the database title', () => {
     expect(() => assertValidDatabaseTitle('')).toThrow();
     expect(() => assertValidDatabaseTitle('   ')).toThrow();
     expect(() => assertValidDatabaseTitle('a'.repeat(501))).toThrow();
     expect(() => assertValidDatabaseTitle('Valid Title')).not.toThrow();
   });
 
-  it('валидирует название свойства и проверяет уникальность', () => {
+  it('validates the property name and checks uniqueness', () => {
     const existing: DatabaseProperty[] = [
       { id: 'p1', name: 'Status', type: 'status' },
       { id: 'p2', name: 'Priority', type: 'select' },
     ];
 
     expect(() => assertValidPropertyName('', existing)).toThrow();
-    expect(() => assertValidPropertyName('Status', existing)).toThrow('уже существует');
-    expect(() => assertValidPropertyName('status', existing)).toThrow('уже существует');
+    expect(() => assertValidPropertyName('Status', existing)).toThrow('already exists');
+    expect(() => assertValidPropertyName('status', existing)).toThrow('already exists');
     expect(() => assertValidPropertyName('Status', existing, 'p1')).not.toThrow();
     expect(() => assertValidPropertyName('Due Date', existing)).not.toThrow();
   });
 
-  it('находит свойство title или выбрасывает ошибку', () => {
+  it('finds the title property or throws an error', () => {
     const validDb: Database = {
       id: 'db1',
       workspaceId: 'ws1',

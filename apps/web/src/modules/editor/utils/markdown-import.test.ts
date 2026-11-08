@@ -2,77 +2,77 @@ import { describe, expect, it } from 'vitest';
 import { importTitleFrom, parseMarkdownToBlocks } from './markdown-import';
 
 describe('parseMarkdownToBlocks', () => {
-  it('разбирает заголовки уровней 1–4', () => {
-    const blocks = parseMarkdownToBlocks('# Один\n## Два\n### Три\n#### Четыре');
+  it('parses headings of levels 1-4', () => {
+    const blocks = parseMarkdownToBlocks('# One\n## Two\n### Three\n#### Four');
 
     expect(blocks).toEqual([
-      { type: 'heading', level: 1, content: 'Один' },
-      { type: 'heading', level: 2, content: 'Два' },
-      { type: 'heading', level: 3, content: 'Три' },
-      { type: 'heading', level: 4, content: 'Четыре' },
+      { type: 'heading', level: 1, content: 'One' },
+      { type: 'heading', level: 2, content: 'Two' },
+      { type: 'heading', level: 3, content: 'Three' },
+      { type: 'heading', level: 4, content: 'Four' },
     ]);
   });
 
-  it('склеивает подряд идущие строки в один абзац', () => {
-    const blocks = parseMarkdownToBlocks('первая строка\nвторая строка\n\nотдельный абзац');
+  it('joins consecutive lines into one paragraph', () => {
+    const blocks = parseMarkdownToBlocks('first line\nsecond line\n\nseparate paragraph');
 
     expect(blocks).toEqual([
-      { type: 'paragraph', content: 'первая строка вторая строка' },
-      { type: 'paragraph', content: 'отдельный абзац' },
+      { type: 'paragraph', content: 'first line second line' },
+      { type: 'paragraph', content: 'separate paragraph' },
     ]);
   });
 
-  it('распознаёт списки, чекбоксы, цитаты и разделители', () => {
+  it('recognizes lists, checkboxes, quotes and dividers', () => {
     const blocks = parseMarkdownToBlocks(
-      '- пункт\n* ещё\n1. первый\n2) второй\n- [x] готово\n- [ ] план\n> мысль\n---',
+      '- item\n* more\n1. first\n2) second\n- [x] done\n- [ ] todo\n> thought\n---',
     );
 
     expect(blocks).toEqual([
-      { type: 'bulletedListItem', content: 'пункт' },
-      { type: 'bulletedListItem', content: 'ещё' },
-      { type: 'numberedListItem', content: 'первый' },
-      { type: 'numberedListItem', content: 'второй' },
-      { type: 'toDo', checked: true, content: 'готово' },
-      { type: 'toDo', checked: false, content: 'план' },
-      { type: 'quote', content: 'мысль' },
+      { type: 'bulletedListItem', content: 'item' },
+      { type: 'bulletedListItem', content: 'more' },
+      { type: 'numberedListItem', content: 'first' },
+      { type: 'numberedListItem', content: 'second' },
+      { type: 'toDo', checked: true, content: 'done' },
+      { type: 'toDo', checked: false, content: 'todo' },
+      { type: 'quote', content: 'thought' },
       { type: 'divider' },
     ]);
   });
 
-  it('собирает код-фенс с языком и без', () => {
-    const blocks = parseMarkdownToBlocks('```ts\nconst a = 1;\n```\n\n```\nплоский\n```');
+  it('collects a code fence with and without a language', () => {
+    const blocks = parseMarkdownToBlocks('```ts\nconst a = 1;\n```\n\n```\nplain\n```');
 
     expect(blocks).toEqual([
       { type: 'code', language: 'ts', content: 'const a = 1;' },
-      { type: 'code', language: null, content: 'плоский' },
+      { type: 'code', language: null, content: 'plain' },
     ]);
   });
 
-  it('незакрытый код-фенс читается до конца текста', () => {
+  it('reads an unclosed code fence to the end of the text', () => {
     const blocks = parseMarkdownToBlocks('```js\nconsole.log(1);');
 
     expect(blocks).toEqual([{ type: 'code', language: 'js', content: 'console.log(1);' }]);
   });
 
-  it('пустой текст даёт пустой список блоков', () => {
+  it('gives an empty block list for empty text', () => {
     expect(parseMarkdownToBlocks('')).toEqual([]);
     expect(parseMarkdownToBlocks('\n\n  \n')).toEqual([]);
   });
 });
 
 describe('importTitleFrom', () => {
-  it('берёт текст первого заголовка', () => {
-    const blocks = parseMarkdownToBlocks('# План недели\nтекст');
+  it('takes the text of the first heading', () => {
+    const blocks = parseMarkdownToBlocks('# Weekly plan\ntext');
 
-    expect(importTitleFrom(blocks, 'notes.md', 'Резерв')).toBe('План недели');
+    expect(importTitleFrom(blocks, 'notes.md', 'Fallback')).toBe('Weekly plan');
   });
 
-  it('без заголовка — имя файла без расширения', () => {
-    expect(importTitleFrom([], 'мой-конспект.markdown', 'Резерв')).toBe('мой-конспект');
-    expect(importTitleFrom([], 'док.txt', 'Резерв')).toBe('док');
+  it('without a heading uses the file name without extension', () => {
+    expect(importTitleFrom([], 'my-notes.markdown', 'Fallback')).toBe('my-notes');
+    expect(importTitleFrom([], 'doc.txt', 'Fallback')).toBe('doc');
   });
 
-  it('пустое имя файла даёт резервный заголовок', () => {
-    expect(importTitleFrom([], '', 'Резервная')).toBe('Резервная');
+  it('gives a fallback title for an empty file name', () => {
+    expect(importTitleFrom([], '', 'Imported')).toBe('Imported');
   });
 });
