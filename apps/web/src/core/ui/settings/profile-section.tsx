@@ -1,6 +1,6 @@
 'use client';
 
-import { Camera, Trash2 } from 'lucide-react';
+import { Camera, LogOut, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -28,7 +28,7 @@ export function ProfileSection({ workspaceId }: { workspaceId: string }) {
   const t = useTranslations('settings.profile');
   const tCommon = useTranslations('common');
   const router = useRouter();
-  const { session, updateUser, deleteAccount } = useAuth();
+  const { session, updateUser, deleteAccount, signOut } = useAuth();
   const { upload } = useMedia();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [name, setName] = useState<string | null>(null);
@@ -104,6 +104,16 @@ export function ProfileSection({ workspaceId }: { workspaceId: string }) {
       toast(errorMessage(error));
     } finally {
       setRemoveBusy(false);
+    }
+  }
+
+  async function handleSignOut(): Promise<void> {
+    try {
+      await signOut.mutateAsync();
+      router.replace('/login');
+      router.refresh();
+    } catch {
+      toast(t('signOutFailed'));
     }
   }
 
@@ -214,6 +224,22 @@ export function ProfileSection({ workspaceId }: { workspaceId: string }) {
       <ChangeEmailForm currentEmail={user.email} />
 
       <ChangePasswordForm />
+
+      <section className="flex flex-col gap-2 rounded-lg border border-border p-4">
+        <h2 className="text-base font-semibold">{t('signOut')}</h2>
+        <p className="text-muted-foreground text-xs">{t('signOutHint')}</p>
+        <Button
+          variant="outline"
+          className="mt-2 w-fit"
+          onClick={() => {
+            void handleSignOut();
+          }}
+          disabled={signOut.isPending}
+        >
+          <LogOut data-icon="inline-start" aria-hidden="true" />
+          {signOut.isPending ? t('signingOut') : t('signOut')}
+        </Button>
+      </section>
 
       <section className="flex flex-col gap-2 rounded-lg border border-destructive/30 p-4">
         <h2 className="text-base font-semibold text-destructive">{t('deleteAccount')}</h2>

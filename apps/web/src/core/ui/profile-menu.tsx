@@ -57,7 +57,11 @@ export function ProfileMenu({ workspaceId }: ProfileMenuProps) {
     // A network error is not treated as sign-out: the cookie is still there, the session lives.
     try {
       await signOut.mutateAsync();
-      router.push('/login');
+      setMenuOpen(false);
+      router.replace('/login');
+      // Server components may still hold the signed-in shell: refresh re-runs
+      // the proxy so no page is served from the old session.
+      router.refresh();
     } catch {
       toast(t('signOutFailed'));
     }
