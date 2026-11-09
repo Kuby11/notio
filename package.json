@@ -58,13 +58,13 @@
   "lint-staged": {
     "*.{ts,tsx,mts,cts}": [
       "oxlint --fix --no-error-on-unmatched-pattern",
-      "oxfmt"
+      "oxfmt --no-error-on-unmatched-pattern"
     ],
     "*.{js,mjs,cjs,json,jsonc}": [
-      "oxfmt"
+      "oxfmt --no-error-on-unmatched-pattern"
     ],
     "*.{css,md,yml,yaml}": [
-      "oxfmt"
+      "oxfmt --no-error-on-unmatched-pattern"
     ]
   },
   "engines": {
