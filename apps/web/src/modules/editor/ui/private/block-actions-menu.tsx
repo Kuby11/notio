@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowLeft, Check, Copy, Download, Palette, RefreshCw, Replace, Trash } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { BlockColorPreset } from '@notio/contracts';
 import { COLOR_PRESETS as COLOR_PRESET_KEYS, COLOR_SWATCHES } from '../../utils/palette';
@@ -21,6 +21,12 @@ interface BlockActionsMenuProps {
   /** Source replacement (image) and download — for media blocks. */
   canReplace: boolean;
   canDownload: boolean;
+  /** Author of the last change, resolved to a display name; null when unknown. */
+  lastEditedBy?: { name: string; image?: string | null } | null;
+  /** ISO time of the block's last change; the section renders when present. */
+  lastEditedAt?: string | null;
+  /** Content size of the block, as in Notion: "31 words, 151 characters". */
+  stats?: { words: number; characters: number } | null;
   onTurnInto: (option: TurnIntoOption) => void;
   onSetColor: (color: BlockColorPreset | null) => void;
   onSetBackground: (background: BlockColorPreset | null) => void;
@@ -49,6 +55,9 @@ export function BlockActionsMenu({
   currentBackground,
   canReplace,
   canDownload,
+  lastEditedBy = null,
+  lastEditedAt = null,
+  stats = null,
   onTurnInto,
   onSetColor,
   onSetBackground,
@@ -59,8 +68,18 @@ export function BlockActionsMenu({
   onClose,
 }: BlockActionsMenuProps) {
   const t = useTranslations('editor.blockActions');
+  const locale = useLocale();
   const [view, setView] = useState<MenuView>('actions');
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Notion-style timestamp: date and time in the user's locale.
+  const editedAt = lastEditedAt === null ? null : new Date(lastEditedAt);
+  const editedAtText =
+    editedAt === null || Number.isNaN(editedAt.getTime())
+      ? null
+      : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+          editedAt,
+        );
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -178,6 +197,39 @@ export function BlockActionsMenu({
             tone="destructive"
             onClick={onDelete}
           />
+
+          {(editedAtText !== null || (stats !== null && stats.words > 0)) && (
+            <div className="text-muted-foreground mt-1 border-t px-2 pt-2 pb-0.5">
+              <p className="text-[11px] font-medium">{t('lastEdited')}</p>
+
+              {lastEditedBy ? (
+                <div className="mt-1 flex items-center gap-1.5">
+                  {lastEditedBy.image ? (
+                    <img
+                      src={lastEditedBy.image}
+                      alt=""
+                      className="size-5 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="bg-muted-foreground/20 text-foreground flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold uppercase">
+                      {lastEditedBy.name.trim().charAt(0) || '?'}
+                    </span>
+                  )}
+                  <span className="text-foreground truncate text-xs font-medium">
+                    {lastEditedBy.name}
+                  </span>
+                </div>
+              ) : null}
+
+              {editedAtText !== null ? <p className="mt-0.5 text-[11px]">{editedAtText}</p> : null}
+
+              {stats !== null && stats.words > 0 ? (
+                <p className="mt-0.5 text-[11px]">
+                  {t('stats', { words: stats.words, characters: stats.characters })}
+                </p>
+              ) : null}
+            </div>
+          )}
         </div>
       ) : null}
 

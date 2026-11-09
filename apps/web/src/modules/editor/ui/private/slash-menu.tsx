@@ -161,13 +161,15 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(function Sl
       ref={menuRef}
       role="listbox"
       aria-label={t('menuLabel')}
-      className="bg-popover text-popover-foreground max-h-80 w-72 overflow-y-auto rounded-lg border shadow-md"
+      className="bg-popover text-popover-foreground flex max-h-80 w-72 flex-col overflow-hidden rounded-lg border shadow-md"
     >
-      <div className="text-muted-foreground border-b px-3 py-2 text-[11px] font-medium tracking-wide uppercase">
+      <div className="text-muted-foreground shrink-0 border-b px-3 py-2 text-[11px] font-medium tracking-wide uppercase">
         {t('basics')}
       </div>
 
-      <div className="max-h-[340px] overflow-y-auto p-1">
+      {/* Only the command list scrolls: the keyboard hints stay pinned to the
+          bottom of the menu however long the filtered list gets. */}
+      <div className="min-h-0 flex-1 overflow-y-auto p-1">
         {commands.length === 0 ? (
           <p className="text-muted-foreground px-3 py-6 text-center text-sm">
             {tCommon('notFound')}
@@ -229,7 +231,7 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(function Sl
         )}
       </div>
 
-      <div className="text-muted-foreground flex items-center gap-3 border-t px-3 py-2 text-[11px]">
+      <div className="text-muted-foreground flex shrink-0 items-center gap-3 border-t px-3 py-2 text-[11px]">
         <span>↑↓ {t('select')}</span>
         <span>↵ {t('insert')}</span>
         <span>{t('esc')}</span>

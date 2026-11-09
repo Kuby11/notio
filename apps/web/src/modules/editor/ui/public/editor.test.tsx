@@ -379,7 +379,7 @@ describe('Editor', () => {
       await user.keyboard('{Enter}');
 
       // The database row is created by the editor bridge; the node view renders it.
-      expect(await screen.findByText('Untitled database')).toBeInTheDocument();
+      expect(await screen.findByDisplayValue('Untitled database')).toBeInTheDocument();
       expect(document.querySelector('[data-block-type="database"]')).not.toBeNull();
     } finally {
       document.elementFromPoint = originalElementFromPoint;
@@ -435,7 +435,7 @@ describe('Editor', () => {
     });
 
     // The injected repository seeds a starter database for the id.
-    expect(await screen.findByText('Project Tasks')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('Project Tasks')).toBeInTheDocument();
     expect(screen.getByText('Table')).toBeInTheDocument();
     expect(document.querySelector(`[data-database-id="${DATABASE_ID}"]`)).not.toBeNull();
   });

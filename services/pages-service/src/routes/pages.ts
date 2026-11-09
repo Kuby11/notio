@@ -171,9 +171,12 @@ export function createPageRoutes(createService: PageServiceFactory): Hono<AppEnv
 
   routes.patch('/blocks/:id', async (c) => {
     const id = parseOrThrow(IdSchema, c.req.param('id'));
+    // The author of the change is stored with the block: the editor shows
+    // "last edited by" in the block menu.
+    const actorId = requireActorId(c.req.header(INTERNAL_HEADERS.ACTOR_ID));
     const patch = parseOrThrow(UpdateBlockInputSchema, await readJsonBody(c.req.raw));
 
-    const block = await createBlockService(c.env).updateBlock(id, patch);
+    const block = await createBlockService(c.env).updateBlock(id, patch, actorId);
 
     return c.json(BlockSchema.parse(block), 200);
   });

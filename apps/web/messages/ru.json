@@ -280,6 +280,7 @@
     "view": {
       "loading": "Загрузка базы данных…",
       "loadFailed": "Не удалось загрузить базу данных",
+      "titleLabel": "Название базы данных",
       "retry": "Попробовать снова"
     },
     "table": {
@@ -288,6 +289,12 @@
       "newPage": "+ Новая страница",
       "percentChecked": "{value}% отмечено",
       "summary": "Итоги по столбцам"
+    },
+    "peek": {
+      "titleLabel": "Название строки",
+      "untitled": "Без названия",
+      "deleteRow": "Удалить строку",
+      "hint": "Изменения сохраняются автоматически"
     }
   },
   "auth": {
@@ -399,6 +406,10 @@
       "deleteAccountConfirm": "Удалить аккаунт",
       "deleteAccountWait": "Удаление через {seconds} с",
       "deleteAccountDone": "Аккаунт удалён",
+      "signOut": "Выйти",
+      "signingOut": "Выходим…",
+      "signOutHint": "Завершает сеанс на этом устройстве.",
+      "signOutFailed": "Не удалось выйти. Попробуйте ещё раз.",
       "errors": {
         "required": "Заполните поле",
         "weakPassword": "Пароль слишком короткий или длинный",
@@ -654,6 +665,8 @@
       "downloadImage": "Скачать изображение",
       "menuLabel": "Действия с блоком",
       "backToActions": "Назад к действиям блока",
+      "lastEdited": "Последнее изменение",
+      "stats": "{words, plural, one {# слово} few {# слова} other {# слов}}, {characters, plural, one {# символ} few {# символа} other {# символов}}",
       "turnIntoOption": {
         "text": "Текст",
         "heading1": "Заголовок 1",

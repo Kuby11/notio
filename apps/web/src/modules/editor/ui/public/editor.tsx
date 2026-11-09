@@ -44,6 +44,8 @@ import { collectWorkspacePages, setPageLinkBridge } from '../../utils/page-link'
 import { mediaFileUrl, useMedia } from '../../../media';
 import { env } from '../../../../shared/configs/env';
 import { useContainer } from '../../../../core/container';
+import { useAuth } from '@/modules/auth';
+import { useWorkspaces } from '@/modules/workspaces';
 import type { BlockColorPreset } from '@notio/contracts';
 import type { SlashCommand } from '../../utils/slash';
 import { BlockActionsMenu } from '../private/block-actions-menu';
@@ -123,6 +125,8 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
     getDatabaseBlock,
   } = useEditor(pageId, workspaceId);
   const { upload: uploadMediaFile } = useMedia();
+  const { session } = useAuth();
+  const { members } = useWorkspaces(workspaceId);
   const router = useRouter();
   const hydratedPageId = useRef<string | null>(null);
   const [, setHoveredBlockPos] = useState<number | null>(null);
@@ -843,6 +847,44 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
       ? findBlockAtPosition(editor, actionsMenu.pos)
       : null;
 
+  /**
+   * Who last edited the block: the stored author id is resolved through the
+   * workspace member list, with the current session as the fallback (the
+   * member list can lag behind a fresh profile change).
+   */
+  const actionsBlockRecord =
+    actionsBlock && editor
+      ? ((pageDocument.data ?? []).find(
+          (block) => block.id === actionsBlock.node.attrs['blockId'],
+        ) ?? null)
+      : null;
+  const lastEditorId = actionsBlockRecord?.updatedBy ?? null;
+  const lastEditor =
+    lastEditorId === null
+      ? null
+      : ((members.data ?? []).find((member) => member.userId === lastEditorId) ?? null);
+  const lastEditorName =
+    lastEditorId === null
+      ? null
+      : lastEditor
+        ? lastEditor.user.name.trim() || lastEditor.user.email
+        : session.data?.user.id === lastEditorId
+          ? session.data?.user.name.trim() || session.data?.user.email || null
+          : null;
+  // The member list carries no avatar: only the current user's own picture is known.
+  const lastEditorImage =
+    lastEditorId !== null && lastEditor === null && session.data?.user.id === lastEditorId
+      ? (session.data.user.image ?? null)
+      : null;
+  // Notion shows the block's size under the author: word and character counts.
+  const actionsBlockText = actionsBlock?.node.textContent.trim() ?? '';
+  const actionsBlockStats = actionsBlock
+    ? {
+        words: actionsBlockText.length === 0 ? 0 : actionsBlockText.split(/\s+/).length,
+        characters: actionsBlockText.length,
+      }
+    : null;
+
   if (pageDocument.isPending) {
     return <EditorStatus>{t('loadingDocument')}</EditorStatus>;
   }
@@ -966,6 +1008,11 @@ export function Editor({ pageId, workspaceId }: EditorProps) {
                     actionsBlock.node.type.name === 'image' && canUseMediaActions(actionsBlock.node)
                   }
                   canDownload={canUseMediaActions(actionsBlock.node)}
+                  lastEditedBy={
+                    lastEditorName ? { name: lastEditorName, image: lastEditorImage } : null
+                  }
+                  lastEditedAt={actionsBlockRecord?.updatedAt ?? null}
+                  stats={actionsBlockStats}
                   onTurnInto={handleActionTurnInto}
                   onSetColor={handleActionColor}
                   onSetBackground={handleActionBackground}

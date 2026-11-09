@@ -280,6 +280,7 @@
     "view": {
       "loading": "Loading database…",
       "loadFailed": "Could not load the database",
+      "titleLabel": "Database title",
       "retry": "Try again"
     },
     "table": {
@@ -288,6 +289,12 @@
       "newPage": "+ New page",
       "percentChecked": "{value}% checked",
       "summary": "Column summary"
+    },
+    "peek": {
+      "titleLabel": "Row title",
+      "untitled": "Untitled",
+      "deleteRow": "Delete row",
+      "hint": "Changes are saved automatically"
     }
   },
   "auth": {
@@ -399,6 +406,10 @@
       "deleteAccountConfirm": "Delete account",
       "deleteAccountWait": "Delete in {seconds}s",
       "deleteAccountDone": "Account deleted",
+      "signOut": "Sign out",
+      "signingOut": "Signing out…",
+      "signOutHint": "Ends this session on this device.",
+      "signOutFailed": "Could not sign out. Please try again.",
       "errors": {
         "required": "Fill in this field",
         "weakPassword": "Password is too short or too long",
@@ -654,6 +665,8 @@
       "downloadImage": "Download image",
       "menuLabel": "Block actions",
       "backToActions": "Back to block actions",
+      "lastEdited": "Last edited",
+      "stats": "{words, plural, one {# word} other {# words}}, {characters, plural, one {# character} other {# characters}}",
       "turnIntoOption": {
         "text": "Text",
         "heading1": "Heading 1",

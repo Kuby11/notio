@@ -51,6 +51,8 @@ export const blocks = sqliteTable(
     position: text('position').notNull(),
     /** JSON document of the block, validated by the BlockContentSchema Zod schema. */
     content: text('content', { mode: 'json' }).$type<BlockContent>().notNull(),
+    /** Author of the last content change; NULL for rows written before the column. */
+    updatedBy: text('updated_by'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },

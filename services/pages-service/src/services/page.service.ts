@@ -112,6 +112,8 @@ export class PageService {
         type: block.type,
         position,
         content: block.content,
+        // The copy is a fresh edit by whoever duplicated the page.
+        updatedBy: actorId,
         createdAt: now,
         updatedAt: now,
       });

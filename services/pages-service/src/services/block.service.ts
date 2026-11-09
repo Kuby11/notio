@@ -62,7 +62,7 @@ export class BlockService {
     }
   }
 
-  async createBlock(input: CreateBlockInput, _actorId: string): Promise<Block> {
+  async createBlock(input: CreateBlockInput, actorId: string): Promise<Block> {
     await this.assertPageWritable(input.pageId);
 
     const last = await this.blocks.lastBlock(input.pageId);
@@ -73,6 +73,7 @@ export class BlockService {
       type: input.content.type,
       position: generateKeyBetween(last?.position ?? null, null),
       content: input.content,
+      updatedBy: actorId,
       createdAt: now,
       updatedAt: now,
     });
@@ -88,7 +89,7 @@ export class BlockService {
     return this.blocks.listByPage(pageId);
   }
 
-  async updateBlock(id: string, patch: UpdateBlockInput): Promise<Block> {
+  async updateBlock(id: string, patch: UpdateBlockInput, actorId: string): Promise<Block> {
     const block = await this.blocks.findById(id);
 
     if (!block) {
@@ -98,7 +99,7 @@ export class BlockService {
     await this.assertPageWritable(block.pageId);
 
     const now = this.now();
-    const updated = await this.blocks.updateById(id, patch, now);
+    const updated = await this.blocks.updateById(id, patch, now, actorId);
 
     if (!updated) {
       throw new NotFoundError('Block not found');

@@ -26,6 +26,7 @@ export class BlockRepository {
       type: row.type,
       position: row.position,
       content: row.content,
+      updatedBy: row.updatedBy ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -53,6 +54,7 @@ export class BlockRepository {
     type: string;
     position: string;
     content: BlockContent;
+    updatedBy: string | null;
     createdAt: string;
     updatedAt: string;
   }): Promise<Block> {
@@ -65,8 +67,13 @@ export class BlockRepository {
     return this.toBlock(row);
   }
 
-  async updateById(id: string, patch: UpdateBlockInput, updatedAt: string): Promise<Block | null> {
-    const changes: Partial<typeof blocks.$inferInsert> = { updatedAt };
+  async updateById(
+    id: string,
+    patch: UpdateBlockInput,
+    updatedAt: string,
+    updatedBy: string,
+  ): Promise<Block | null> {
+    const changes: Partial<typeof blocks.$inferInsert> = { updatedAt, updatedBy };
 
     if (patch.content !== undefined) {
       changes.content = patch.content;

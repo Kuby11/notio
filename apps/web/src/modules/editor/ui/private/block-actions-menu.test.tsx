@@ -17,6 +17,9 @@ const baseProps = {
   currentBackground: null,
   canReplace: false,
   canDownload: false,
+  lastEditedBy: null as { name: string; image?: string | null } | null,
+  lastEditedAt: null as string | null,
+  stats: null as { words: number; characters: number } | null,
   onClose: vi.fn<() => void>(),
 };
 
@@ -131,6 +134,24 @@ describe('BlockActionsMenu', () => {
 
     expect(screen.queryByRole('menuitem', { name: 'Turn into' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Color' })).not.toBeInTheDocument();
+  });
+
+  it('shows who last edited the block and how big it is', () => {
+    renderMenu({
+      lastEditedBy: { name: 'STENDER11' },
+      lastEditedAt: '2026-10-24T19:14:00.000Z',
+      stats: { words: 31, characters: 151 },
+    });
+
+    expect(screen.getByText('Last edited')).toBeInTheDocument();
+    expect(screen.getByText('STENDER11')).toBeInTheDocument();
+    expect(screen.getByText(/31.*151/)).toBeInTheDocument();
+  });
+
+  it('keeps the block menu to actions when nothing is known about the edit', () => {
+    renderMenu();
+
+    expect(screen.queryByText('Last edited')).not.toBeInTheDocument();
   });
 
   it('closes on Escape', async () => {

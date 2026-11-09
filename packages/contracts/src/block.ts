@@ -517,6 +517,11 @@ export const BlockSchema = z.object({
   type: BlockTypeSchema,
   position: PositionSchema,
   content: BlockContentSchema,
+  /**
+   * Author of the last content change. null for rows written before the
+   * column existed; the editor then hides the "last edited by" line.
+   */
+  updatedBy: IdSchema.nullable().optional(),
   createdAt: IsoDateTimeSchema,
   updatedAt: IsoDateTimeSchema,
 });

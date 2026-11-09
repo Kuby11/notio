@@ -112,12 +112,14 @@ describe('page blocks', () => {
 
     const response = await send(`/blocks/${block.id}`, {
       method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: ACTOR },
       body: JSON.stringify({ content: { type: 'paragraph', content: 'New' } }),
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ content: { content: 'New' } });
+    // The author of the change is stored with the block: the editor reads it
+    // for the "last edited by" line in the block menu.
+    expect(await response.json()).toMatchObject({ content: { content: 'New' }, updatedBy: ACTOR });
   });
 
   it('deletes a block', async () => {
@@ -147,7 +149,7 @@ describe('page blocks', () => {
   it('responds 404 for a nonexistent block', async () => {
     const response = await send(`/blocks/00000000-0000-4000-8000-000000000099`, {
       method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: ACTOR },
       body: JSON.stringify({ content: { type: 'paragraph', content: 'x' } }),
     });
 
@@ -384,6 +386,25 @@ describe('page locking and modification time', () => {
     const unlocked = await patchPage(page.id, workspaceId, { isLocked: false });
 
     expect(await unlocked.json()).toMatchObject({ isLocked: false });
+  });
+
+  it('rejects a block update without a user context', async () => {
+    const workspaceId = crypto.randomUUID();
+    const page = await createPage(workspaceId);
+    const created = await send('/blocks', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', [INTERNAL_HEADERS.ACTOR_ID]: ACTOR },
+      body: JSON.stringify({ pageId: page.id, content: { type: 'paragraph', content: 'x' } }),
+    });
+    const block = (await created.json()) as { id: string };
+
+    const response = await send(`/blocks/${block.id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ content: { type: 'paragraph', content: 'y' } }),
+    });
+
+    expect(response.status).toBe(403);
   });
 
   it('rejects block edits on a locked page', async () => {
