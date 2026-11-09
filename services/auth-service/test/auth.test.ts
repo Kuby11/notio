@@ -237,6 +237,18 @@ describe('sign-up and sign-in', () => {
     const cookie = cookieFrom(signInResponse);
     expect(cookie).toContain('notio.session_token');
 
+    // Sessions belong to D1 only: the row exists there and KV holds no copy.
+    const sessionCookie = cookie
+      .split('; ')
+      .find((entry) => entry.startsWith('notio.session_token='));
+    const token = (sessionCookie ?? '').slice('notio.session_token='.length).split('.')[0] ?? '';
+    const stored = await env.DB.prepare('SELECT token FROM session WHERE token = ?')
+      .bind(token)
+      .first<{ token: string }>();
+    expect(token).not.toBe('');
+    expect(stored?.token).toBe(token);
+    await expect(env.RATE_LIMIT.get(`auth:${token}`)).resolves.toBeNull();
+
     const session = await call(app, `${AUTH_BASE_PATH}/get-session`, { cookie });
     expect(session.status).toBe(200);
     expect(await session.json()).toMatchObject({ user: { email, emailVerified: true } });
@@ -249,6 +261,11 @@ describe('sign-up and sign-in', () => {
     const afterSignOut = await call(app, `${AUTH_BASE_PATH}/get-session`, { cookie });
     const sessionAfterSignOut = await afterSignOut.json();
     expect(sessionAfterSignOut === null || afterSignOut.status === 401).toBe(true);
+
+    const revoked = await env.DB.prepare('SELECT token FROM session WHERE token = ?')
+      .bind(token)
+      .first<{ token: string }>();
+    expect(revoked).toBeNull();
   });
 
   it('rejects a wrong password', async () => {

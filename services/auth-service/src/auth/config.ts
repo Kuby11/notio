@@ -4,7 +4,7 @@ import { createAuthDatabase } from '../db/auth-db';
 import type { Bindings } from '../env';
 import { createEmailJSMailSender, createLoggingMailSender, type MailSender } from './mailer';
 import { buildAuthOptions, type AuthDependencies } from './options';
-import { createKvSecondaryStorage } from './secondary-storage';
+import { createKvRateLimitStorage } from './rate-limit-storage';
 
 const instances = new WeakMap<Bindings, Auth>();
 
@@ -43,7 +43,7 @@ export function createAuth(env: Bindings, dependencies?: Partial<AuthDependencie
   const auth = betterAuth(
     buildAuthOptions(env, {
       database: createAuthDatabase(env),
-      secondaryStorage: createKvSecondaryStorage(env.RATE_LIMIT),
+      rateLimitStorage: createKvRateLimitStorage(env.RATE_LIMIT),
       mailSender: selectMailSender(env),
       publicUrl: env.BETTER_AUTH_URL,
       frontendUrl: env.FRONTEND_URL ?? 'http://localhost:3000',

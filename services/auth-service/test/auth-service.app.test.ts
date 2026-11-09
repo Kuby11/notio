@@ -1,6 +1,6 @@
 import { env as workerEnv } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
-import { createKvSecondaryStorage } from '../src/auth/secondary-storage';
+import { createKvRateLimitStorage } from '../src/auth/rate-limit-storage';
 import { createLoggingMailSender, createUnconfiguredMailSender } from '../src/auth/mailer';
 import { requireAuthSecret, type Bindings } from '../src/env';
 
@@ -132,63 +132,69 @@ describe('MailSender', () => {
   });
 });
 
-describe('KV secondary storage', () => {
-  it('stores values with a TTL no shorter than the KV minimum', async () => {
+describe('KV rate limit storage', () => {
+  it('allows up to the limit and then blocks with a retry hint', async () => {
     const namespace = env.RATE_LIMIT;
+    const storage = createKvRateLimitStorage(namespace);
+    const key = '203.0.113.7|/sign-in/email';
+    const rule = { window: 60, max: 2 };
 
-    await createKvSecondaryStorage(namespace).set('cookie', 'payload', 10);
+    await expect(storage.consume(key, rule)).resolves.toEqual({ allowed: true, retryAfter: null });
+    await expect(storage.consume(key, rule)).resolves.toEqual({ allowed: true, retryAfter: null });
 
-    expect(await namespace.get('auth:cookie')).toBe('payload');
-    await namespace.delete('auth:cookie');
+    const blocked = await storage.consume(key, rule);
+
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.retryAfter).toBeGreaterThan(0);
+
+    await namespace.delete(`auth:rl:${key}`);
   });
 
-  it('reads and deletes the value together', async () => {
+  it('opens a fresh window once the previous one has elapsed', async () => {
     const namespace = env.RATE_LIMIT;
-    const storage = createKvSecondaryStorage(namespace);
+    const storage = createKvRateLimitStorage(namespace);
+    const key = '203.0.113.8|/sign-in/email';
 
-    await namespace.put('auth:ticket', 'value');
-    await expect(storage.getAndDelete('ticket')).resolves.toBe('value');
-    expect(await namespace.get('auth:ticket')).toBeNull();
+    await namespace.put(
+      `auth:rl:${key}`,
+      JSON.stringify({ count: 5, lastRequest: Date.now() - 120_000 }),
+    );
+
+    await expect(storage.consume(key, { window: 60, max: 3 })).resolves.toEqual({
+      allowed: true,
+      retryAfter: null,
+    });
+
+    await namespace.delete(`auth:rl:${key}`);
   });
 
-  it('counts calls and starts the counter at one', async () => {
+  it('counts each key separately', async () => {
     const namespace = env.RATE_LIMIT;
-    const storage = createKvSecondaryStorage(namespace);
+    const storage = createKvRateLimitStorage(namespace);
+    const signIn = '203.0.113.9|/sign-in/email';
+    const session = '203.0.113.9|/get-session';
+    const rule = { window: 60, max: 1 };
 
-    expect(await storage.increment('counter', 60)).toBe(1);
-    expect(await storage.increment('counter', 60)).toBe(2);
+    await expect(storage.consume(signIn, rule)).resolves.toMatchObject({ allowed: true });
+    await expect(storage.consume(session, rule)).resolves.toMatchObject({ allowed: true });
+    await expect(storage.consume(signIn, rule)).resolves.toMatchObject({ allowed: false });
 
-    await namespace.delete('auth:counter');
+    await namespace.delete(`auth:rl:${signIn}`);
+    await namespace.delete(`auth:rl:${session}`);
   });
 
-  it('deletes the value by key', async () => {
+  it('treats an unparseable record as a fresh window instead of throwing', async () => {
     const namespace = env.RATE_LIMIT;
-    const storage = createKvSecondaryStorage(namespace);
+    const storage = createKvRateLimitStorage(namespace);
+    const key = '203.0.113.10|/sign-in/email';
 
-    await namespace.put('auth:temporary', 'value');
-    await storage.delete('temporary');
+    await namespace.put(`auth:rl:${key}`, 'not-json');
 
-    expect(await namespace.get('auth:temporary')).toBeNull();
-  });
+    await expect(storage.consume(key, { window: 60, max: 1 })).resolves.toEqual({
+      allowed: true,
+      retryAfter: null,
+    });
 
-  it('stores a value without an explicit TTL', async () => {
-    const namespace = env.RATE_LIMIT;
-    const storage = createKvSecondaryStorage(namespace);
-
-    await storage.set('no-ttl', 'payload');
-
-    expect(await namespace.get('auth:no-ttl')).toBe('payload');
-    await namespace.delete('auth:no-ttl');
-  });
-
-  it('starts the counter at one when the storage holds garbage', async () => {
-    const namespace = env.RATE_LIMIT;
-    const storage = createKvSecondaryStorage(namespace);
-
-    await namespace.put('auth:broken-counter', 'not-a-number');
-
-    expect(await storage.increment('broken-counter', 60)).toBe(1);
-
-    await namespace.delete('auth:broken-counter');
+    await namespace.delete(`auth:rl:${key}`);
   });
 });

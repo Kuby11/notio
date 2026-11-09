@@ -1,9 +1,9 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import type { SecondaryStorage } from 'better-auth';
 import type { Bindings } from '../env';
 import { createLoggingMailSender } from './mailer';
 import { buildAuthOptions } from './options';
+import type { RateLimitStorage } from './rate-limit-storage';
 
 /**
  * Configuration used only by `@better-auth/cli generate`: the CLI runs in Node,
@@ -22,18 +22,14 @@ const cliEnv = {
 
 const stubDrizzle = {} as never;
 
-const cliSecondaryStorage: SecondaryStorage = {
-  get: () => undefined,
-  getAndDelete: () => undefined,
-  increment: () => 1,
-  set: () => undefined,
-  delete: () => undefined,
+const cliRateLimitStorage: RateLimitStorage = {
+  consume: async () => ({ allowed: true, retryAfter: null }),
 };
 
 export const auth = betterAuth(
   buildAuthOptions(cliEnv, {
     database: drizzleAdapter(stubDrizzle, { provider: 'sqlite', schema: {} }),
-    secondaryStorage: cliSecondaryStorage,
+    rateLimitStorage: cliRateLimitStorage,
     mailSender: createLoggingMailSender(() => undefined),
     publicUrl: cliEnv.BETTER_AUTH_URL,
     frontendUrl: cliEnv.BETTER_AUTH_URL,

@@ -36,9 +36,12 @@ startup. Hence `database: drizzleAdapter(createDb(env, authSchema), …)` and th
   `verification` table stays empty and the token cannot be brute-forced from the database.
 - For private API calls the client takes a short-lived JWT (`GET /api/auth/token`). It is sent in
   the `Authorization: Bearer` header and is stored neither in `localStorage` nor in Zustand.
+- **Sessions live in D1 only.** Better Auth's `secondaryStorage` is intentionally not configured:
+  that option would also move session reads and writes to KV, making the `session` row a cache
+  rather than the record. Rate-limit counters reach KV through `rateLimit.customStorage` instead, so
+  clearing KV cannot log anybody out.
 - **Better Auth's cookie cache is disabled.** With it, cached session data kept returning the user
-  for several minutes after signing out. Reading the session from D1 is locally cheaper than that
-  bug.
+  for several minutes after signing out.
 
 ### The gateway verifies the signature locally
 

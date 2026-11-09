@@ -100,15 +100,19 @@ export const userRelations = relations(user, ({ many }) => ({
   accounts: many(account),
 }));
 
+// Relation keys MUST be plural so they match what the @better-auth/drizzle-adapter
+// resolves internally for non-unique joins: getJoinRelationKey returns
+// `${joinModel}s` (e.g. "users") when joining session → user, so the Drizzle
+// relation key on session must also be "users", not "user".
 export const sessionRelations = relations(session, ({ one }) => ({
-  user: one(user, {
+  users: one(user, {
     fields: [session.userId],
     references: [user.id],
   }),
 }));
 
 export const accountRelations = relations(account, ({ one }) => ({
-  user: one(user, {
+  users: one(user, {
     fields: [account.userId],
     references: [user.id],
   }),

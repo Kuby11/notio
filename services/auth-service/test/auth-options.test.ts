@@ -2,7 +2,7 @@ import { env as workerEnv } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
 import { createAuth } from '../src/auth/config';
 import { buildAuthOptions } from '../src/auth/options';
-import { createKvSecondaryStorage } from '../src/auth/secondary-storage';
+import { createKvRateLimitStorage } from '../src/auth/rate-limit-storage';
 import { createLoggingMailSender } from '../src/auth/mailer';
 import type { Bindings } from '../src/env';
 
@@ -11,7 +11,7 @@ const env = workerEnv as Bindings;
 function deps(overrides: Partial<Parameters<typeof buildAuthOptions>[1]> = {}) {
   return {
     database: undefined,
-    secondaryStorage: createKvSecondaryStorage(env.RATE_LIMIT),
+    rateLimitStorage: createKvRateLimitStorage(env.RATE_LIMIT),
     mailSender: createLoggingMailSender(() => undefined),
     publicUrl: env.BETTER_AUTH_URL,
     frontendUrl: env.BETTER_AUTH_URL,
@@ -49,6 +49,16 @@ describe('buildAuthOptions', () => {
       clientId: 'google-id',
       clientSecret: 'google-secret',
     });
+  });
+
+  it('keeps sessions in D1 and never in KV', () => {
+    const options = buildAuthOptions(env, deps());
+
+    expect(options.session?.storeSessionInDatabase).toBe(true);
+    expect(options.session?.cookieCache?.enabled).toBe(false);
+    // Secondary storage would make Better Auth read and write sessions in KV.
+    expect(options.secondaryStorage).toBeUndefined();
+    expect(options.rateLimit?.customStorage).toBeDefined();
   });
 
   it('trusts its own origin and explicitly listed ones', () => {
