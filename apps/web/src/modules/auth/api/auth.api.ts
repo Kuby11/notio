@@ -65,7 +65,11 @@ export interface AuthGatewayOptions {
 
 export function createBetterAuthGateway(options: AuthGatewayOptions): AuthGateway {
   const client = createAuthClient({
-    baseURL: options.baseUrl,
+    // An empty base URL keeps the client on the app origin: the route handler
+    // at app/api/auth proxies the call to the gateway, so the session cookie is
+    // issued for the app host (web and gateway cannot share one: workers.dev is
+    // a public suffix).
+    baseURL: options.baseUrl || undefined,
     basePath: '/api/auth',
     plugins: [jwtClient()],
     // The session lives in a cookie: without credentials it would never reach the gateway.

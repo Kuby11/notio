@@ -16,6 +16,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'cloudflare:workers': fileURLToPath(new URL('./test/cloudflare-workers.ts', import.meta.url)),
       'next/headers': 'vinext/shims/headers',
       'next/image': 'vinext/shims/image',
       'next/link': 'vinext/shims/link',

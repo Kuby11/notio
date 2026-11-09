@@ -10,10 +10,9 @@
   "vars": {
     "ENVIRONMENT": "production",
     "SERVICE_VERSION": "0.1.0",
-    "BETTER_AUTH_URL": "https://notio-gateway.saab112468.workers.dev",
+    "BETTER_AUTH_URL": "https://notio-web.saab112468.workers.dev",
     "FRONTEND_URL": "https://notio-web.saab112468.workers.dev",
     "TRUSTED_ORIGINS": "https://notio-web.saab112468.workers.dev",
-    "COOKIE_DOMAIN": "saab112468.workers.dev",
     "RATE_LIMIT_MAX_REQUESTS": "20",
     "RATE_LIMIT_WINDOW_SECONDS": "60",
   },

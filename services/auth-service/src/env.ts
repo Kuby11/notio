@@ -15,7 +15,11 @@ export interface Bindings {
   BETTER_AUTH_URL: string;
   /** Frontend address: after sign-in and email confirmation the user lands there, not on the gateway. */
   FRONTEND_URL?: string;
-  /** Shared parent domain of web+gateway for the session cookie (prod). */
+  /**
+   * Shared parent domain of web+gateway for the session cookie. Only for a real
+   * registrable domain (example.com): a public suffix such as
+   * `<account>.workers.dev` makes browsers reject the cookie.
+   */
   COOKIE_DOMAIN?: string;
   BETTER_AUTH_SECRET: string;
   RATE_LIMIT_MAX_REQUESTS?: string;

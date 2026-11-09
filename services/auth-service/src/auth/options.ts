@@ -260,11 +260,13 @@ export function buildAuthOptions(env: Bindings, deps: AuthDependencies): BetterA
     advanced: {
       useSecureCookies: env.ENVIRONMENT === 'production',
       cookiePrefix: 'notio',
-      // Web and gateway are sibling hosts (workers.dev subdomains): the session
-      // cookie must be set on their shared parent domain, otherwise it stays on
-      // the gateway host and proxy.ts on the web worker never sees
-      // authenticated navigation. COOKIE_DOMAIN sets that domain; in dev both
-      // hosts are localhost (the cookie ignores ports), so no domain is needed.
+      // Only for a deployment with a real shared parent domain (for example
+      // app.example.com + api.example.com): the session cookie then carries
+      // Domain=example.com so both hosts see it. Never point this at a public
+      // suffix such as <account>.workers.dev: browsers reject such cookies,
+      // and the session silently disappears. On workers.dev the web app proxies
+      // /api/auth/* same-origin instead (apps/web app/api/auth route). In dev
+      // both hosts are localhost (cookies ignore ports), so no domain is needed.
       ...(env.COOKIE_DOMAIN
         ? {
             crossSubDomainCookies: {

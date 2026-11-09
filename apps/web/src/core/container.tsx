@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { env } from '../shared/configs/env';
 import {
   createAuthModule,
   createAuthModuleWithGateway,
@@ -56,8 +55,8 @@ export function createAppContainer(): Container {
   // gateway by a route handler): the session cookie lands on the app host,
   // not on the gateway host — otherwise, in deployment, web and gateway end
   // up on different workers.dev subdomains and the app cannot see the
-  // session (see app/api/auth).
-  return createContainerWithAuth(createAuthModule({ baseUrl: env.NEXT_PUBLIC_GATEWAY_URL }));
+  // session (see src/app/api/auth/[...auth]/route.ts).
+  return createContainerWithAuth(createAuthModule({ baseUrl: '' }));
 }
 
 function createContainerWithAuth(auth: AuthModule, overrides: ContainerOverrides = {}): Container {

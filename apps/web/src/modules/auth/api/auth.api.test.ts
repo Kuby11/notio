@@ -290,6 +290,14 @@ describe('auth adapter', () => {
 
     expect(String(fetchMock.mock.calls[0]?.[0]).startsWith(BASE_URL)).toBe(true);
   });
+
+  it('keeps auth requests on the app origin when the base URL is empty', async () => {
+    const fetchMock = stubFetch(() => json({ token: 'jwt-token' }));
+    const gateway = createBetterAuthGateway({ baseUrl: '' });
+
+    await expect(gateway.accessToken()).resolves.toBe('jwt-token');
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe('/api/auth/token');
+  });
 });
 
 describe('error code mapping', () => {
