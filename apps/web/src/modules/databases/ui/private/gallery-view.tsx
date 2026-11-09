@@ -12,6 +12,8 @@ export interface GalleryViewProps {
   view: DatabaseView;
   onAddRow: () => void;
   onDeleteRow: (rowId: string) => void;
+  /** Opens the row popover, where its data can be edited. */
+  onOpenRow?: (row: DatabaseRow) => void;
 }
 
 function visibleProperties(properties: DatabaseProperty[], view: DatabaseView) {
@@ -24,7 +26,14 @@ function visibleProperties(properties: DatabaseProperty[], view: DatabaseView) {
 }
 
 /** Notion-style gallery: each database page becomes a card. */
-export function GalleryView({ properties, rows, view, onAddRow, onDeleteRow }: GalleryViewProps) {
+export function GalleryView({
+  properties,
+  rows,
+  view,
+  onAddRow,
+  onDeleteRow,
+  onOpenRow,
+}: GalleryViewProps) {
   const t = useTranslations('databases.views');
   const tCommon = useTranslations('common');
   const fields = visibleProperties(properties, view);
@@ -41,13 +50,22 @@ export function GalleryView({ properties, rows, view, onAddRow, onDeleteRow }: G
             key={row.id}
             className="group border-border bg-card hover:shadow-md relative overflow-hidden rounded-xl border shadow-xs transition-shadow"
           >
-            <div className="bg-muted/50 text-muted-foreground flex aspect-[4/3] items-center justify-center text-2xl font-semibold">
+            <button
+              type="button"
+              onClick={() => onOpenRow?.(row)}
+              aria-label={row.title || tCommon('untitled')}
+              className="bg-muted/50 text-muted-foreground flex aspect-[4/3] w-full items-center justify-center text-2xl font-semibold"
+            >
               {row.title.trim().charAt(0).toUpperCase() || '·'}
-            </div>
+            </button>
             <div className="p-3">
-              <p className="text-foreground truncate text-sm font-medium">
+              <button
+                type="button"
+                onClick={() => onOpenRow?.(row)}
+                className="text-foreground block w-full truncate text-left text-sm font-medium hover:underline"
+              >
                 {row.title || tCommon('untitled')}
-              </p>
+              </button>
               {fields.length > 0 ? (
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {fields.map((property) => (

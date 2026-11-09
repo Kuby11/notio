@@ -1,12 +1,15 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { useDatabases } from '../../hooks/use-databases';
 import { BoardView } from '../private/board-view';
 import { CalendarView } from '../private/calendar-view';
 import { ChartView } from '../private/chart-view';
 import { GalleryView } from '../private/gallery-view';
 import { ListView } from '../private/list-view';
+import { DatabaseTitle } from '../private/database-title';
+import { RowPeek } from '../private/row-peek';
 import { TableView, type TablePropertyActions } from '../private/table-view';
 import { ViewTabs } from '../private/view-tabs';
 import { isChartViewType } from '../../utils/view-types';
@@ -25,6 +28,7 @@ export function DatabaseView({ databaseId, initialViewId, className }: DatabaseV
   const {
     database,
     rows,
+    rawRows,
     views,
     activeView,
     groups,
@@ -47,7 +51,14 @@ export function DatabaseView({ databaseId, initialViewId, className }: DatabaseV
     duplicateProperty,
     hideProperty,
     showProperty,
+    updateDatabase,
   } = useDatabases(databaseId, initialViewId);
+
+  // The row opened in the peek dialog. Stored by id and read from the raw rows:
+  // an edit updates the cache and the dialog follows it.
+  const [peekRowId, setPeekRowId] = useState<string | null>(null);
+  const openedRow =
+    peekRowId === null ? null : (rawRows.find((row) => row.id === peekRowId) ?? null);
 
   if (isLoading && !database) {
     return (
@@ -118,9 +129,13 @@ export function DatabaseView({ databaseId, initialViewId, className }: DatabaseV
     >
       {/* Database Title Bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted/10">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {database.icon && <span className="text-xl">{database.icon}</span>}
-          <h2 className="text-lg font-bold tracking-tight text-foreground">{database.title}</h2>
+          <DatabaseTitle
+            databaseId={database.id}
+            title={database.title}
+            onRename={(title) => updateDatabase({ title })}
+          />
         </div>
       </div>
 
@@ -159,6 +174,7 @@ export function DatabaseView({ databaseId, initialViewId, className }: DatabaseV
               }
             }}
             onDeleteRow={deleteRow}
+            onOpenRow={(row) => setPeekRowId(row.id)}
           />
         ) : activeView?.type === 'list' ? (
           <ListView
@@ -167,6 +183,7 @@ export function DatabaseView({ databaseId, initialViewId, className }: DatabaseV
             view={activeView}
             onAddRow={() => createRow()}
             onDeleteRow={deleteRow}
+            onOpenRow={(row) => setPeekRowId(row.id)}
           />
         ) : activeView?.type === 'gallery' ? (
           <GalleryView
@@ -175,9 +192,15 @@ export function DatabaseView({ databaseId, initialViewId, className }: DatabaseV
             view={activeView}
             onAddRow={() => createRow()}
             onDeleteRow={deleteRow}
+            onOpenRow={(row) => setPeekRowId(row.id)}
           />
         ) : activeView?.type === 'calendar' ? (
-          <CalendarView properties={properties} rows={rows} view={activeView} />
+          <CalendarView
+            properties={properties}
+            rows={rows}
+            view={activeView}
+            onOpenRow={(row) => setPeekRowId(row.id)}
+          />
         ) : activeView && isChartViewType(activeView.type) ? (
           <ChartView
             properties={properties}
@@ -203,6 +226,23 @@ export function DatabaseView({ databaseId, initialViewId, className }: DatabaseV
           )
         )}
       </div>
+
+      <RowPeek
+        row={openedRow}
+        properties={properties}
+        onClose={() => setPeekRowId(null)}
+        onChange={(propertyId, value) => {
+          if (openedRow) {
+            updateCell(openedRow, propertyId, value);
+          }
+        }}
+        onDelete={() => {
+          if (openedRow) {
+            deleteRow(openedRow.id);
+            setPeekRowId(null);
+          }
+        }}
+      />
     </div>
   );
 }

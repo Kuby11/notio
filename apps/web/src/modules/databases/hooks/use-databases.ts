@@ -110,6 +110,9 @@ export function useDatabases(databaseId: string, initialViewId?: string) {
     mutationFn: (input: UpdateDatabaseInput) => databases.update(databaseId, input),
     onSuccess: (updated) => {
       queryClient.setQueryData(databaseKeys.detail(databaseId), updated);
+      // The sidebar tree and the editor link chips read the list: a rename must
+      // reach them without waiting for a refetch.
+      void queryClient.invalidateQueries({ queryKey: databaseKeys.list(updated.workspaceId) });
     },
   });
 

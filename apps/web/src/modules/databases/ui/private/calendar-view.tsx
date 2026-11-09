@@ -11,6 +11,8 @@ export interface CalendarViewProps {
   properties: DatabaseProperty[];
   rows: DatabaseRow[];
   view: DatabaseView;
+  /** Opens the row popover, where its data can be edited. */
+  onOpenRow?: (row: DatabaseRow) => void;
 }
 
 function dateKeyOf(value: PropertyValue | null | undefined): string | null {
@@ -43,7 +45,7 @@ function firstOfMonth(date: Date): Date {
 }
 
 /** Calendar view: a month grid with rows positioned by the selected date field. */
-export function CalendarView({ properties, rows, view }: CalendarViewProps) {
+export function CalendarView({ properties, rows, view, onOpenRow }: CalendarViewProps) {
   const t = useTranslations('databases.calendar');
   const tCommon = useTranslations('common');
   const locale = useLocale();
@@ -194,13 +196,15 @@ export function CalendarView({ properties, rows, view }: CalendarViewProps) {
 
                 <div className="space-y-1">
                   {events.slice(0, 3).map((row) => (
-                    <div
+                    <button
                       key={row.id}
-                      className="bg-primary/10 text-foreground truncate rounded px-1.5 py-1 text-[11px]"
+                      type="button"
+                      onClick={() => onOpenRow?.(row)}
+                      className="bg-primary/10 text-foreground block w-full truncate rounded px-1.5 py-1 text-left text-[11px] hover:bg-primary/20"
                       title={row.title || tCommon('untitled')}
                     >
                       {row.title || tCommon('untitled')}
-                    </div>
+                    </button>
                   ))}
                   {events.length > 3 ? (
                     <p className="text-muted-foreground px-1 text-[10px]">+{events.length - 3}</p>

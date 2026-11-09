@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createFakeDatabaseRepository } from '../../../../../test/database-fixture';
 import { gatewayStub, renderWithProviders } from '../../../../../test/auth-fixture';
 import { DatabaseView } from './database-view';
@@ -18,7 +18,8 @@ describe('DatabaseView properties', () => {
       databases: createFakeDatabaseRepository(),
     });
 
-    expect(await screen.findByText('Project Tasks')).toBeInTheDocument();
+    // The title is an input: a database is renamed in place, like a page.
+    expect(await screen.findByDisplayValue('Project Tasks')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'New property' }));
     await user.click(await screen.findByRole('button', { name: 'Number' }));
@@ -37,7 +38,7 @@ describe('DatabaseView properties', () => {
       databases: createFakeDatabaseRepository(),
     });
 
-    await screen.findByText('Project Tasks');
+    await screen.findByDisplayValue('Project Tasks');
 
     await user.click(screen.getByRole('button', { name: 'Status' }));
 
@@ -65,6 +66,25 @@ describe('DatabaseView properties', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Stage' })).toBeInTheDocument();
+    });
+  });
+
+  it('renames the database from its title field', async () => {
+    const gateway = gatewayStub();
+    gateway.accessToken.mockResolvedValue('jwt');
+    const user = userEvent.setup();
+    const databases = createFakeDatabaseRepository();
+    const update = vi.spyOn(databases, 'update');
+
+    renderWithProviders(<DatabaseView databaseId={DB_ID} />, gateway, { databases });
+
+    const title = await screen.findByDisplayValue('Project Tasks');
+
+    await user.clear(title);
+    await user.type(title, 'Roadmap{Enter}');
+
+    await waitFor(() => {
+      expect(update).toHaveBeenCalledWith(DB_ID, { title: 'Roadmap' });
     });
   });
 });

@@ -75,6 +75,18 @@ describe('ViewTabs', () => {
     expect(props.onAddView).toHaveBeenCalledWith('calendar', 'Calendar');
   });
 
+  it('only opens the view menu for the active tab', async () => {
+    const user = userEvent.setup();
+    const props = renderTabs();
+
+    // Clicking another tab switches the view: its menu belongs to that view
+    // only once it is active.
+    await user.click(screen.getByRole('tab', { name: /Chart/ }));
+
+    expect(props.onSelectView).toHaveBeenCalledWith(CHART.id);
+    expect(screen.queryByRole('menuitem', { name: 'Rename view' })).not.toBeInTheDocument();
+  });
+
   it('renames a view from the tab menu', async () => {
     const user = userEvent.setup();
     const props = renderTabs();

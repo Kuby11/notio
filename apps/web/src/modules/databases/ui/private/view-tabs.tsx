@@ -98,6 +98,9 @@ export function ViewTabs({
 }: ViewTabsProps) {
   const t = useTranslations('databases.views');
   const [addOpen, setAddOpen] = useState(false);
+  // The view whose actions menu is open: only the active tab has one, so a
+  // click on another tab switches the view instead of opening a menu.
+  const [menuViewId, setMenuViewId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<DatabaseView | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [deleting, setDeleting] = useState<DatabaseView | null>(null);
@@ -152,7 +155,18 @@ export function ViewTabs({
           const Icon = VIEW_ICONS[view.type];
 
           return (
-            <DropdownMenu key={view.id}>
+            <DropdownMenu
+              key={view.id}
+              open={isActive && menuViewId === view.id}
+              onOpenChange={(open) => {
+                if (open && !isActive) {
+                  onSelectView(view.id);
+                  return;
+                }
+
+                setMenuViewId(open ? view.id : null);
+              }}
+            >
               <DropdownMenuTrigger
                 render={
                   <button

@@ -12,6 +12,8 @@ export interface ListViewProps {
   view: DatabaseView;
   onAddRow: () => void;
   onDeleteRow: (rowId: string) => void;
+  /** Opens the row popover, where its data can be edited. */
+  onOpenRow?: (row: DatabaseRow) => void;
 }
 
 function visibleProperties(properties: DatabaseProperty[], view: DatabaseView) {
@@ -24,7 +26,14 @@ function visibleProperties(properties: DatabaseProperty[], view: DatabaseView) {
 }
 
 /** Notion-style list: one row per database page, with its visible fields. */
-export function ListView({ properties, rows, view, onAddRow, onDeleteRow }: ListViewProps) {
+export function ListView({
+  properties,
+  rows,
+  view,
+  onAddRow,
+  onDeleteRow,
+  onOpenRow,
+}: ListViewProps) {
   const t = useTranslations('databases.views');
   const tCommon = useTranslations('common');
   const fields = visibleProperties(properties, view);
@@ -42,9 +51,13 @@ export function ListView({ properties, rows, view, onAddRow, onDeleteRow }: List
                 className="group hover:bg-muted/25 flex items-start gap-3 px-3 py-2.5"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-foreground truncate text-sm font-medium">
+                  <button
+                    type="button"
+                    onClick={() => onOpenRow?.(row)}
+                    className="text-foreground block w-full truncate text-left text-sm font-medium hover:underline"
+                  >
                     {row.title || tCommon('untitled')}
-                  </p>
+                  </button>
                   {fields.length > 0 ? (
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       {fields.map((property) => (

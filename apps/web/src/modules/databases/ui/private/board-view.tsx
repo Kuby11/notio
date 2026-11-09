@@ -9,6 +9,8 @@ export interface BoardViewProps {
   onCardMove: (row: DatabaseRow, targetGroupId: string) => void;
   onAddCard: (targetGroupId: string) => void;
   onDeleteRow: (rowId: string) => void;
+  /** Opens the row popover, where its data can be edited. */
+  onOpenRow?: (row: DatabaseRow) => void;
 }
 
 export function BoardView({
@@ -18,6 +20,7 @@ export function BoardView({
   onCardMove,
   onAddCard,
   onDeleteRow,
+  onOpenRow,
 }: BoardViewProps) {
   const visibleProps =
     view.visiblePropertyIds && view.visiblePropertyIds.length > 0
@@ -54,10 +57,15 @@ export function BoardView({
                 key={row.id}
                 className="group relative rounded-lg border border-border bg-card p-3 shadow-xs hover:shadow-md transition-shadow"
               >
-                {/* Title */}
-                <div className="font-medium text-sm text-foreground truncate pr-6">
+                {/* The title opens the row popover: a board card shows its data,
+                    editing happens in the popover. */}
+                <button
+                  type="button"
+                  onClick={() => onOpenRow?.(row)}
+                  className="font-medium text-sm text-foreground truncate text-left w-full pr-6 hover:underline"
+                >
                   {row.title || 'Untitled'}
-                </div>
+                </button>
 
                 {/* Additional Visible Properties */}
                 {visibleProps.length > 0 && (
